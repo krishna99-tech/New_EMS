@@ -1,0 +1,10 @@
+/meters.db
+/logs/
+*.log
+*.csv
+*.db
+/__pycache__/
+/meters.db-shm
+/meters.db-wal
+/batfiles/
+*.bat

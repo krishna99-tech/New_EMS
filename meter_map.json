@@ -1,0 +1,60 @@
+{
+  "Architecture": {
+    "45": {
+      "name": "Main Incomer",
+      "type": "incomer"
+    },
+    "1": {
+      "name": "Landglass Tempering & APFC",
+      "type": "submeter"
+    },
+    "2": {
+      "name": "Main Distribution Board",
+      "type": "submeter"
+    },
+    "4": {
+      "name": "Heat Soak Test Furnace",
+      "type": "submeter"
+    },
+    "7": {
+      "name": "Cyclone # 1 RAD Bottom Furnace",
+      "type": "submeter"
+    },
+    "8": {
+      "name": "Cyclone # 1 RAD Top Furnace",
+      "type": "submeter"
+    },
+    "9": {
+      "name": "Cyclone # 1 Blower 1",
+      "type": "submeter"
+    },
+    "10": {
+      "name": "Cyclone # 2 Blower",
+      "type": "submeter"
+    },
+    "13": {
+      "name": "Cyclone # 1 Blower 3",
+      "type": "submeter"
+    },
+    "15": {
+      "name": "Cyclone # 1 Pre Top Furnace",
+      "type": "submeter"
+    },
+    "16": {
+      "name": "Cyclone # 1 Pre Bottom Furnace",
+      "type": "submeter"
+    },
+    "17": {
+      "name": "Cyclone # 1 Blower 2",
+      "type": "submeter"
+    },
+    "19": {
+      "name": "Cyclone # 2 Top",
+      "type": "submeter"
+    },
+    "20": {
+      "name": "Cyclone # 2 Bottom",
+      "type": "submeter"
+    }
+  }
+}
