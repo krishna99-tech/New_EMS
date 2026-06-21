@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context, send_from_directory
 import socket
 import threading
 import sqlite3
@@ -330,6 +330,15 @@ def start_udp_server_once():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route('/favicon.ico')
+def favicon():
+    """Serve favicon to avoid browser 404 on /favicon.ico."""
+    return send_from_directory(
+        app.static_folder,
+        'images/image.png',
+        mimetype='image/png'
+    )
 
 @app.route("/plants")
 def plants():
@@ -692,7 +701,11 @@ def energy_summary():
     if mode == "totalshifts":
         windows = get_shift_windows(from_dt, to_dt)
         for idx, (window_start, window_end, shift_name) in enumerate(windows, start=1):
-            w_start_row, w_end_row = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+            w_start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_start, value_column)
+            if not w_start_row:
+                w_start_row, _ = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+            w_end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_end, value_column)
+            
             if not w_start_row or not w_end_row:
                 continue
             cons = round(max(0, w_end_row["val"] - w_start_row["val"]), 2)
@@ -712,7 +725,11 @@ def energy_summary():
             for window_start, window_end, shift_name in windows:
                 if not shift_name.startswith(selected_shift):
                     continue
-                w_start_row, w_end_row = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+                w_start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_start, value_column)
+                if not w_start_row:
+                    w_start_row, _ = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+                w_end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_end, value_column)
+                
                 if not w_start_row or not w_end_row:
                     continue
                 cons = round(max(0, w_end_row["val"] - w_start_row["val"]), 2)
@@ -732,7 +749,11 @@ def energy_summary():
             # All Shifts => full-day total per date (sum of A+B+C for each day)
             day_buckets = {}
             for window_start, window_end, _shift_name in windows:
-                w_start_row, w_end_row = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+                w_start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_start, value_column)
+                if not w_start_row:
+                    w_start_row, _ = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+                w_end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_end, value_column)
+                
                 if not w_start_row or not w_end_row:
                     continue
                 cons = round(max(0, w_end_row["val"] - w_start_row["val"]), 2)
@@ -763,7 +784,11 @@ def energy_summary():
     last_end_row = None
     valid_window_count = 0
     for window_start, window_end, _ in selected_windows:
-        w_start_row, w_end_row = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+        w_start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_start, value_column)
+        if not w_start_row:
+            w_start_row, _ = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+        w_end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_end, value_column)
+        
         if not w_start_row or not w_end_row:
             continue
         valid_window_count += 1
