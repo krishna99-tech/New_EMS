@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context, send_from_directory
+from flask import Flask, render_template, request, jsonify, Response, stream_with_context, send_from_directory, redirect, url_for
 import socket
 import threading
 import sqlite3
@@ -118,60 +118,117 @@ def init_db():
         """
     )
 
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS meter_config (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plant TEXT,
+            meter_id INTEGER,
+            name TEXT,
+            type TEXT
+        )
+        """
+    )
+    
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS plants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE
+        )
+        """
+    )
+    
+    # One-time migration from meter_map.json
+    cur.execute("SELECT COUNT(*) FROM meter_config")
+    if cur.fetchone()[0] == 0:
+        json_path = os.path.join(BASE_DIR, "meter_map.json")
+        if os.path.exists(json_path):
+            with open(json_path, "r") as f:
+                try:
+                    meter_map = json.load(f)
+                    for plant, meters in meter_map.items():
+                        # Ensure plant exists in plants table
+                        cur.execute("INSERT OR IGNORE INTO plants (name) VALUES (?)", (plant,))
+                        for m_id, m_info in meters.items():
+                            cur.execute(
+                                "INSERT INTO meter_config (plant, meter_id, name, type) VALUES (?, ?, ?, ?)",
+                                (plant, int(m_id), m_info.get("name"), m_info.get("type"))
+                            )
+                except Exception as e:
+                    print("Error migrating meter_map.json:", e)
+                    
+    # Migrate any distinct plants from meter_config that aren't in plants table yet
+    cur.execute("INSERT OR IGNORE INTO plants (name) SELECT DISTINCT plant FROM meter_config")
+
     conn.commit()
     conn.close()
 
 init_db()
 
-# ================= LOAD JSON =================
+# ================= AUTHENTICATION =================
 
-with open(os.path.join(BASE_DIR, "meter_map.json"), "r") as f:
-    meter_map = json.load(f)
+app.secret_key = "super_secret_ems_key" # Replace in production
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "password123"
 
+# ================= HELPER FUNCTIONS =================
 
 def get_incomer_meter_id_for_plant(plant):
-    meters = meter_map.get(plant, {})
-    incomers = [mid for mid, meta in meters.items() if meta.get("type") == "incomer"]
-    if not incomers:
-        return None
-    # Business rule: one incomer per plant.
-    return str(incomers[0])
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT meter_id FROM meter_config WHERE plant=? AND type='incomer' LIMIT 1", (plant,))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return str(row[0])
+    return None
 
+
+def get_all_meters(plant):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT meter_id, name, type FROM meter_config WHERE plant=?", (plant,))
+    rows = cur.fetchall()
+    conn.close()
+    meters = {}
+    for row in rows:
+        meters[str(row[0])] = {"name": row[1], "type": row[2]}
+    return meters
+
+def get_all_plants():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT name FROM plants ORDER BY name ASC")
+    rows = cur.fetchall()
+    conn.close()
+    return [row[0] for row in rows]
+
+def get_meter_config(plant, meter_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT name, type FROM meter_config WHERE plant=? AND meter_id=?", (plant, meter_id))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return {"name": row[0], "type": row[1]}
+    return {}
 
 def normalize_historical_data():
     conn = get_db_connection()
     cur = conn.cursor()
 
     submeter_null_cols = [
-        "freq",
-        "volt",
-        "curr",
-        "pf",
-        "kw",
-        "kva",
-        "line_voltage",
-        "line_to_line_voltage",
-        "avg_voltage",
-        "voltage_unbalance",
-        "line_current",
-        "current_l1",
-        "current_l2",
-        "current_l3",
-        "avg_current",
-        "neutral_line_current",
-        "kw_l1",
-        "kw_l2",
-        "kw_l3",
-        "kw_total",
-        "kva_l1",
-        "kva_l2",
-        "kva_l3",
-        "kva_total",
-        "kva_max_demand",
+        "freq", "volt", "curr", "pf", "kw", "kva",
+        "line_voltage", "line_to_line_voltage", "avg_voltage", "voltage_unbalance",
+        "line_current", "current_l1", "current_l2", "current_l3", "avg_current",
+        "neutral_line_current", "kw_l1", "kw_l2", "kw_l3", "kw_total",
+        "kva_l1", "kva_l2", "kva_l3", "kva_total", "kva_max_demand",
     ]
     null_assignments = ", ".join([f"{col}=NULL" for col in submeter_null_cols])
 
-    for plant, meters in meter_map.items():
+    for plant in get_all_plants():
+        meters = get_all_meters(plant)
         for meter_id, meta in meters.items():
             meter_name = meta.get("name", f"Meter {meter_id}")
             meter_type = meta.get("type", "submeter")
@@ -187,7 +244,6 @@ def normalize_historical_data():
             )
 
             # One-time cleanup for legacy rows:
-            # keep only kWh for submeters.
             if meter_type != "incomer":
                 cur.execute(
                     f"""
@@ -200,7 +256,6 @@ def normalize_historical_data():
 
     conn.commit()
     conn.close()
-
 
 normalize_historical_data()
 
@@ -237,7 +292,7 @@ def udp_server():
             for meter in payload["meters"]:
                 meter_id = str(meter.get("id"))
 
-                config = meter_map.get(plant, {}).get(meter_id, {})
+                config = get_meter_config(plant, meter_id)
 
                 meter_name = config.get("name", f"Meter {meter_id}")
                 meter_type = config.get("type", "submeter")
@@ -342,43 +397,51 @@ def favicon():
 
 @app.route("/plants")
 def plants():
+    return jsonify(get_all_plants())
 
-    return jsonify(list(meter_map.keys()))
 
 @app.route("/meters")
 def meters():
-
     plant = request.args.get("plant")
-
-    meters = meter_map.get(plant, {})
-
+    meters_dict = get_all_meters(plant)
     result = []
-
-    for meter_id, data in meters.items():
-
+    for meter_id, data in meters_dict.items():
         result.append({
             "id": meter_id,
             "name": data["name"],
             "type": data.get("type", "submeter")
         })
-
     return jsonify(result)
+
+
+OFFLINE_THRESHOLD_SECONDS = 300  # 5 minutes — devices older than this are shown as Offline
+
+def compute_live_status(row: dict) -> str:
+    """Return 'OK' if the row's timestamp is within the offline threshold, else 'Offline'."""
+    ts_str = row.get("timestamp")
+    if not ts_str:
+        return "Offline"
+    try:
+        ts = datetime.strptime(str(ts_str), "%Y-%m-%d %H:%M:%S")
+        age = (datetime.now() - ts).total_seconds()
+        return "OK" if age <= OFFLINE_THRESHOLD_SECONDS else "Offline"
+    except Exception:
+        return "Offline"
+
 
 @app.route("/latest")
 def latest():
-
     plant = request.args.get("plant")
     meter = request.args.get("meter")
 
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
-
     cur = conn.cursor()
 
     if meter == "all":
-        meters = meter_map.get(str(plant), {})
+        meters_dict = get_all_meters(str(plant))
         rows = []
-        for meter_id, meta in meters.items():
+        for meter_id, meta in meters_dict.items():
             cur.execute(
                 "SELECT * FROM meter_data WHERE plant=? AND meter_id=? ORDER BY timestamp DESC LIMIT 1",
                 [str(plant), int(meter_id)]
@@ -389,6 +452,8 @@ def latest():
             normalized = dict(row)
             normalized["meter_name"] = meta.get("name", normalized.get("meter_name"))
             normalized["meter_type"] = meta.get("type", normalized.get("meter_type"))
+            # Live status based on timestamp age — not the stale stored value
+            normalized["status"] = compute_live_status(normalized)
             rows.append(normalized)
         rows.sort(key=lambda r: (r.get("meter_name") or ""))
         conn.close()
@@ -396,19 +461,19 @@ def latest():
     else:
         query = "SELECT * FROM meter_data WHERE plant=? AND meter_id=? ORDER BY timestamp DESC LIMIT 1"
         try:
-            # Ensure we are querying with the correct types (string for plant, int for meter_id)
             params = [str(plant), int(meter)]
         except (ValueError, TypeError):
-            # Fallback if meter is not a valid number
             params = [str(plant), str(meter)]
 
     cur.execute(query, params)
-
-    rows = cur.fetchall()
-
+    rows = []
+    for r in cur.fetchall():
+        normalized = dict(r)
+        normalized["status"] = compute_live_status(normalized)
+        rows.append(normalized)
     conn.close()
+    return jsonify(rows)
 
-    return jsonify([dict(r) for r in rows])
 
 
 def fetch_latest_rows(plant, meter, conn=None):
@@ -419,9 +484,9 @@ def fetch_latest_rows(plant, meter, conn=None):
     cur = conn.cursor()
 
     if meter == "all":
-        meters = meter_map.get(str(plant), {})
+        meters_dict = get_all_meters(str(plant))
         rows = []
-        for meter_id, meta in meters.items():
+        for meter_id, meta in meters_dict.items():
             cur.execute(
                 "SELECT * FROM meter_data WHERE plant=? AND meter_id=? ORDER BY timestamp DESC LIMIT 1",
                 [str(plant), int(meter_id)]
@@ -432,6 +497,8 @@ def fetch_latest_rows(plant, meter, conn=None):
             normalized = dict(row)
             normalized["meter_name"] = meta.get("name", normalized.get("meter_name"))
             normalized["meter_type"] = meta.get("type", normalized.get("meter_type"))
+            # Override stale stored status with a live timestamp-based check
+            normalized["status"] = compute_live_status(normalized)
             rows.append(normalized)
         rows.sort(key=lambda r: (r.get("meter_name") or ""))
         if own_conn:
@@ -445,11 +512,132 @@ def fetch_latest_rows(plant, meter, conn=None):
             params = [str(plant), str(meter)]
 
     cur.execute(query, params)
-    rows = [dict(r) for r in cur.fetchall()]
+    rows = []
+    for r in cur.fetchall():
+        normalized = dict(r)
+        # Override stale stored status with a live timestamp-based check
+        normalized["status"] = compute_live_status(normalized)
+        rows.append(normalized)
     if own_conn:
         conn.close()
     return rows
 
+# ================= AUTH & ADMIN APIs =================
+
+from functools import wraps
+from flask import session
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            if request.path.startswith('/api/'):
+                return jsonify({"error": "Unauthorized"}), 401
+            else:
+                return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/admin")
+@login_required
+def admin():
+    return render_template("admin.html")
+
+@app.route("/api/plants", methods=["POST"])
+@login_required
+def add_plant():
+    data = request.json
+    plant_name = data.get("name")
+    if not plant_name:
+        return jsonify({"success": False, "error": "Plant name is required"}), 400
+        
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("INSERT INTO plants (name) VALUES (?)", (plant_name,))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({"success": False, "error": "Plant already exists"}), 400
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/api/login", methods=["POST"])
+def login():
+    data = request.json
+    if data.get("username") == ADMIN_USERNAME and data.get("password") == ADMIN_PASSWORD:
+        session['logged_in'] = True
+        return jsonify({"success": True})
+    return jsonify({"error": "Invalid credentials"}), 401
+
+@app.route("/api/logout", methods=["POST"])
+def logout():
+    session.pop('logged_in', None)
+    return jsonify({"success": True})
+
+@app.route("/api/auth_status", methods=["GET"])
+def auth_status():
+    return jsonify({"logged_in": session.get('logged_in', False)})
+
+@app.route("/api/meter_config", methods=["GET"])
+@login_required
+def get_meter_configs():
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT id, plant, meter_id, name, type FROM meter_config ORDER BY plant, meter_id")
+    rows = cur.fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/meter_config", methods=["POST"])
+@login_required
+def save_meter_config():
+    data = request.json
+    plant = data.get("plant")
+    meter_id = data.get("meter_id")
+    name = data.get("name")
+    m_type = data.get("type", "submeter")
+    
+    if not plant or not meter_id or not name:
+        return jsonify({"error": "Missing fields"}), 400
+        
+    try:
+        meter_id = int(meter_id)
+    except ValueError:
+        return jsonify({"error": "Meter ID must be an integer"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Enforce one incomer per plant
+    if m_type == "incomer":
+        cur.execute("SELECT id FROM meter_config WHERE plant=? AND type='incomer' AND meter_id!=?", (plant, meter_id))
+        if cur.fetchone():
+            conn.close()
+            return jsonify({"error": "Only one incomer is allowed per plant"}), 400
+            
+    cur.execute("SELECT id FROM meter_config WHERE plant=? AND meter_id=?", (plant, meter_id))
+    existing = cur.fetchone()
+    
+    if existing:
+        cur.execute("UPDATE meter_config SET name=?, type=? WHERE id=?", (name, m_type, existing[0]))
+    else:
+        cur.execute("INSERT INTO meter_config (plant, meter_id, name, type) VALUES (?, ?, ?, ?)", (plant, meter_id, name, m_type))
+        
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/api/meter_config/<int:config_id>", methods=["DELETE"])
+@login_required
+def delete_meter_config(config_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM meter_config WHERE id=?", (config_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
 
 @app.route("/stream_latest")
 def stream_latest():
@@ -666,8 +854,8 @@ def energy_summary():
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    meters = meter_map.get(plant, {})
-    meter_config = meters.get(str(meter), {})
+    meters = get_all_meters(plant)
+    meter_config = get_meter_config(plant, meter)
     if not meter_config:
         conn.close()
         return jsonify({"error": "Meter not found"}), 404
@@ -677,13 +865,15 @@ def energy_summary():
     unit = "kWh"
     metric_name = "Energy Consumption"
 
-    start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), from_dt, value_column)
-    end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), to_dt, value_column)
-
-    start_kwh = start_row["val"] if start_row else None
-    end_kwh = end_row["val"] if end_row else None
-    total_consumption = None
-    if start_kwh is not None and end_kwh is not None:
+    in_window_start, in_window_end = fetch_value_bounds_in_window(cur, plant, int(meter), from_dt, to_dt, value_column)
+    if not in_window_end:
+        start_kwh = None
+        end_kwh = None
+        total_consumption = None
+    else:
+        start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), from_dt, value_column)
+        start_kwh = float(start_row["val"]) if start_row else float(in_window_start["val"])
+        end_kwh = float(in_window_end["val"])
         total_consumption = round(max(0, end_kwh - start_kwh), 2)
 
     shift_start = get_shift_start(now)
@@ -701,10 +891,14 @@ def energy_summary():
     if mode == "totalshifts":
         windows = get_shift_windows(from_dt, to_dt)
         for idx, (window_start, window_end, shift_name) in enumerate(windows, start=1):
+            in_window_first, in_window_last = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+            if not in_window_last:
+                continue
+
             w_start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_start, value_column)
             if not w_start_row:
-                w_start_row, _ = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
-            w_end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_end, value_column)
+                w_start_row = in_window_first
+            w_end_row = in_window_last
             
             if not w_start_row or not w_end_row:
                 continue
@@ -725,40 +919,58 @@ def energy_summary():
             for window_start, window_end, shift_name in windows:
                 if not shift_name.startswith(selected_shift):
                     continue
+                in_window_first, in_window_last = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+                if not in_window_last:
+                    continue
+                
                 w_start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_start, value_column)
                 if not w_start_row:
-                    w_start_row, _ = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
-                w_end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_end, value_column)
+                    w_start_row = in_window_first
+                w_end_row = in_window_last
                 
                 if not w_start_row or not w_end_row:
                     continue
                 cons = round(max(0, w_end_row["val"] - w_start_row["val"]), 2)
                 day_key = get_production_day_key(window_start)
-                day_buckets[day_key] = day_buckets.get(day_key, 0) + cons
+                if day_key not in day_buckets:
+                    day_buckets[day_key] = {"consumption": cons, "start_kwh": w_start_row["val"], "end_kwh": w_end_row["val"]}
+                else:
+                    day_buckets[day_key]["consumption"] += cons
+                    day_buckets[day_key]["start_kwh"] = min(day_buckets[day_key]["start_kwh"], w_start_row["val"])
+                    day_buckets[day_key]["end_kwh"] = max(day_buckets[day_key]["end_kwh"], w_end_row["val"])
             for day_key in sorted(day_buckets.keys()):
                 bars.append({
                     "label": day_key,
                     "shift_name": selected_shift,
                     "start": f"{day_key} 06:00:00",
                     "end": (datetime.strptime(day_key, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d 06:00:00"),
-                    "start_kwh": None,
-                    "end_kwh": None,
-                    "consumption": round(day_buckets[day_key], 2)
+                    "start_kwh": round(day_buckets[day_key]["start_kwh"], 2),
+                    "end_kwh": round(day_buckets[day_key]["end_kwh"], 2),
+                    "consumption": round(day_buckets[day_key]["consumption"], 2)
                 })
         else:
             # All Shifts => full-day total per date (sum of A+B+C for each day)
             day_buckets = {}
             for window_start, window_end, _shift_name in windows:
+                in_window_first, in_window_last = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+                if not in_window_last:
+                    continue
+                
                 w_start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_start, value_column)
                 if not w_start_row:
-                    w_start_row, _ = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
-                w_end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_end, value_column)
+                    w_start_row = in_window_first
+                w_end_row = in_window_last
                 
                 if not w_start_row or not w_end_row:
                     continue
                 cons = round(max(0, w_end_row["val"] - w_start_row["val"]), 2)
                 day_key = get_production_day_key(window_start)
-                day_buckets[day_key] = day_buckets.get(day_key, 0) + cons
+                if day_key not in day_buckets:
+                    day_buckets[day_key] = {"consumption": cons, "start_kwh": w_start_row["val"], "end_kwh": w_end_row["val"]}
+                else:
+                    day_buckets[day_key]["consumption"] += cons
+                    day_buckets[day_key]["start_kwh"] = min(day_buckets[day_key]["start_kwh"], w_start_row["val"])
+                    day_buckets[day_key]["end_kwh"] = max(day_buckets[day_key]["end_kwh"], w_end_row["val"])
 
             for day_key in sorted(day_buckets.keys()):
                 bars.append({
@@ -766,48 +978,56 @@ def energy_summary():
                     "shift_name": "All Shifts",
                     "start": f"{day_key} 06:00:00",
                     "end": (datetime.strptime(day_key, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d 06:00:00"),
-                    "start_kwh": None,
-                    "end_kwh": None,
-                    "consumption": round(day_buckets[day_key], 2)
+                    "start_kwh": round(day_buckets[day_key]["start_kwh"], 2),
+                    "end_kwh": round(day_buckets[day_key]["end_kwh"], 2),
+                    "consumption": round(day_buckets[day_key]["consumption"], 2)
                 })
 
-    selected_total_kwh = round(sum((b.get("consumption") or 0) for b in bars), 2)
+    if mode == "custom":
+        selected_total_kwh = total_consumption
+    else:
+        selected_total_kwh = round(sum((b.get("consumption") or 0) for b in bars), 2)
     # Shift-filtered card values:
     # Use in-window bounds so dashboard cards match CSV shift windows.
-    selected_start_kwh = None
-    selected_end_kwh = None
-    selected_windows = get_shift_windows(from_dt, to_dt)
-    if selected_shift != "all":
-        selected_windows = [w for w in selected_windows if w[2].startswith(selected_shift)]
-
-    first_start_row = None
-    last_end_row = None
-    valid_window_count = 0
-    for window_start, window_end, _ in selected_windows:
-        w_start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_start, value_column)
-        if not w_start_row:
-            w_start_row, _ = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
-        w_end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_end, value_column)
-        
-        if not w_start_row or not w_end_row:
-            continue
-        valid_window_count += 1
-        if first_start_row is None:
-            first_start_row = w_start_row
-        last_end_row = w_end_row
-
-    if first_start_row and last_end_row:
-        selected_start_kwh = first_start_row["val"]
-        selected_end_kwh = last_end_row["val"]
+    if mode == "custom":
+        selected_start_kwh = start_kwh
+        selected_end_kwh = end_kwh
+        valid_window_count = 1 if (start_kwh is not None and end_kwh is not None) else 0
     else:
-        # For specific shifts, do not backfill from range boundaries.
-        # This avoids showing misleading end values when selected shift has no data.
-        if selected_shift == "all":
-            selected_start_kwh = start_kwh
-            selected_end_kwh = end_kwh
+        selected_start_kwh = None
+        selected_end_kwh = None
+        selected_windows = get_shift_windows(from_dt, to_dt)
+        if selected_shift != "all":
+            selected_windows = [w for w in selected_windows if w[2].startswith(selected_shift)]
+    
+        first_start_row = None
+        last_end_row = None
+        valid_window_count = 0
+        for window_start, window_end, _ in selected_windows:
+            w_start_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_start, value_column)
+            if not w_start_row:
+                w_start_row, _ = fetch_value_bounds_in_window(cur, plant, int(meter), window_start, window_end, value_column)
+            w_end_row = fetch_latest_value_at_or_before(cur, plant, int(meter), window_end, value_column)
+            
+            if not w_start_row or not w_end_row:
+                continue
+            valid_window_count += 1
+            if first_start_row is None:
+                first_start_row = w_start_row
+            last_end_row = w_end_row
+    
+        if first_start_row and last_end_row:
+            selected_start_kwh = first_start_row["val"]
+            selected_end_kwh = last_end_row["val"]
         else:
-            selected_start_kwh = None
-            selected_end_kwh = None
+            # For specific shifts, do not backfill from range boundaries.
+            # This avoids showing misleading end values when selected shift has no data.
+            if selected_shift == "all":
+                selected_start_kwh = start_kwh
+                selected_end_kwh = end_kwh
+            else:
+                selected_start_kwh = None
+                selected_end_kwh = None
 
     response = jsonify({
         "meter_id": meter,
@@ -856,8 +1076,7 @@ def incomer_shift_summary():
     if to_dt <= from_dt:
         return jsonify({"error": "to_dt must be greater than from_dt"}), 400
 
-    meters = meter_map.get(plant, {})
-    meter_config = meters.get(str(meter), {})
+    meter_config = get_meter_config(plant, str(meter))
     if not meter_config:
         return jsonify({"error": "Meter not found"}), 404
     if meter_config.get("type") != "incomer":
@@ -1037,7 +1256,7 @@ def export_csv():
     if meter == "all":
         submeters = [
             (int(mid), meta.get("name", f"Meter {mid}"))
-            for mid, meta in meter_map.get(plant, {}).items()
+            for mid, meta in get_all_meters(plant).items()
             if meta.get("type", "submeter") == "submeter"
         ]
 
@@ -1111,7 +1330,7 @@ def export_csv():
         except ValueError:
             conn.close()
             return jsonify({"error": "Invalid meter id"}), 400
-        meter_config = meter_map.get(plant, {}).get(str(meter_id), {})
+        meter_config = get_meter_config(plant, str(meter_id))
         meter_type = meter_config.get("type", "submeter")
 
         if meter_type == "submeter":
@@ -1239,7 +1458,7 @@ if __name__ == "__main__":
     # Start UDP thread only in the active reloader child (or when reloader is off).
     if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         start_udp_server_once()
-    app.run(debug=True, host="0.0.0.0", port=10012)
+    app.run(debug=True, host="0.0.0.0", port=10012, threaded=True)
 
 
 

@@ -5,14 +5,20 @@
 {% block content %}
     <div class="navbar">
         <div class="nav-left">
-            <h1 id="dashboardTitle">
-                Energy Monitoring System
-            </h1>
-            <p class="subtitle">
-                FUSO Energy Monitoring System
-            </p>
+            <img src="{{ url_for('static', filename='images/image.png') }}" alt="Company Logo" class="company-logo">
+            <div class="nav-titles">
+                <h1 id="dashboardTitle">
+                    Energy Monitoring System
+                </h1>
+                <p class="subtitle">
+                    FUSO Energy Monitoring System
+                </p>
+            </div>
         </div>
         <div class="nav-right">
+            <button id="authBtn" class="theme-btn" title="Login">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            </button>
             <button id="themeToggle" class="theme-btn" title="Toggle Light/Dark Mode">
                 <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
             </button>
@@ -30,6 +36,54 @@
             </div>
         </div>
     </div>
+
+    <!-- STICKY FILTER BAR (shown only when dashboard is active) -->
+    <div id="filterBar" class="filter-bar" style="display: none;">
+        <div class="select-container">
+            <div class="select-card">
+                <label>Meter</label>
+                <select id="meterSelect" aria-label="Select Specific Meter">
+                    <option value="">Select Meter</option>
+                </select>
+            </div>
+            <label class="tick-card" for="shiftAnalysisToggle">
+                <input id="shiftAnalysisToggle" type="checkbox" checked />
+                <span class="tick-dot"></span>
+                <span>Shift Analysis (Date)</span>
+            </label>
+            <label class="tick-card" for="customTimeToggle">
+                <input id="customTimeToggle" type="checkbox" />
+                <span class="tick-dot"></span>
+                <span>Custom Time</span>
+            </label>
+            <label class="tick-card" for="barGraphToggle">
+                <input id="barGraphToggle" type="checkbox" />
+                <span class="tick-dot"></span>
+                <span>Show Bar Graphs</span>
+            </label>
+            <div class="select-card">
+                <label>Shift</label>
+                <select id="shiftSelect" aria-label="Select Shift">
+                    <option value="all">All Shifts</option>
+                    <option value="Shift A">Shift A</option>
+                    <option value="Shift B">Shift B</option>
+                    <option value="Shift C">Shift C</option>
+                </select>
+            </div>
+            <div class="select-card">
+                <label>From (Date &amp; Time)</label>
+                <input id="fromDateTime" type="datetime-local" />
+            </div>
+            <div class="select-card">
+                <label>To (Date &amp; Time)</label>
+                <input id="toDateTime" type="datetime-local" />
+            </div>
+            <button id="submitFiltersBtn" class="submit-btn" type="button">Submit</button>
+            <button id="exportCsvBtn" class="submit-btn export-btn" type="button">Export CSV</button>
+        </div>
+        <p id="shiftDisabledNote" class="inline-note" style="display:none;">Shift analysis is disabled for Main Incomer.</p>
+    </div>
+
     <div class="container">
         <!-- LANDING PAGE VIEW -->
         <div id="landingView">
@@ -81,42 +135,6 @@
 
         <!-- DASHBOARD VIEW (Hidden by default) -->
         <div id="dashboardView" style="display: none;">
-            <div class="select-container">
-                <div class="select-card">
-                    <label>Meter</label>
-                    <select id="meterSelect" aria-label="Select Specific Meter">
-                        <option value="">Select Meter</option>
-                    </select>
-                </div>
-                <label class="tick-card" for="shiftAnalysisToggle">
-                    <input id="shiftAnalysisToggle" type="checkbox" checked />
-                    <span>Enable Shift Analysis</span>
-                </label>
-                <label class="tick-card" for="barGraphToggle">
-                    <input id="barGraphToggle" type="checkbox" />
-                    <span>Show Bar Graphs</span>
-                </label>
-                <div class="select-card">
-                    <label>Shift</label>
-                    <select id="shiftSelect" aria-label="Select Shift">
-                        <option value="all">All Shifts</option>
-                        <option value="Shift A">Shift A</option>
-                        <option value="Shift B">Shift B</option>
-                        <option value="Shift C">Shift C</option>
-                    </select>
-                </div>
-                <div class="select-card">
-                    <label>From (Date & Time)</label>
-                    <input id="fromDateTime" type="datetime-local" />
-                </div>
-                <div class="select-card">
-                    <label>To (Date & Time)</label>
-                    <input id="toDateTime" type="datetime-local" />
-                </div>
-                <button id="submitFiltersBtn" class="submit-btn" type="button">Submit</button>
-                <button id="exportCsvBtn" class="submit-btn export-btn" type="button">Export CSV</button>
-            </div>
-            <p id="shiftDisabledNote" class="inline-note" style="display:none;">Shift analysis is disabled for Main Incomer.</p>
             <!-- PARAMETER CARDS -->
             <div class="cards" id="cardsContainer">
             </div>
@@ -129,6 +147,30 @@
         </svg>
         <span>Home</span>
     </button>
+    <!-- LOGIN MODAL -->
+    <div id="loginModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content login-modal">
+            <div class="modal-header">
+                <h2>Admin Login</h2>
+                <button type="button" class="close-modal-btn" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="loginUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <p id="loginError" style="color: #ef4444; display: none; font-size: 0.9em;">Invalid credentials</p>
+                    <button type="submit" class="submit-btn" style="width: 100%; margin-top: 10px;">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
 {% endblock %}
 
 {% block scripts %}

@@ -17,6 +17,7 @@ const toDateTime = document.getElementById("toDateTime");
 const submitFiltersBtn = document.getElementById("submitFiltersBtn");
 const exportCsvBtn = document.getElementById("exportCsvBtn");
 const shiftAnalysisToggle = document.getElementById("shiftAnalysisToggle");
+const customTimeToggle = document.getElementById("customTimeToggle");
 const barGraphToggle = document.getElementById("barGraphToggle");
 const shiftDisabledNote = document.getElementById("shiftDisabledNote");
 const floatingHomeBtn = document.getElementById("floatingHomeBtn");
@@ -193,12 +194,15 @@ function getShiftName(dt) {
     return "Shift C";
 }
 
-function toLocalInputValue(dt) {
+function toLocalInputValue(dt, isDateOnly = false) {
     const pad = n => String(n).padStart(2, "0");
-    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+    const dateStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+    if (isDateOnly) return dateStr;
+    return `${dateStr}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
 }
 
 function setDefaultDateRange() {
+    const isDateOnly = shiftAnalysisToggle.checked;
     const now = new Date();
     const today6 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0, 0);
     if (now < today6) {
@@ -207,8 +211,8 @@ function setDefaultDateRange() {
     const start = new Date(today6);
     start.setDate(start.getDate() - 1);
     const end = new Date(today6);
-    fromDateTime.value = toLocalInputValue(start);
-    toDateTime.value = toLocalInputValue(end);
+    fromDateTime.value = toLocalInputValue(start, isDateOnly);
+    toDateTime.value = toLocalInputValue(end, isDateOnly);
 }
 
 function updateInsightCardsMeta(_extra = {}) {}
@@ -371,18 +375,7 @@ function setupLiveStream() {
     });
 }
 
-function setShiftControlsEnabled(enabled) {
-    shiftSelect.disabled = !enabled;
-    fromDateTime.disabled = !enabled;
-    toDateTime.disabled = !enabled;
-    submitFiltersBtn.disabled = !enabled;
-    exportCsvBtn.disabled = !enabled;
-    shiftSelect.closest(".select-card")?.classList.toggle("disabled-control", !enabled);
-    fromDateTime.closest(".select-card")?.classList.toggle("disabled-control", !enabled);
-    toDateTime.closest(".select-card")?.classList.toggle("disabled-control", !enabled);
-    submitFiltersBtn.classList.toggle("disabled-control", !enabled);
-    exportCsvBtn.classList.toggle("disabled-control", !enabled);
-}
+
 
 function renderLiveOnlyNotice(message) {
     const notice = document.createElement("div");
@@ -401,7 +394,18 @@ function syncShiftUiForMeter() {
         barGraphToggle.disabled = true;
         shiftAnalysisToggle.closest(".tick-card")?.classList.add("disabled-control");
         barGraphToggle.closest(".tick-card")?.classList.add("disabled-control");
-        setShiftControlsEnabled(false);
+        
+        shiftSelect.disabled = true;
+        fromDateTime.disabled = true;
+        toDateTime.disabled = true;
+        submitFiltersBtn.disabled = true;
+        exportCsvBtn.disabled = true;
+        shiftSelect.closest(".select-card")?.classList.toggle("disabled-control", true);
+        fromDateTime.closest(".select-card")?.classList.toggle("disabled-control", true);
+        toDateTime.closest(".select-card")?.classList.toggle("disabled-control", true);
+        submitFiltersBtn.classList.toggle("disabled-control", true);
+        exportCsvBtn.classList.toggle("disabled-control", true);
+        
         shiftDisabledNote.textContent = "Please select a meter to enable shift analysis and export controls.";
         shiftDisabledNote.style.display = "block";
         return;
@@ -414,18 +418,51 @@ function syncShiftUiForMeter() {
         barGraphToggle.disabled = true;
         shiftAnalysisToggle.closest(".tick-card")?.classList.add("disabled-control");
         barGraphToggle.closest(".tick-card")?.classList.add("disabled-control");
-        setShiftControlsEnabled(false);
+        
+        shiftSelect.disabled = true;
+        fromDateTime.disabled = true;
+        toDateTime.disabled = true;
+        submitFiltersBtn.disabled = true;
+        exportCsvBtn.disabled = true;
+        shiftSelect.closest(".select-card")?.classList.toggle("disabled-control", true);
+        fromDateTime.closest(".select-card")?.classList.toggle("disabled-control", true);
+        toDateTime.closest(".select-card")?.classList.toggle("disabled-control", true);
+        submitFiltersBtn.classList.toggle("disabled-control", true);
+        exportCsvBtn.classList.toggle("disabled-control", true);
+        
         shiftDisabledNote.textContent = "All Devices is live-only. Shift analysis and bar graphs are disabled.";
         shiftDisabledNote.style.display = "block";
         return;
     }
 
     shiftAnalysisToggle.disabled = false;
+    customTimeToggle.disabled = false;
     barGraphToggle.disabled = false;
     shiftAnalysisToggle.closest(".tick-card")?.classList.remove("disabled-control");
+    customTimeToggle.closest(".tick-card")?.classList.remove("disabled-control");
     barGraphToggle.closest(".tick-card")?.classList.remove("disabled-control");
-    const rangeModeEnabled = shiftAnalysisToggle.checked || barGraphToggle.checked;
-    setShiftControlsEnabled(rangeModeEnabled);
+    const rangeModeEnabled = shiftAnalysisToggle.checked || customTimeToggle.checked || barGraphToggle.checked;
+    const shiftDropdownEnabled = shiftAnalysisToggle.checked || barGraphToggle.checked;
+
+    shiftSelect.disabled = !shiftDropdownEnabled;
+    fromDateTime.disabled = !rangeModeEnabled;
+    toDateTime.disabled = !rangeModeEnabled;
+    submitFiltersBtn.disabled = !rangeModeEnabled;
+    exportCsvBtn.disabled = !rangeModeEnabled;
+
+    shiftSelect.closest(".select-card")?.classList.toggle("disabled-control", !shiftDropdownEnabled);
+    fromDateTime.closest(".select-card")?.classList.toggle("disabled-control", !rangeModeEnabled);
+    toDateTime.closest(".select-card")?.classList.toggle("disabled-control", !rangeModeEnabled);
+    submitFiltersBtn.classList.toggle("disabled-control", !rangeModeEnabled);
+    exportCsvBtn.classList.toggle("disabled-control", !rangeModeEnabled);
+
+    if (shiftAnalysisToggle.checked) {
+        fromDateTime.type = "date";
+        toDateTime.type = "date";
+    } else {
+        fromDateTime.type = "datetime-local";
+        toDateTime.type = "datetime-local";
+    }
     shiftDisabledNote.style.display = "none";
 }
 
@@ -450,10 +487,11 @@ async function loadPlants(){
 
         const theme = plantThemes[p];
         if (theme) {
-            option.textContent = `● ${p}`;
+            option.innerHTML = `&#9679; ${p}`;
             option.style.color = theme.primaryColor;
         } else {
-            option.textContent = p;
+            option.innerHTML = `&#9679; ${p}`;
+            option.style.color = "#8b5cf6"; // Default purple
         }
 
         plantSelect.appendChild(option);
@@ -537,6 +575,54 @@ function getBarChartHTML(title, dataPoints, isFullWidth = false) {
     </div>`;
 }
 
+function getTableHTML(title, dataPoints, isFullWidth, isCustom = false) {
+    if (!dataPoints || dataPoints.length === 0) return `<div style="color: var(--text-sub); padding: 20px;">No data available.</div>`;
+
+    const rowsHtml = dataPoints.map(p => {
+        const startVal = p.start_kwh !== undefined && p.start_kwh !== null ? p.start_kwh.toFixed(2) : "N/A";
+        const endVal = p.end_kwh !== undefined && p.end_kwh !== null ? p.end_kwh.toFixed(2) : "N/A";
+        return `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 8px;">${p.label}</td>
+                <td style="padding: 8px;">${startVal}</td>
+                <td style="padding: 8px;">${endVal}</td>
+                <td style="padding: 8px;">${p.value} ${p.unit || 'kWh'}</td>
+            </tr>
+        `;
+    }).join("");
+
+    const totalConsumption = dataPoints.reduce((sum, p) => sum + (Number(p.value) || 0), 0);
+    const totalRowHtml = dataPoints.length > 1 ? `
+        <tr style="border-top: 2px solid var(--border-color); font-weight: bold;">
+            <td style="padding: 8px;" colspan="3">Total</td>
+            <td style="padding: 8px;">${totalConsumption.toFixed(2)} ${dataPoints[0]?.unit || 'kWh'}</td>
+        </tr>
+    ` : "";
+
+    const containerStyle = isFullWidth ? 'style="grid-column: 1 / -1; width: 100%;"' : '';
+
+    return `
+    <div class="graph-container" ${containerStyle}>
+        <h4 class="graph-title">${title}</h4>
+        <div class="table-container" style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--text-main);">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 8px;">${isCustom ? 'Time Range' : 'Date / Shift'}</th>
+                        <th style="padding: 8px;">${isCustom ? 'Start Reading' : 'Shift Start'}</th>
+                        <th style="padding: 8px;">${isCustom ? 'End Reading' : 'Shift End'}</th>
+                        <th style="padding: 8px;">Consumption</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+                ${dataPoints.length > 1 ? `<tfoot>${totalRowHtml}</tfoot>` : ""}
+            </table>
+        </div>
+    </div>`;
+}
+
 // ================= CREATE CARDS =================
 
 function createCards(data){
@@ -590,43 +676,51 @@ function renderEnergySummaryCard(summary) {
     const rangeLabel = `${summary.from_dt || "-"} to ${summary.to_dt || "-"}`;
 
     cardsContainer.innerHTML = "";
-    if (barGraphToggle.checked) {
-        let dataPoints = [];
-        if (summary.bars && summary.bars.length > 0) {
-            dataPoints = summary.bars.map(b => ({
-                label: b.label,
-                value: b.consumption,
-                unit: valueUnit
-            }));
-        } else {
+    
+    let dataPoints = [];
+    if (summary.mode === "custom") {
+        if (summary.range_start_kwh !== null || summary.range_end_kwh !== null || summary.selected_total_kwh !== null) {
             dataPoints = [{
-                label: "Selected Range",
-                value: selectedTotal ?? 0,
+                label: `${summary.from_dt} to ${summary.to_dt}`,
+                start_kwh: summary.range_start_kwh,
+                end_kwh: summary.range_end_kwh,
+                value: summary.selected_total_kwh,
                 unit: valueUnit
             }];
         }
-        const title = `${metricName} - ${summary.selected_shift === 'all' ? 'All Shifts' : summary.selected_shift}`;
+    } else if (summary.bars && summary.bars.length > 0) {
+        dataPoints = summary.bars.map(b => ({
+            label: b.label,
+            value: b.consumption,
+            unit: valueUnit,
+            start_kwh: b.start_kwh,
+            end_kwh: b.end_kwh
+        }));
+    }
+
+    if (barGraphToggle.checked) {
+        const title = summary.mode === "custom" 
+            ? `${metricName} - Custom Range`
+            : `${metricName} - ${summary.selected_shift === 'all' ? 'All Shifts' : summary.selected_shift}`;
         cardsContainer.insertAdjacentHTML('beforeend', getBarChartHTML(title, dataPoints, true));
     } else {
-        cardsContainer.insertAdjacentHTML("beforeend", getCardHTML("Selected Range Consumption", selectedTotal, valueUnit, "OK", true, meterName, {
-            description: `Matches graph total | ${rangeLabel}`
-        }));
-        cardsContainer.insertAdjacentHTML("beforeend", getCardHTML("Shift Start", hasShiftWindowData ? startKwh : "No Data", hasShiftWindowData ? valueUnit : "", "OK", false, meterName, {
-            btnText: "Operational",
-            description: hasShiftWindowData ? `Range: ${rangeLabel}` : `No records found for selected shift in ${rangeLabel}`
-        }));
-        cardsContainer.insertAdjacentHTML("beforeend", getCardHTML("Shift End", hasShiftWindowData ? endKwh : "No Data", hasShiftWindowData ? valueUnit : "", "OK", false, meterName, {
-            btnText: "Operational",
-            description: hasShiftWindowData ? `Range: ${rangeLabel}` : `No records found for selected shift in ${rangeLabel}`
-        }));
+        const title = summary.mode === "custom"
+            ? `${metricName} Data - Custom Range`
+            : `${metricName} Data - ${summary.selected_shift === 'all' ? 'All Shifts' : summary.selected_shift}`;
+        cardsContainer.insertAdjacentHTML('beforeend', getTableHTML(title, dataPoints, true, summary.mode === "custom"));
     }
 }
 
 async function loadEnergySummary(plant, meter) {
-    const from_dt = fromDateTime.value;
-    const to_dt = toDateTime.value;
+    let from_dt = fromDateTime.value;
+    let to_dt = toDateTime.value;
+    if (shiftAnalysisToggle.checked) {
+        if (from_dt.length === 10) from_dt += "T06:00";
+        if (to_dt.length === 10) to_dt += "T06:00";
+    }
     const shift = shiftSelect.value || "all";
-    const res = await fetch(`/energy_summary?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}&mode=shiftwise&shift=${encodeURIComponent(shift)}&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}`);
+    const mode = customTimeToggle.checked ? "custom" : "shiftwise";
+    const res = await fetch(`/energy_summary?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}&mode=${mode}&shift=${encodeURIComponent(shift)}&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}`);
     if (!res.ok) {
         const errText = await res.text();
         return { error: `Energy summary failed (${res.status}).`, details: errText.slice(0, 180) };
@@ -940,18 +1034,31 @@ function createSummaryCardsForAll(summaries) {
         meterDiv.innerHTML = `<h3 style="margin-bottom: 10px; color: var(--text-main);">${summary.meter_name}</h3>`;
         const cardGrid = document.createElement("div");
         cardGrid.className = "cards";
-        if (barGraphToggle.checked && summary.bars && summary.bars.length > 0) {
-            const dataPoints = summary.bars.map(b => ({
+        let dataPoints = [];
+        if (summary.mode === "custom") {
+            if (summary.range_start_kwh !== null || summary.range_end_kwh !== null || summary.selected_total_kwh !== null) {
+                dataPoints = [{
+                    label: `${summary.from_dt} to ${summary.to_dt}`,
+                    start_kwh: summary.range_start_kwh,
+                    end_kwh: summary.range_end_kwh,
+                    value: summary.selected_total_kwh,
+                    unit: "kWh"
+                }];
+            }
+        } else if (summary.bars && summary.bars.length > 0) {
+            dataPoints = summary.bars.map(b => ({
                 label: b.label,
                 value: b.consumption,
-                unit: "kWh"
+                unit: "kWh",
+                start_kwh: b.start_kwh,
+                end_kwh: b.end_kwh
             }));
+        }
+        
+        if (barGraphToggle.checked) {
             cardGrid.insertAdjacentHTML("beforeend", getBarChartHTML("Energy Consumption", dataPoints, true));
         } else {
-            cardGrid.insertAdjacentHTML("beforeend", getCardHTML("Energy", summary.yesterday_total_kwh ?? 0, "kWh", "OK", true, summary.meter_name, { btnText: "Device Online", titleLabel: `${summary.meter_name} - Device Online` }));
-            cardGrid.insertAdjacentHTML("beforeend", getCardHTML("Shift Start", summary.current_shift_start_kwh ?? 0, "kWh", "OK", false, summary.meter_name, { btnText: "Device Online", titleLabel: `${summary.meter_name} - Device Online` }));
-            cardGrid.insertAdjacentHTML("beforeend", getCardHTML("Shift End", summary.current_shift_end_kwh ?? 0, "kWh", "OK", false, summary.meter_name, { btnText: "Device Online", titleLabel: `${summary.meter_name} - Device Online` }));
-            cardGrid.insertAdjacentHTML("beforeend", getCardHTML("Shift Consumption", summary.current_shift_consumption_kwh ?? 0, "kWh", "OK", false, summary.meter_name, { btnText: "Device Online", titleLabel: `${summary.meter_name} - Device Online` }));
+            cardGrid.insertAdjacentHTML("beforeend", getTableHTML("Energy Consumption", dataPoints, true, summary.mode === "custom"));
         }
         meterDiv.appendChild(cardGrid);
         cardsContainer.appendChild(meterDiv);
@@ -969,23 +1076,33 @@ plantSelect.addEventListener("change", async ()=>{
         dashboardTitle.innerText = `${plant} Dashboard`;
         if (landingView) landingView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
+        const filterBar = document.getElementById("filterBar");
+        if (filterBar) filterBar.style.display = "block";
     } else {
         plantSelect.style.color = "inherit";
         dashboardTitle.innerText = "Energy Monitoring System";
         if (landingView) landingView.style.display = "block";
         if (dashboardView) dashboardView.style.display = "none";
+        const filterBar = document.getElementById("filterBar");
+        if (filterBar) filterBar.style.display = "none";
     }
     applyThemeState();
 
     await loadMeters(plantSelect.value);
-    syncShiftUiForMeter();
-
-    cardsContainer.innerHTML = "";
-    lastVisualSignature = "";
-
-    document.getElementById("liveStatus").style.display = "none";
-    setupLiveStream();
+    
+    if (plant) {
+        meterSelect.value = "all";
+        meterSelect.dispatchEvent(new Event("change"));
+    } else {
+        syncShiftUiForMeter();
+        cardsContainer.innerHTML = "";
+        lastVisualSignature = "";
+        document.getElementById("liveStatus").style.display = "none";
+        setupLiveStream();
+    }
+    
     syncFloatingHomeBtn();
+    updateAuthUI();
 });
 
 meterSelect.addEventListener("change", loadBaseCardsOnMeterSelection);
@@ -995,17 +1112,30 @@ meterSelect.addEventListener("change", () => { lastVisualSignature = ""; });
 submitFiltersBtn.addEventListener("click", loadData);
 exportCsvBtn?.addEventListener("click", exportCsv);
 shiftAnalysisToggle.addEventListener("change", () => {
+    if (shiftAnalysisToggle.checked) {
+        customTimeToggle.checked = false;
+    }
     syncShiftUiForMeter();
-    lastVisualSignature = "";
-    if ((shiftAnalysisToggle.checked || barGraphToggle.checked) && !shiftSelect.disabled) {
-        loadData();
-    } else {
-        loadBaseCardsOnMeterSelection();
+    if ((shiftAnalysisToggle.checked || customTimeToggle.checked || barGraphToggle.checked) && !shiftSelect.disabled) {
+        if(shiftAnalysisToggle.checked) setDefaultDateRange();
+        if (plantSelect.value && meterSelect.value) loadData();
+    }
+});
+
+customTimeToggle.addEventListener("change", () => {
+    if (customTimeToggle.checked) {
+        shiftAnalysisToggle.checked = false;
+    }
+    syncShiftUiForMeter();
+    if ((shiftAnalysisToggle.checked || customTimeToggle.checked || barGraphToggle.checked) && !shiftSelect.disabled) {
+        if(customTimeToggle.checked) setDefaultDateRange();
+        if (plantSelect.value && meterSelect.value) loadData();
     }
 });
 barGraphToggle.addEventListener("change", () => {
     syncShiftUiForMeter();
-    if (meterSelect.value && (shiftAnalysisToggle.checked || barGraphToggle.checked) && !shiftSelect.disabled && fromDateTime.value && toDateTime.value) {
+    lastVisualSignature = "";
+    if ((shiftAnalysisToggle.checked || customTimeToggle.checked || barGraphToggle.checked) && !shiftSelect.disabled) {
         loadData();
     } else {
         loadBaseCardsOnMeterSelection();
@@ -1032,15 +1162,17 @@ floatingHomeBtn?.addEventListener("click", () => {
 
     if (landingView) landingView.style.display = "block";
     if (dashboardView) dashboardView.style.display = "none";
+    const filterBar = document.getElementById("filterBar");
+    if (filterBar) filterBar.style.display = "none";
     document.getElementById("liveStatus").style.display = "none";
 
     shiftAnalysisToggle.checked = false;
     barGraphToggle.checked = false;
     syncShiftUiForMeter();
     syncFloatingHomeBtn();
+    updateAuthUI();
 });
-
-// ================= SCROLL LISTENER =================
+    // ================= SCROLL LISTENER =================
 window.addEventListener("scroll", () => {
     if (window.scrollY > 20) {
         navbar.classList.add("is-sticky");
@@ -1086,3 +1218,230 @@ shiftAnalysisToggle.checked = false;
 syncShiftUiForMeter();
 syncFloatingHomeBtn();
 window.addEventListener("beforeunload", closeLiveStream);
+
+
+// ================= AUTHENTICATION & ADMIN =================
+
+const authBtn = document.getElementById("authBtn");
+const loginModal = document.getElementById("loginModal");
+const loginForm = document.getElementById("loginForm");
+const loginError = document.getElementById("loginError");
+let isLoggedIn = false;
+
+function checkAuthStatus() {
+    fetch('/api/auth_status')
+        .then(res => res.json())
+        .then(data => {
+            isLoggedIn = data.logged_in;
+            updateAuthUI();
+        })
+        .catch(err => console.error("Auth check failed:", err));
+}
+
+function updateAuthUI() {
+    if (isLoggedIn) {
+        authBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>';
+        authBtn.title = "Logout";
+    } else {
+        authBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>';
+        authBtn.title = "Login";
+    }
+    
+    // Hide auth button on specific plant dashboards
+    if (plantSelect && plantSelect.value !== "") {
+        authBtn.style.display = "none";
+    } else {
+        authBtn.style.display = "flex";
+    }
+}
+
+authBtn.addEventListener("click", () => {
+    if (isLoggedIn) {
+        fetch('/api/logout', { method: 'POST' })
+            .then(() => {
+                isLoggedIn = false;
+                updateAuthUI();
+                if(typeof deviceManagerModal !== "undefined" && deviceManagerModal.style.display === "flex") closeDeviceManager();
+            });
+    } else {
+        loginModal.style.display = "flex";
+        loginError.style.display = "none";
+    }
+});
+
+function closeLoginModal() {
+    loginModal.style.display = "none";
+}
+
+loginForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const username = document.getElementById("loginUsername").value;
+    const password = document.getElementById("loginPassword").value;
+    
+    fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Invalid credentials");
+        return res.json();
+    })
+    .then(data => {
+        if(data.success) {
+            isLoggedIn = true;
+            // Redirect to admin device manager page immediately after login
+            window.location.href = "/admin";
+        }
+    })
+    .catch(err => {
+        loginError.style.display = "block";
+    });
+});
+
+checkAuthStatus();
+
+// ================= CUSTOM DROPDOWN LOGIC =================
+function makeCustomDropdown(selectId) {
+    return; // Disabled custom glassmorphism dropdown as requested
+    const originalSelect = document.getElementById(selectId);
+    if (!originalSelect) return;
+    
+    // Check if wrapper already exists
+    if (originalSelect.nextSibling && originalSelect.nextSibling.className === "custom-select-wrapper") {
+        return;
+    }
+
+    // Hide original select completely
+    originalSelect.style.display = "none";
+
+    // Create wrapper
+    const wrapper = document.createElement("div");
+    wrapper.className = "custom-select-wrapper";
+    originalSelect.parentNode.insertBefore(wrapper, originalSelect.nextSibling);
+
+    const display = document.createElement("div");
+    display.className = "custom-select-display";
+    
+    const displayText = document.createElement("span");
+    
+    const arrow = document.createElement("div");
+    arrow.className = "custom-select-arrow";
+    arrow.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+    
+    display.appendChild(displayText);
+    display.appendChild(arrow);
+    wrapper.appendChild(display);
+
+    const optionsContainer = document.createElement("div");
+    optionsContainer.className = "custom-select-options";
+    wrapper.appendChild(optionsContainer);
+
+    function buildOptions() {
+        optionsContainer.innerHTML = "";
+        const options = originalSelect.options;
+        if (options.length > 0 && originalSelect.selectedIndex >= 0) {
+            displayText.innerText = options[originalSelect.selectedIndex].text;
+        } else {
+            displayText.innerText = "Select...";
+        }
+
+        for (let i = 0; i < options.length; i++) {
+            const opt = options[i];
+            const div = document.createElement("div");
+            div.className = "custom-option";
+            if (i === originalSelect.selectedIndex) div.classList.add("selected");
+            div.innerText = opt.text;
+            div.addEventListener("click", (e) => {
+                e.stopPropagation();
+                originalSelect.selectedIndex = i;
+                originalSelect.dispatchEvent(new Event("change"));
+                displayText.innerText = opt.text;
+                wrapper.classList.remove("open");
+                
+                // update selected class
+                Array.from(optionsContainer.children).forEach(c => c.classList.remove("selected"));
+                div.classList.add("selected");
+            });
+            optionsContainer.appendChild(div);
+        }
+    }
+
+    buildOptions();
+
+    // Toggle dropdown
+    display.addEventListener("click", (e) => {
+        e.stopPropagation();
+        
+        // Close all other open dropdowns first
+        document.querySelectorAll(".custom-select-wrapper.open").forEach(w => {
+            if (w !== wrapper) w.classList.remove("open");
+        });
+        
+        wrapper.classList.toggle("open");
+    });
+
+    // Close when clicking outside
+    document.addEventListener("click", (e) => {
+        if (!wrapper.contains(e.target)) {
+            wrapper.classList.remove("open");
+        }
+    });
+
+    // Rebuild options if the original select changes (MutationObserver)
+    const observer = new MutationObserver(() => {
+        buildOptions();
+    });
+    observer.observe(originalSelect, { childList: true });
+    
+    // Also listen to change event from external sources
+    originalSelect.addEventListener("change", () => {
+        const options = originalSelect.options;
+        if (options.length > 0 && originalSelect.selectedIndex >= 0) {
+            displayText.innerText = options[originalSelect.selectedIndex].text;
+            Array.from(optionsContainer.children).forEach((c, idx) => {
+                c.classList.toggle("selected", idx === originalSelect.selectedIndex);
+            });
+        }
+    });
+}
+
+// Initialize immediately if DOM is ready, else wait
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+        makeCustomDropdown("plantSelect");
+        makeCustomDropdown("meterSelect");
+        makeCustomDropdown("shiftSelect");
+    });
+} else {
+    makeCustomDropdown("plantSelect");
+    makeCustomDropdown("meterSelect");
+    makeCustomDropdown("shiftSelect");
+}
+
+
+// ================= NAVBAR OBSERVER =================
+// Dynamically track the height of the navbar so the sticky filter bar
+// always sits exactly below it, even on mobile when the navbar wraps.
+(function() {
+    function updateNavbarHeight() {
+        const navbar = document.querySelector('.navbar');
+        if (navbar) {
+            const height = navbar.getBoundingClientRect().height;
+            document.documentElement.style.setProperty('--navbar-height', height + 'px');
+        }
+    }
+
+    // Update on load
+    updateNavbarHeight();
+
+    // Update whenever the window is resized or navbar content changes
+    const observer = new ResizeObserver(() => {
+        updateNavbarHeight();
+    });
+    const navbar = document.querySelector('.navbar');
+    if (navbar) {
+        observer.observe(navbar);
+    }
+})();
+

@@ -27,7 +27,7 @@ IPAddress gateway(192, 168, 0, 254);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress dns(8, 8, 8, 8);
 
-IPAddress remoteIP(192, 168, 0, 9);
+IPAddress remoteIP(192, 168, 0, 41);
 unsigned int remotePort = 10011;
 
 EthernetUDP Udp;
