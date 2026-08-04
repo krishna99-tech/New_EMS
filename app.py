@@ -391,8 +391,8 @@ def favicon():
     """Serve favicon to avoid browser 404 on /favicon.ico."""
     return send_from_directory(
         app.static_folder,
-        'images/image.png',
-        mimetype='image/png'
+        'images/logo.png',
+        mimetype='logo/png'
     )
 
 @app.route("/plants")
@@ -562,6 +562,29 @@ def add_plant():
     conn.close()
     return jsonify({"success": True})
 
+@app.route("/api/plants/<string:plant_name>", methods=["DELETE"])
+@login_required
+def delete_plant(plant_name):
+    """Delete a plant and all its meter configs.
+    Pass ?delete_data=true to also wipe meter_data for this plant.
+    """
+    delete_data = request.args.get("delete_data", "false").lower() == "true"
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("DELETE FROM plants WHERE name=?", (plant_name,))
+        cur.execute("DELETE FROM meter_config WHERE plant=?", (plant_name,))
+        if delete_data:
+            cur.execute("DELETE FROM meter_data WHERE plant=?", (plant_name,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+    conn.close()
+    return jsonify({"success": True})
+
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.json
@@ -638,6 +661,107 @@ def delete_meter_config(config_id):
     conn.commit()
     conn.close()
     return jsonify({"success": True})
+
+@app.route("/api/export_config", methods=["GET"])
+@login_required
+def export_config():
+    """Export all plants and meter_config as a JSON file (safe to import on live server)."""
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("SELECT name FROM plants ORDER BY name")
+    plants = [row["name"] for row in cur.fetchall()]
+
+    cur.execute("SELECT plant, meter_id, name, type FROM meter_config ORDER BY plant, meter_id")
+    meters = [dict(row) for row in cur.fetchall()]
+
+    conn.close()
+
+    export_data = {
+        "exported_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "plants": plants,
+        "meter_config": meters
+    }
+
+    filename = f"ems_config_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    return Response(
+        json.dumps(export_data, indent=2),
+        mimetype="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@app.route("/api/import_config", methods=["POST"])
+@login_required
+def import_config():
+    """Import plants + meter_config from exported JSON. Does NOT touch meter_data."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    f = request.files["file"]
+    if not f.filename.endswith(".json"):
+        return jsonify({"error": "Only .json files are accepted"}), 400
+
+    try:
+        data = json.load(f)
+    except Exception:
+        return jsonify({"error": "Invalid JSON file"}), 400
+
+    plants = data.get("plants", [])
+    meter_configs = data.get("meter_config", [])
+
+    if not isinstance(plants, list) or not isinstance(meter_configs, list):
+        return jsonify({"error": "Invalid file format"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    plants_added = 0
+    meters_updated = 0
+
+    try:
+        for plant_name in plants:
+            cur.execute("INSERT OR IGNORE INTO plants (name) VALUES (?)", (plant_name,))
+            if cur.rowcount:
+                plants_added += 1
+
+        for m in meter_configs:
+            plant = m.get("plant")
+            meter_id = m.get("meter_id")
+            name = m.get("name")
+            m_type = m.get("type", "submeter")
+
+            if not plant or meter_id is None or not name:
+                continue
+
+            cur.execute("INSERT OR IGNORE INTO plants (name) VALUES (?)", (plant,))
+            cur.execute("SELECT id FROM meter_config WHERE plant=? AND meter_id=?", (plant, int(meter_id)))
+            existing = cur.fetchone()
+            if existing:
+                cur.execute("UPDATE meter_config SET name=?, type=? WHERE id=?", (name, m_type, existing[0]))
+            else:
+                cur.execute("INSERT INTO meter_config (plant, meter_id, name, type) VALUES (?, ?, ?, ?)",
+                            (plant, int(meter_id), name, m_type))
+            meters_updated += 1
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+
+    conn.close()
+
+    # Re-run normalization so existing meter_data rows get updated names
+    normalize_historical_data()
+
+    return jsonify({
+        "success": True,
+        "plants_added": plants_added,
+        "meters_updated": meters_updated
+    })
+
 
 @app.route("/stream_latest")
 def stream_latest():

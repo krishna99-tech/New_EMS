@@ -1,0 +1,92 @@
+{
+  "exported_at": "2026-08-04 09:45:58",
+  "plants": [
+    "Architecture"
+  ],
+  "meter_config": [
+    {
+      "plant": "Architecture",
+      "meter_id": 1,
+      "name": "Landglass Tempering & APFC",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 2,
+      "name": "Main Distribution Board",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 4,
+      "name": "Heat Soak Test Furnace",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 7,
+      "name": "Cyclone # 1 RAD Bottom Furnace",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 8,
+      "name": "Cyclone # 1 RAD Top Furnace",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 9,
+      "name": "Cyclone # 1 Blower 1",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 10,
+      "name": "Cyclone # 2 Blower",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 13,
+      "name": "Cyclone # 1 Blower 3",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 15,
+      "name": "Cyclone # 1 Pre Top Furnace",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 16,
+      "name": "Cyclone # 1 Pre Bottom Furnace",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 17,
+      "name": "Cyclone # 1 Blower 2",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 19,
+      "name": "Cyclone # 2 Top",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 20,
+      "name": "Cyclone # 2 Bottom",
+      "type": "submeter"
+    },
+    {
+      "plant": "Architecture",
+      "meter_id": 45,
+      "name": "Main Incomer",
+      "type": "incomer"
+    }
+  ]
+}

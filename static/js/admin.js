@@ -1,10 +1,19 @@
-const plantsContainer = document.getElementById("plantsContainer");
+const plantsList = document.getElementById("plantsList");
+const noSelectionState = document.getElementById("noSelectionState");
+const plantDetailView = document.getElementById("plantDetailView");
+const activePlantTitle = document.getElementById("activePlantTitle");
+const activePlantSubtitle = document.getElementById("activePlantSubtitle");
+const devicesTableBody = document.getElementById("devicesTableBody");
+
 const deviceManagerModal = document.getElementById("deviceManagerModal");
 const deviceForm = document.getElementById("deviceForm");
 const devError = document.getElementById("devError");
 const deviceModalTitle = document.getElementById("deviceModalTitle");
 
 let currentConfigId = null;
+let activePlant = null;
+let globalGroupedDevices = {};
+let globalPlants = [];
 
 // ================= INITIALIZATION =================
 
@@ -31,112 +40,161 @@ function loadAllDevices() {
 }
 
 function renderPlants(plants, devices) {
-    plantsContainer.innerHTML = "";
+    globalPlants = plants;
     
     // Group devices by plant
-    const grouped = {};
-    plants.forEach(p => grouped[p] = []); // Initialize all plants
+    globalGroupedDevices = {};
+    plants.forEach(p => globalGroupedDevices[p] = []);
     
     devices.forEach(dev => {
-        if (!grouped[dev.plant]) {
-            grouped[dev.plant] = [];
-            plants.push(dev.plant); // Safety fallback
+        if (!globalGroupedDevices[dev.plant]) {
+            globalGroupedDevices[dev.plant] = [];
+            if (!plants.includes(dev.plant)) plants.push(dev.plant);
         }
-        grouped[dev.plant].push(dev);
+        globalGroupedDevices[dev.plant].push(dev);
     });
 
+    plantsList.innerHTML = "";
+
+    if (document.getElementById("plantCountBadge")) {
+        document.getElementById("plantCountBadge").textContent = plants.length;
+    }
+
     if (plants.length === 0) {
-        plantsContainer.innerHTML = `<div style="color: var(--text-sub); text-align: center; padding: 40px;">No plants configured yet. Click the button above to create one.</div>`;
+        plantsList.innerHTML = `<li style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 0.85rem;">No plants configured yet.</li>`;
+        noSelectionState.style.display = "flex";
+        plantDetailView.style.display = "none";
         return;
     }
 
     plants.forEach(plant => {
-        const plantSection = document.createElement("div");
-        plantSection.className = "admin-plant-card"; // Using the new premium card style
+        const li = document.createElement("li");
+        li.className = `plant-item ${plant === activePlant ? "active" : ""}`;
         
-        let tableRows = "";
-        if (grouped[plant].length === 0) {
-            tableRows = `<tr><td colspan="4" style="text-align: center; color: var(--text-sub); padding: 20px;">No devices added to this plant yet.</td></tr>`;
-        } else {
-            tableRows = grouped[plant].map(dev => {
-                const badgeClass = dev.type === "incomer" ? "badge-incomer" : "badge-submeter";
-                return `
-                <tr class="admin-table-row">
-                <td style="font-weight: 500;">#${dev.meter_id}</td>
-                <td style="font-weight: 500; color: var(--text-main);">${dev.name}</td>
-                <td><span class="badge-type ${badgeClass}">${dev.type}</span></td>
-                <td style="text-align: right;">
-                    <button class="action-btn edit-btn" onclick='editDevice(${JSON.stringify(dev)})'>Edit</button>
-                    <button class="action-btn delete-btn" onclick='deleteDevice(${dev.id})'>Delete</button>
-                </td>
-            </tr>
-            `;
-            }).join("");
-        }
-
-        plantSection.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
-                <div style="display: flex; align-items: center; cursor: pointer; gap: 12px; flex: 1;" onclick="togglePlantTable(this)">
-                    <svg class="chevron-icon" style="transition: transform 0.3s; transform: rotate(-90deg); color: var(--text-sub);" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    <h3 style="margin: 0; color: var(--text-main); font-size: 1.5rem; letter-spacing: -0.02em;">${plant}</h3>
-                </div>
-                <button class="submit-btn" style="padding: 8px 16px; font-size: 0.9em; width: auto; border-radius: 8px;" onclick="openDeviceModal('${plant}')">+ Add Device</button>
+        const count = globalGroupedDevices[plant].length;
+        li.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6;"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/></svg>
+                <span class="plant-name-text">${plant}</span>
             </div>
-            <div class="plant-table-container" style="overflow-x: auto; display: none; transition: all 0.3s;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                    <thead>
-                        <tr class="admin-table-header">
-                            <th>Meter ID</th>
-                            <th>Meter Name</th>
-                            <th>Type</th>
-                            <th style="text-align: right;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tableRows}
-                    </tbody>
-                </table>
-            </div>
+            <span style="font-size:0.75rem; background:rgba(15,23,42,0.2); padding:2px 8px; border-radius:12px; color:var(--text-sub);">
+                ${count}
+            </span>
         `;
-        plantsContainer.appendChild(plantSection);
+        
+        li.addEventListener("click", () => selectPlant(plant));
+        plantsList.appendChild(li);
     });
+
+    // If activePlant was deleted or not set, select the first one or show empty state
+    if (!activePlant || !plants.includes(activePlant)) {
+        if (plants.length > 0) {
+            selectPlant(plants[0]);
+        } else {
+            activePlant = null;
+            noSelectionState.style.display = "flex";
+            plantDetailView.style.display = "none";
+        }
+    } else {
+        // Re-render the detail view for the active plant in case its devices changed
+        renderPlantDetailView();
+    }
 }
 
-// ================= MODAL & CRUD LOGIC =================
+function selectPlant(plantName) {
+    activePlant = plantName;
+    
+    // Update sidebar active class
+    const items = plantsList.querySelectorAll(".plant-item");
+    items.forEach(item => {
+        const textSpan = item.querySelector(".plant-name-text");
+        if (textSpan && textSpan.textContent === plantName) {
+            item.classList.add("active");
+        } else {
+            item.classList.remove("active");
+        }
+    });
 
-window.togglePlantTable = function(headerElem) {
-    const container = headerElem.parentElement.nextElementSibling;
-    const chevron = headerElem.querySelector('.chevron-icon');
-    if (container.style.display === "none") {
-        container.style.display = "block";
-        chevron.style.transform = "rotate(0deg)";
-    } else {
-        container.style.display = "none";
-        chevron.style.transform = "rotate(-90deg)"; // Points right when collapsed
+    renderPlantDetailView();
+}
+
+window.filterPlants = function() {
+    const input = document.getElementById("plantSearchInput").value.toLowerCase();
+    const items = plantsList.querySelectorAll(".plant-item");
+    items.forEach(item => {
+        const textSpan = item.querySelector(".plant-name-text");
+        if (textSpan) {
+            const text = textSpan.textContent.toLowerCase();
+            if (text.includes(input)) {
+                item.style.display = "flex";
+            } else {
+                item.style.display = "none";
+            }
+        }
+    });
+};
+
+function renderPlantDetailView() {
+    if (!activePlant) return;
+
+    noSelectionState.style.display = "none";
+    plantDetailView.style.display = "block";
+
+    const devices = globalGroupedDevices[activePlant] || [];
+    
+    activePlantTitle.textContent = activePlant;
+    activePlantSubtitle.textContent = `${devices.length} device${devices.length !== 1 ? 's' : ''} configured`;
+
+    if (devices.length === 0) {
+        devicesTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub); padding:40px 20px;">No devices added to this plant yet.</td></tr>`;
+        return;
     }
+
+    devicesTableBody.innerHTML = devices.map(dev => {
+        const badgeClass = dev.type === "incomer" ? "badge-incomer" : "badge-submeter";
+        const badgeLabel = dev.type === "incomer" ? "Main Incomer" : "Submeter";
+        return `
+        <tr class="admin-table-row">
+            <td style="font-weight:600; font-family:'Share Tech Mono',monospace; font-size:0.85rem;">#${dev.meter_id}</td>
+            <td style="font-weight:500;">${dev.name}</td>
+            <td><span class="badge-type ${badgeClass}">${badgeLabel}</span></td>
+            <td style="text-align:right;">
+                <div class="actions-dropdown" style="display:inline-block; text-align:left;">
+                    <button class="action-btn" style="padding:4px 8px; border:none; background:transparent; color:var(--text-main); cursor:pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                    <div class="dropdown-content" style="min-width:140px; right:20px; top:100%; z-index:999;">
+                        <button class="dropdown-item" onclick='editDevice(${JSON.stringify(dev)})'>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                            Edit Meter
+                        </button>
+                        <button class="dropdown-item" onclick='deleteDevice(${dev.id})' style="color:#f87171;">
+                            <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 6 5 6 21 6'/><path d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/><path d='M10 11v6'/><path d='M14 11v6'/><path d='M9 6V4h6v2'/></svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </td>
+        </tr>`;
+    }).join("");
+}
+
+window.openDeviceModalForActivePlant = function() {
+    if (!activePlant) return;
+    window.openDeviceModal(activePlant);
+};
+
+window.deleteActivePlant = function() {
+    if (!activePlant) return;
+    window.deletePlant(activePlant);
 };
 
 window.openDeviceModal = function(plantName = "") {
     deviceModalTitle.innerText = "Add New Device";
     deviceForm.reset();
     
-    // Populate plant dropdown
+    populatePlantSelect(plantName);
     const devPlantSelect = document.getElementById("devPlant");
-    devPlantSelect.innerHTML = '<option value="" disabled selected>Select a Plant...</option>';
-    
-    fetch('/plants')
-        .then(r => r.json())
-        .then(plants => {
-            plants.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p;
-                opt.textContent = p;
-                devPlantSelect.appendChild(opt);
-            });
-            if (plantName) {
-                devPlantSelect.value = plantName;
-            }
-        });
 
     if (plantName) {
         devPlantSelect.style.opacity = "0.7";
@@ -203,7 +261,7 @@ plantForm.addEventListener("submit", (e) => {
 
 window.editDevice = function(dev) {
     deviceModalTitle.innerText = "Edit Device";
-    document.getElementById("devPlant").value = dev.plant;
+    populatePlantSelect(dev.plant);
     document.getElementById("devPlant").readOnly = false;
     document.getElementById("devPlant").style.opacity = "1";
     document.getElementById("devMeterId").value = dev.meter_id;
@@ -223,6 +281,29 @@ window.deleteDevice = function(id) {
             })
             .catch(err => alert("Failed to delete device."));
     }
+};
+
+window.deletePlant = function(plantName) {
+    // Step 1: confirm deletion
+    if (!confirm(`Delete plant "${plantName}"?\n\nThis will remove the plant and ALL its meter configs from the dashboard.`)) return;
+
+    // Step 2: ask if sensor data (meter_data) should also be wiped
+    const deleteData = confirm(
+        `Do you also want to DELETE all recorded sensor data (kWh readings, history) for "${plantName}"?\n\nClick OK to delete data too.\nClick Cancel to keep the historical data.`
+    );
+
+    const url = `/api/plants/${encodeURIComponent(plantName)}?delete_data=${deleteData}`;
+
+    fetch(url, { method: 'DELETE' })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Delete failed');
+            return data;
+        })
+        .then(() => {
+            loadAllDevices();
+        })
+        .catch(err => alert('Failed to delete plant: ' + err.message));
 };
 
 deviceForm.addEventListener("submit", (e) => {
@@ -295,3 +376,64 @@ logoutBtn?.addEventListener("click", () => {
             window.location.href = "/";
         });
 });
+
+// ================= IMPORT CONFIG =================
+window.handleImportConfig = function(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const resultBanner = document.getElementById("importResult");
+    resultBanner.style.display = "none";
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // Reset file input so same file can be re-selected if needed
+    input.value = "";
+
+    fetch("/api/import_config", {
+        method: "POST",
+        body: formData
+    })
+    .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Import failed");
+        return data;
+    })
+    .then(data => {
+        resultBanner.style.background = "linear-gradient(135deg, rgba(22,163,74,0.15), rgba(21,128,61,0.1))";
+        resultBanner.style.border = "1px solid rgba(22,163,74,0.4)";
+        resultBanner.style.color = "#16a34a";
+        resultBanner.innerHTML = `
+            ✅ <strong>Config Imported Successfully!</strong>
+            &nbsp;|&nbsp; ${data.meters_updated} meter(s) updated
+            &nbsp;|&nbsp; ${data.plants_added} new plant(s) added
+            &nbsp;— <em>Your existing meter data is safe.</em>
+        `;
+        resultBanner.style.display = "block";
+        loadAllDevices(); // Refresh the table
+    })
+    .catch(err => {
+        resultBanner.style.background = "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.1))";
+        resultBanner.style.border = "1px solid rgba(239,68,68,0.4)";
+        resultBanner.style.color = "#ef4444";
+        resultBanner.innerHTML = `❌ <strong>Import Failed:</strong> ${err.message}`;
+        resultBanner.style.display = "block";
+    });
+}
+
+function populatePlantSelect(selectedValue = "") {
+    const devPlantSelect = document.getElementById("devPlant");
+    devPlantSelect.innerHTML = '<option value="" disabled selected>Select a Plant...</option>';
+    
+    globalPlants.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        devPlantSelect.appendChild(opt);
+    });
+    
+    if (selectedValue && globalPlants.includes(selectedValue)) {
+        devPlantSelect.value = selectedValue;
+    }
+};

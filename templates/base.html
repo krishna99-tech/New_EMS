@@ -15,6 +15,37 @@
     <div class="ambient-orb orb-2"></div>
     <div class="ambient-orb orb-3"></div>
     {% block content %}{% endblock %}
+
+    <!-- Global Page Loader Overlay -->
+    <div id="globalLoader" class="global-loader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- Global Loader Script -->
+    <script>
+        let skipLoader = false;
+        
+        document.addEventListener('click', function(e) {
+            let a = e.target.closest('a');
+            if (a && a.hasAttribute('download')) {
+                skipLoader = true;
+                setTimeout(() => skipLoader = false, 1000);
+            }
+        });
+
+        window.addEventListener('beforeunload', function() {
+            if (!skipLoader) {
+                document.getElementById('globalLoader').classList.add('active');
+            }
+        });
+        window.addEventListener('pageshow', function(event) {
+            // Hide the loader if the page is loaded from cache (e.g. back button)
+            if (event.persisted) {
+                document.getElementById('globalLoader').classList.remove('active');
+            }
+        });
+    </script>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>

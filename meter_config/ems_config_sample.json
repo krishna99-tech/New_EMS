@@ -1,0 +1,116 @@
+{
+  "exported_at": "2026-08-03 22:52:00",
+  "plants": [
+    "FUSO Plant A"
+  ],
+  "meter_config": [
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 1,
+      "name": "Main Incomer",
+      "type": "incomer"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 2,
+      "name": "Production Line 1",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 3,
+      "name": "Production Line 2",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 4,
+      "name": "Production Line 3",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 5,
+      "name": "Assembly Section",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 6,
+      "name": "Welding Shop",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 7,
+      "name": "Paint Booth",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 8,
+      "name": "Compressor Room",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 9,
+      "name": "HVAC Unit",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 10,
+      "name": "Lighting Panel L1",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 11,
+      "name": "Lighting Panel L2",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 12,
+      "name": "CNC Machine Block",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 13,
+      "name": "Pump Station",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 14,
+      "name": "Chiller Unit",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 15,
+      "name": "Office Block",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 16,
+      "name": "Server Room",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 17,
+      "name": "Utility Room",
+      "type": "submeter"
+    },
+    {
+      "plant": "FUSO Plant A",
+      "meter_id": 18,
+      "name": "Canteen and Common Area",
+      "type": "submeter"
+    }
+  ]
+}

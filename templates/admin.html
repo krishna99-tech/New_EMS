@@ -1,12 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Devices | EMS Dashboard{% endblock %}
+{% block title %}Device Manager | EMS Dashboard{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
 
 {% block content %}
+<!-- ══ NAVBAR ══════════════════════════════════════════════ -->
 <div class="navbar">
     <div class="nav-left">
         <a href="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 18px;">
-            <img src="{{ url_for('static', filename='images/image.png') }}" alt="Company Logo" class="company-logo">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Company Logo" class="company-logo">
             <div class="nav-titles">
                 <h1 id="dashboardTitle">Device Manager</h1>
                 <p class="subtitle">FUSO Energy Monitoring System</p>
@@ -23,18 +28,117 @@
     </div>
 </div>
 
-<div class="container" style="padding-top: 30px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h2>Configured Plants & Devices</h2>
-        <button id="createPlantBtn" class="submit-btn" style="width: auto; padding: 10px 20px;" onclick="openPlantModal()">+ Create Plant</button>
+<!-- ══ MAIN CONTENT ════════════════════════════════════════ -->
+<div class="container" style="padding-top: 36px; max-width: 1100px; margin: 0 auto;">
+
+    <!-- Page header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 14px;">
+        <div>
+            <h2 style="margin: 0 0 4px; font-size: 1.55rem; font-weight: 700; letter-spacing: -0.03em; background: linear-gradient(135deg,#60a5fa,#a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Configured Plants &amp; Devices
+            </h2>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-sub);">Manage your energy meter network</p>
+        </div>
+
+        <div class="admin-header-actions">
+            <div class="actions-dropdown">
+                <button class="submit-btn" style="padding: 10px 18px;">
+                    Actions
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="dropdown-content">
+                    <button class="dropdown-item" onclick="openPlantModal()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Create Plant
+                    </button>
+                    <button type="button" class="dropdown-item" onclick="document.getElementById('importFileInput').click()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Import Config
+                    </button>
+                    <a id="exportConfigBtn" href="/api/export_config" download="ems_config.json" class="dropdown-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Export Config
+                    </a>
+                </div>
+            </div>
+            <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="handleImportConfig(this)">
+        </div>
     </div>
 
-    <div id="plantsContainer" style="display: flex; flex-direction: column; gap: 24px;">
-        <!-- Filled by JS -->
+    <!-- Import result banner -->
+    <div id="importResult" style="display:none;"></div>
+
+    <!-- Split Pane Layout -->
+    <div class="admin-split-pane">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 class="sidebar-title">Plants</h3>
+                    <span style="font-size: 0.75rem; color: var(--text-sub); background: rgba(15,23,42,0.1); padding: 2px 8px; border-radius: 12px; font-weight: 600;" id="plantCountBadge">0</span>
+                </div>
+                <div class="sidebar-search">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="plantSearchInput" placeholder="Search plants..." onkeyup="filterPlants()">
+                </div>
+            </div>
+            <ul id="plantsList" class="plants-list">
+                <!-- Populated by JS -->
+            </ul>
+        </aside>
+
+        <!-- Main View -->
+        <main class="admin-main-view">
+            <div id="noSelectionState" class="empty-state-view">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2; margin-bottom:16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                <p>Select a plant from the sidebar to view its devices.</p>
+            </div>
+            
+            <div id="plantDetailView" style="display:none;">
+                <div class="plant-detail-header">
+                    <div>
+                        <h2 id="activePlantTitle" style="margin:0; font-size:1.4rem; color:var(--text-main);">Plant Name</h2>
+                        <p id="activePlantSubtitle" style="margin:4px 0 0; font-size:0.85rem; color:var(--text-sub);">0 devices configured</p>
+                    </div>
+                    <div class="actions-dropdown">
+                        <button class="submit-btn" style="padding: 8px 16px; font-size:0.85rem;">
+                            Options
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="dropdown-content">
+                            <button class="dropdown-item" onclick="openDeviceModalForActivePlant()">
+                                <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='12' y1='5' x2='12' y2='19'/><line x1='5' y1='12' x2='19' y2='12'/></svg>
+                                Add Device
+                            </button>
+                            <button class="dropdown-item" onclick="deleteActivePlant()" style="color:#f87171;">
+                                <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 6 5 6 21 6'/><path d='M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'/><path d='M10 11v6'/><path d='M14 11v6'/><path d='M9 6V4h6v2'/></svg>
+                                Delete Plant
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="plant-table-container">
+                    <table style="width:100%; border-collapse:collapse; text-align:left;">
+                        <thead>
+                            <tr class="admin-table-header">
+                                <th>Meter ID</th>
+                                <th>Meter Name</th>
+                                <th>Type</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devicesTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
     </div>
 </div>
 
-<!-- DEVICE MANAGER MODAL -->
+<!-- ══ DEVICE MODAL ════════════════════════════════════════ -->
 <div id="deviceManagerModal" class="modal-overlay" style="display: none;">
     <div class="modal-content device-modal">
         <div class="modal-header">
@@ -45,50 +149,50 @@
             <form id="deviceForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Plant Name</label>
+                        <label for="devPlant">Plant Name</label>
                         <select id="devPlant" required>
-                            <option value="" disabled selected>Select a Plant...</option>
+                            <option value="" disabled selected>Select a Plant…</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Meter ID</label>
+                        <label for="devMeterId">Meter ID</label>
                         <input type="number" id="devMeterId" required placeholder="e.g. 8">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Meter Name</label>
+                        <label for="devName">Meter Name</label>
                         <input type="text" id="devName" required placeholder="e.g. Top Furnace">
                     </div>
                     <div class="form-group">
-                        <label>Type</label>
+                        <label for="devType">Type</label>
                         <select id="devType">
                             <option value="submeter">Submeter</option>
                             <option value="incomer">Main Incomer</option>
                         </select>
                     </div>
                 </div>
-                <p id="devError" style="color: #ef4444; display: none; font-size: 0.9em;"></p>
-                <button type="submit" class="submit-btn" style="width: 100%;">Save Device</button>
+                <p id="devError" style="display: none;"></p>
+                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 8px;">Save Device</button>
             </form>
         </div>
     </div>
 </div>
 
-<!-- PLANT CREATION MODAL -->
+<!-- ══ PLANT CREATION MODAL ═══════════════════════════════ -->
 <div id="plantModal" class="modal-overlay" style="display: none;">
-    <div class="modal-content device-modal" style="max-width: 500px;">
+    <div class="modal-content" style="max-width: 480px;">
         <div class="modal-header">
             <h2>Create New Plant</h2>
             <button type="button" class="close-modal-btn" onclick="closePlantModal()">&times;</button>
         </div>
         <div class="modal-body">
             <form id="plantForm">
-                <div class="form-group">
-                    <label>Plant Name</label>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="newPlantName">Plant Name</label>
                     <input type="text" id="newPlantName" required placeholder="e.g. Factory Block B">
                 </div>
-                <div id="plantError" style="color: #ef4444; margin-bottom: 15px; font-size: 0.9em;"></div>
+                <div id="plantError" style="margin-bottom: 12px;"></div>
                 <button type="submit" class="submit-btn" style="width: 100%;">Create Plant</button>
             </form>
         </div>

@@ -8,3 +8,5 @@
 /meters.db-wal
 /batfiles/
 *.bat
+/.amplify
+.antigravity

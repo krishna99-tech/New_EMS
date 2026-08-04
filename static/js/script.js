@@ -219,7 +219,7 @@ function updateInsightCardsMeta(_extra = {}) {}
 
 function exportCsv() {
     if (exportCsvBtn?.disabled) {
-        cardsContainer.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">Export is disabled when Shift Analysis controls are blocked.</div>`;
+        cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>Export is disabled when Shift Analysis controls are blocked.</div>`;
         return;
     }
 
@@ -229,18 +229,18 @@ function exportCsv() {
     const toValue = toDateTime.value;
 
     if (!plant || !meter) {
-        cardsContainer.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">Please select Plant and Meter before exporting CSV.</div>`;
+        cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>Please select Plant and Meter before exporting CSV.</div>`;
         return;
     }
     if (!fromValue || !toValue) {
-        cardsContainer.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">Please select both From and To date-time before exporting CSV.</div>`;
+        cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>Please select both From and To date-time before exporting CSV.</div>`;
         return;
     }
 
     const fromTs = new Date(fromValue).getTime();
     const toTs = new Date(toValue).getTime();
     if (Number.isNaN(fromTs) || Number.isNaN(toTs) || toTs <= fromTs) {
-        cardsContainer.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">Invalid range: To date-time must be greater than From date-time.</div>`;
+        cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>Invalid range: To date-time must be greater than From date-time.</div>`;
         return;
     }
 
@@ -266,15 +266,20 @@ function scheduleRefreshFromStream() {
         try {
             if (!plantSelect.value || !meterSelect.value) return;
             const selectedMeta = meterMetaById[meterSelect.value];
-            if (!shiftAnalysisToggle.checked && meterSelect.value !== "all" && selectedMeta && selectedMeta.type === "submeter") {
-                // Single submeter card is yesterday snapshot mode (non-live).
+            // If custom time is active, the range is fixed, no need to live-refresh and flash the screen.
+            if (customTimeToggle.checked) return;
+
+            // If shift analysis is active, re-run loadData() to keep the user's range results.
+            if (shiftAnalysisToggle.checked) {
+                await loadData();
                 return;
             }
-            if (shiftAnalysisToggle.checked && !shiftSelect.disabled) {
-                await loadData();
-            } else {
-                await loadBaseCardsOnMeterSelection();
+            if (!shiftAnalysisToggle.checked && !customTimeToggle.checked &&
+                meterSelect.value !== "all" && selectedMeta && selectedMeta.type === "submeter") {
+                // Single submeter in base mode = yesterday snapshot (non-live).
+                return;
             }
+            await loadBaseCardsOnMeterSelection();
         } catch (_e) {
             // no-op: stream should continue even if one refresh fails
         } finally {
@@ -310,7 +315,7 @@ function getIncomerParams(data) {
 }
 
 function applyLiveUpdateWithoutRerender(row) {
-    if (!row || barGraphToggle.checked || shiftAnalysisToggle.checked || meterSelect.value === "all") return false;
+    if (!row || barGraphToggle.checked || shiftAnalysisToggle.checked || customTimeToggle.checked || meterSelect.value === "all") return false;
     const selectedMeta = meterMetaById[meterSelect.value];
     if (selectedMeta && selectedMeta.type === "submeter") {
         // Single submeter card is yesterday snapshot mode; do not live-update it.
@@ -390,9 +395,12 @@ function syncShiftUiForMeter() {
     if (!meter) {
         shiftAnalysisToggle.checked = false;
         shiftAnalysisToggle.disabled = true;
+        customTimeToggle.checked = false;
+        customTimeToggle.disabled = true;
         barGraphToggle.checked = false;
         barGraphToggle.disabled = true;
         shiftAnalysisToggle.closest(".tick-card")?.classList.add("disabled-control");
+        customTimeToggle.closest(".tick-card")?.classList.add("disabled-control");
         barGraphToggle.closest(".tick-card")?.classList.add("disabled-control");
         
         shiftSelect.disabled = true;
@@ -414,9 +422,12 @@ function syncShiftUiForMeter() {
     if (meter === "all") {
         shiftAnalysisToggle.checked = false;
         shiftAnalysisToggle.disabled = true;
+        customTimeToggle.checked = false;
+        customTimeToggle.disabled = true;
         barGraphToggle.checked = false;
         barGraphToggle.disabled = true;
         shiftAnalysisToggle.closest(".tick-card")?.classList.add("disabled-control");
+        customTimeToggle.closest(".tick-card")?.classList.add("disabled-control");
         barGraphToggle.closest(".tick-card")?.classList.add("disabled-control");
         
         shiftSelect.disabled = true;
@@ -430,7 +441,7 @@ function syncShiftUiForMeter() {
         submitFiltersBtn.classList.toggle("disabled-control", true);
         exportCsvBtn.classList.toggle("disabled-control", true);
         
-        shiftDisabledNote.textContent = "All Devices is live-only. Shift analysis and bar graphs are disabled.";
+        shiftDisabledNote.textContent = "All Devices is live-only. Shift analysis, Custom Time, and bar graphs are disabled.";
         shiftDisabledNote.style.display = "block";
         return;
     }
@@ -442,7 +453,7 @@ function syncShiftUiForMeter() {
     customTimeToggle.closest(".tick-card")?.classList.remove("disabled-control");
     barGraphToggle.closest(".tick-card")?.classList.remove("disabled-control");
     const rangeModeEnabled = shiftAnalysisToggle.checked || customTimeToggle.checked || barGraphToggle.checked;
-    const shiftDropdownEnabled = shiftAnalysisToggle.checked || barGraphToggle.checked;
+    const shiftDropdownEnabled = (shiftAnalysisToggle.checked || barGraphToggle.checked) && !customTimeToggle.checked;
 
     shiftSelect.disabled = !shiftDropdownEnabled;
     fromDateTime.disabled = !rangeModeEnabled;
@@ -532,7 +543,16 @@ async function loadMeters(plant){
 // ================= BAR CHART HELPER =================
 
 function getBarChartHTML(title, dataPoints, isFullWidth = false) {
-    if (!dataPoints || dataPoints.length === 0) return `<div style="color: var(--text-sub); padding: 20px;">No bar data available.</div>`;
+    if (!dataPoints || dataPoints.length === 0) {
+        const containerStyle = isFullWidth ? 'style="grid-column: 1 / -1; width: 100%;"' : '';
+        return `<div class="graph-container" ${containerStyle}>
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 20px; color:var(--text-sub); text-align:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35; margin-bottom:14px;"><rect x="3" y="12" width="4" height="8" rx="1"/><rect x="9" y="8" width="4" height="12" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>
+                <p style="margin:0 0 4px; font-size:0.95rem; font-weight:600; color:var(--text-main);">No Data Available</p>
+                <p style="margin:0; font-size:0.82rem;">No readings found for the selected range or shift.</p>
+            </div>
+        </div>`;
+    }
 
     const safePoints = dataPoints.map(p => ({
         label: p.label,
@@ -575,8 +595,17 @@ function getBarChartHTML(title, dataPoints, isFullWidth = false) {
     </div>`;
 }
 
-function getTableHTML(title, dataPoints, isFullWidth, isCustom = false) {
-    if (!dataPoints || dataPoints.length === 0) return `<div style="color: var(--text-sub); padding: 20px;">No data available.</div>`;
+function getTableHTML(title, dataPoints, isFullWidth, isCustom = false, isAllShifts = false) {
+    if (!dataPoints || dataPoints.length === 0) {
+        const containerStyle = isFullWidth ? 'style="grid-column: 1 / -1; width: 100%;"' : '';
+        return `<div class="graph-container" ${containerStyle}>
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 20px; color:var(--text-sub); text-align:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35; margin-bottom:14px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                <p style="margin:0 0 4px; font-size:0.95rem; font-weight:600; color:var(--text-main);">No Data Available</p>
+                <p style="margin:0; font-size:0.82rem;">No readings found for the selected date/shift range.</p>
+            </div>
+        </div>`;
+    }
 
     const rowsHtml = dataPoints.map(p => {
         const startVal = p.start_kwh !== undefined && p.start_kwh !== null ? p.start_kwh.toFixed(2) : "N/A";
@@ -608,9 +637,9 @@ function getTableHTML(title, dataPoints, isFullWidth, isCustom = false) {
             <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--text-main);">
                 <thead>
                     <tr style="border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 8px;">${isCustom ? 'Time Range' : 'Date / Shift'}</th>
-                        <th style="padding: 8px;">${isCustom ? 'Start Reading' : 'Shift Start'}</th>
-                        <th style="padding: 8px;">${isCustom ? 'End Reading' : 'Shift End'}</th>
+                        <th style="padding: 8px;">${isCustom ? 'Time Range' : (isAllShifts ? 'Date' : 'Date / Shift')}</th>
+                        <th style="padding: 8px;">${isCustom ? 'Start Reading' : (isAllShifts ? 'Day Start (kWh)' : 'Shift Start (kWh)')}</th>
+                        <th style="padding: 8px;">${isCustom ? 'End Reading' : (isAllShifts ? 'Day End (kWh)' : 'Shift End (kWh)')}</th>
                         <th style="padding: 8px;">Consumption</th>
                     </tr>
                 </thead>
@@ -707,7 +736,7 @@ function renderEnergySummaryCard(summary) {
         const title = summary.mode === "custom"
             ? `${metricName} Data - Custom Range`
             : `${metricName} Data - ${summary.selected_shift === 'all' ? 'All Shifts' : summary.selected_shift}`;
-        cardsContainer.insertAdjacentHTML('beforeend', getTableHTML(title, dataPoints, true, summary.mode === "custom"));
+        cardsContainer.insertAdjacentHTML('beforeend', getTableHTML(title, dataPoints, true, summary.mode === "custom", summary.selected_shift === "all"));
     }
 }
 
@@ -751,7 +780,7 @@ function renderIncomerShiftGraphs(summary) {
     );
 
     if (!summary.series || summary.series.length === 0) {
-        cardsContainer.insertAdjacentHTML("beforeend", `<div style="color: var(--text-sub); padding: 20px;">No incomer range data available for the selected shift/date range.</div>`);
+        cardsContainer.insertAdjacentHTML("beforeend", `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>No incomer range data available for the selected shift/date range.</p></div>`);
         return;
     }
 
@@ -850,7 +879,9 @@ function createCardsForAll(dataArray){
 
 async function loadData(){
     const reqId = ++loadDataReqSeq;
-    if (shiftSelect.disabled) return;
+    // shiftSelect.disabled is true in custom time mode (shift dropdown not needed).
+    // Only block if NEITHER shift analysis NOR custom time is active.
+    if (shiftSelect.disabled && !customTimeToggle.checked) return;
 
     const plant = plantSelect.value;
     const meter = meterSelect.value;
@@ -866,14 +897,14 @@ async function loadData(){
     const fromValue = fromDateTime.value;
     const toValue = toDateTime.value;
     if (!fromValue || !toValue) {
-        cardsContainer.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">Please select both From and To date-time, then click Submit.</div>`;
+        cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>Please select both From and To date-time, then click Submit.</div>`;
         updateInsightCardsMeta({ barCount: 0 });
         return;
     }
     const fromTs = new Date(fromValue).getTime();
     const toTs = new Date(toValue).getTime();
     if (Number.isNaN(fromTs) || Number.isNaN(toTs) || toTs <= fromTs) {
-        cardsContainer.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">Invalid range: To date-time must be greater than From date-time.</div>`;
+        cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>Invalid range: To date-time must be greater than From date-time.</div>`;
         updateInsightCardsMeta({ barCount: 0 });
         return;
     }
@@ -898,7 +929,7 @@ async function loadData(){
         if (selectedMeta && selectedMeta.type === "incomer" && barGraphToggle.checked) {
             const incomerSummary = await loadIncomerShiftSummary(plant, meter);
             if (incomerSummary.error) {
-                cardsContainer.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">${incomerSummary.error}</div>`;
+                cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>${incomerSummary.error}</div>`;
                 return;
             }
             if (reqId !== loadDataReqSeq) return;
@@ -909,7 +940,7 @@ async function loadData(){
         if (selectedMeta && (selectedMeta.type === "submeter" || selectedMeta.type === "incomer")) {
             const summary = await loadEnergySummary(plant, meter);
             if (summary.error) {
-                cardsContainer.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">${summary.error}</div>`;
+                cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>${summary.error}</div>`;
                 return;
             }
             if (reqId !== loadDataReqSeq) return;
@@ -927,8 +958,7 @@ async function loadData(){
             createCards(data[0]);
             updateInsightCardsMeta({ barCount: 0 });
         } else {
-            cardsContainer.innerHTML = 
-                `<div style="color: var(--text-sub); padding: 20px;">No data recorded yet for this meter.</div>`;
+            cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>No data recorded yet for this meter.</p></div>`;
             updateInsightCardsMeta({ barCount: 0 });
         }
     }
@@ -976,10 +1006,19 @@ async function loadBaseCardsOnMeterSelection() {
     if (reqId !== loadBaseReqSeq) return;
     if (data.length > 0) {
         if (selectedMeta && selectedMeta.type === "submeter") {
+            // If custom time or shift analysis is active, the user already has results
+            // from loadData(). Don't overwrite them with the yesterday card.
+            if (customTimeToggle.checked || shiftAnalysisToggle.checked) {
+                return;
+            }
             const meterName = meterSelect.options[meterSelect.selectedIndex]?.text || "Meter";
             const yesterdayRes = await fetch(`/energy_summary?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}&mode=shiftwise&shift=all`);
             const yesterdaySummary = await yesterdayRes.json();
-            const yVal = yesterdaySummary.yesterday_total_kwh ?? 0;
+            if (yesterdaySummary.yesterday_total_kwh === null || yesterdaySummary.yesterday_total_kwh === undefined) {
+                cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>No data recorded for yesterday.</p></div>`;
+                return;
+            }
+            const yVal = yesterdaySummary.yesterday_total_kwh;
             const fromRaw = yesterdaySummary.from_dt || "";
             const toRaw = yesterdaySummary.to_dt || "";
             const baseDateRaw = fromRaw.slice(0, 10);
@@ -1022,7 +1061,7 @@ async function loadBaseCardsOnMeterSelection() {
         createCards(data[0]);
     } else {
         lastVisualSignature = "";
-        cardsContainer.innerHTML = `<div style="color: var(--text-sub); padding: 20px;">No data recorded yet for this meter.</div>`;
+        cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>No data recorded yet for this meter.</div>`;
     }
 }
 
@@ -1105,10 +1144,29 @@ plantSelect.addEventListener("change", async ()=>{
     updateAuthUI();
 });
 
-meterSelect.addEventListener("change", loadBaseCardsOnMeterSelection);
-meterSelect.addEventListener("change", syncShiftUiForMeter);
-meterSelect.addEventListener("change", setupLiveStream);
-meterSelect.addEventListener("change", () => { lastVisualSignature = ""; });
+meterSelect.addEventListener("change", () => {
+    lastVisualSignature = "";
+    syncShiftUiForMeter();
+    
+    if (plantSelect.value && meterSelect.value) {
+        cardsContainer.innerHTML = `<div class="dashboard-empty-state"><p>Loading data...</p></div>`;
+        setupLiveStream();
+        // The SSE stream connects and sends an initial payload which will trigger the first fetch
+        // via scheduleRefreshFromStream, EXCEPT for cases we explicitly block from live-refreshing.
+        const selectedMeta = meterMetaById[meterSelect.value];
+        const isSingleSubmeterBaseMode = !shiftAnalysisToggle.checked && !customTimeToggle.checked && meterSelect.value !== "all" && selectedMeta && selectedMeta.type === "submeter";
+
+        if (customTimeToggle.checked) {
+            loadData();
+        } else if (isSingleSubmeterBaseMode) {
+            loadBaseCardsOnMeterSelection();
+        }
+    } else {
+        cardsContainer.innerHTML = "";
+        closeLiveStream();
+    }
+});
+
 submitFiltersBtn.addEventListener("click", loadData);
 exportCsvBtn?.addEventListener("click", exportCsv);
 shiftAnalysisToggle.addEventListener("change", () => {
@@ -1116,8 +1174,11 @@ shiftAnalysisToggle.addEventListener("change", () => {
         customTimeToggle.checked = false;
     }
     syncShiftUiForMeter();
-    if ((shiftAnalysisToggle.checked || customTimeToggle.checked || barGraphToggle.checked) && !shiftSelect.disabled) {
-        if(shiftAnalysisToggle.checked) setDefaultDateRange();
+    // Custom time doesn't use shiftSelect; check each toggle independently.
+    if (shiftAnalysisToggle.checked && !shiftSelect.disabled) {
+        setDefaultDateRange();
+        if (plantSelect.value && meterSelect.value) loadData();
+    } else if (customTimeToggle.checked || barGraphToggle.checked) {
         if (plantSelect.value && meterSelect.value) loadData();
     }
 });
@@ -1127,9 +1188,16 @@ customTimeToggle.addEventListener("change", () => {
         shiftAnalysisToggle.checked = false;
     }
     syncShiftUiForMeter();
-    if ((shiftAnalysisToggle.checked || customTimeToggle.checked || barGraphToggle.checked) && !shiftSelect.disabled) {
-        if(customTimeToggle.checked) setDefaultDateRange();
+    if (customTimeToggle.checked) {
+        // Custom time doesn't need shiftSelect enabled — run loadData directly.
+        setDefaultDateRange();
         if (plantSelect.value && meterSelect.value) loadData();
+    } else if ((shiftAnalysisToggle.checked || barGraphToggle.checked) && !shiftSelect.disabled) {
+        if (plantSelect.value && meterSelect.value) loadData();
+    } else if (!customTimeToggle.checked && !shiftAnalysisToggle.checked && !barGraphToggle.checked) {
+        // All toggles off — restore yesterday card.
+        lastVisualSignature = "";
+        if (plantSelect.value && meterSelect.value) loadBaseCardsOnMeterSelection();
     }
 });
 barGraphToggle.addEventListener("change", () => {
@@ -1171,16 +1239,6 @@ floatingHomeBtn?.addEventListener("click", () => {
     syncShiftUiForMeter();
     syncFloatingHomeBtn();
     updateAuthUI();
-});
-    // ================= SCROLL LISTENER =================
-window.addEventListener("scroll", () => {
-    if (window.scrollY > 20) {
-        navbar.classList.add("is-sticky");
-        document.body.style.paddingTop = `${navbar.offsetHeight}px`;
-    } else {
-        navbar.classList.remove("is-sticky");
-        document.body.style.paddingTop = "0px";
-    }
 });
 
 // ================= THEME TOGGLE =================
