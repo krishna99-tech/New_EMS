@@ -1,0 +1,101 @@
+{% extends "admin_layout.html" %}
+{% set active_page = 'group_config' %}
+
+{% block page_title %}Meter Groups{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-shell">
+
+    <div class="admin-page-header">
+        <div class="admin-page-header-text">
+            <h2 class="admin-page-title">Custom Meter Groups</h2>
+            <p class="admin-page-subtitle">Logical sections for aggregated kWh monitoring</p>
+        </div>
+        <div class="admin-header-actions">
+            <button type="button" onclick="openCreateGroupModal()" class="submit-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Create Group
+            </button>
+        </div>
+    </div>
+
+    <div class="admin-stats-row">
+        <div class="admin-stat-card"><label>Total Groups</label><div class="stat-val" id="statGroupCount">—</div></div>
+        <div class="admin-stat-card"><label>Member Meters</label><div class="stat-val" id="statMemberCount">—</div></div>
+    </div>
+
+    <div class="admin-panel">
+        <div class="admin-panel-header">
+            <h3>Quick Presets</h3>
+            <p class="admin-panel-hint">Auto-create groups from configured meters</p>
+        </div>
+        <div class="admin-panel-body">
+            <div id="groupPresetsList" style="padding: 10px 0;">
+                <div class="admin-empty-state">Loading presets...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-panel">
+        <div class="admin-panel-header">
+            <h3>Group Configuration</h3>
+        </div>
+        <div class="admin-panel-body">
+            <div id="meterGroupsList" class="admin-grid-view">
+                <div class="admin-empty-state">Loading groups...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="createGroupModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>Create Custom Group</h2>
+            <button type="button" class="close-modal-btn" onclick="closeCreateGroupModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="createGroupForm">
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="newGroupName">Group Name</label>
+                    <input type="text" id="newGroupName" required placeholder="e.g. All Compressors">
+                </div>
+                <p id="groupError" class="form-error" style="display:none;"></p>
+                <button type="submit" class="submit-btn" style="width:100%;">Create Group</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="addGroupMemberModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>Add Meter to Group</h2>
+            <button type="button" class="close-modal-btn" onclick="closeAddGroupMemberModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addGroupMemberForm">
+                <input type="hidden" id="memberGroupId">
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="memberPlantSelect">Plant</label>
+                    <select id="memberPlantSelect" required onchange="populateMemberMeterSelect()">
+                        <option value="" disabled selected>Select a Plant...</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="memberMeterSelect">Meter</label>
+                    <select id="memberMeterSelect" required>
+                        <option value="" disabled selected>Select a Plant first...</option>
+                    </select>
+                </div>
+                <p id="memberError" class="form-error" style="display:none;"></p>
+                <button type="submit" class="submit-btn" style="width:100%;">Add Meter</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script src="{{ url_for('static', path='js/admin.js') }}?v=3"></script>
+{% endblock %}

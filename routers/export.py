@@ -1,26 +1,37 @@
 """
-routers/export.py — CSV export route.
+routers/export.py — CSV and PDF export routes.
 
 Route:
   GET /export_csv
+  GET /export_group_csv
+  GET /export_group_pdf
 """
 
 import csv
 import io
 from datetime import datetime, timedelta
+from tempfile import NamedTemporaryFile
 
 import psycopg2.extras
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import Response
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse, Response
+from fpdf import FPDF
 
 from database import get_db_connection
 from helpers import (
+    fetch_avg_value_in_window,
     fetch_latest_value_at_or_before,
     fetch_value_bounds_in_window,
     get_all_meters,
     get_meter_config,
+    get_production_day_key,
+    get_shift_start,
     get_shift_windows,
 )
+from services.analytics_service import get_raw_meter_data
+from services import group_service
+from services.group_analytics_service import get_member_breakdown
+from routers.auth import require_login
 
 router = APIRouter()
 
@@ -112,7 +123,7 @@ def export_csv(
 
     if meter == "all":
         submeters = [
-            (int(mid), meta.get("name", f"Meter {mid}"))
+            (mid, meta.get("name", f"Meter {mid}"))
             for mid, meta in get_all_meters(plant).items()
             if meta.get("type", "submeter") == "submeter"
         ]
@@ -233,24 +244,12 @@ def export_csv(
             )
 
         else:  # incomer
-            query = """
-                SELECT
-                    timestamp, plant, meter_id, meter_name, meter_type, status,
-                    kwh, kw, kva, pf, volt, curr, freq,
-                    line_voltage, line_to_line_voltage, avg_voltage, voltage_unbalance,
-                    line_current, current_l1, current_l2, current_l3, avg_current,
-                    neutral_line_current, kw_l1, kw_l2, kw_l3, kw_total,
-                    kva_l1, kva_l2, kva_l3, kva_total, kva_max_demand
-                FROM meter_data
-                WHERE plant=%s AND meter_id=%s AND timestamp>=%s AND timestamp<=%s
-                ORDER BY timestamp ASC
-            """
-            cur.execute(query, (
-                plant, meter_id,
-                from_dt.strftime("%Y-%m-%d %H:%M:%S"),
-                to_dt.strftime("%Y-%m-%d %H:%M:%S"),
-            ))
-            rows = cur.fetchall()
+            rows = get_raw_meter_data(
+                plant, 
+                meter_id, 
+                from_dt.strftime("%Y-%m-%d %H:%M:%S"), 
+                to_dt.strftime("%Y-%m-%d %H:%M:%S")
+            )
 
             writer.writerow([
                 "Timestamp", "Plant", "Meter_ID", "Meter_Name", "Meter_Type", "Status",
@@ -276,4 +275,167 @@ def export_csv(
         content=csv_data,
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/export_group_csv")
+def export_group_csv(
+    request: Request,
+    group_id: int = None,
+    from_dt: str = None,
+    to_dt: str = None,
+    mode: str = "shiftwise",
+    shift: str = "all",
+):
+    require_login(request)
+    if not group_id or not from_dt or not to_dt:
+        raise HTTPException(status_code=400, detail="group_id, from_dt and to_dt are required")
+
+    try:
+        from_dt_parsed = datetime.fromisoformat(from_dt)
+        to_dt_parsed = datetime.fromisoformat(to_dt)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid datetime format")
+
+    if to_dt_parsed <= from_dt_parsed:
+        raise HTTPException(status_code=400, detail="to_dt must be greater than from_dt")
+
+    group_data = group_service.get_group_with_members(group_id)
+    if not group_data:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Group", group_data["name"]])
+    writer.writerow(["From", from_dt_parsed.strftime("%Y-%m-%d %H:%M:%S")])
+    writer.writerow(["To", to_dt_parsed.strftime("%Y-%m-%d %H:%M:%S")])
+    writer.writerow([])
+
+    members = group_data["members"]
+    breakdown = get_member_breakdown(cur, members, from_dt_parsed, to_dt_parsed)
+    conn.close()
+
+    writer.writerow(["Plant", "Meter ID", "Meter Name", "Start (kWh)", "End (kWh)", "Consumption (kWh)"])
+    total = 0.0
+    for row in breakdown:
+        cons = row.get("consumption")
+        if cons is not None:
+            total += cons
+        writer.writerow([
+            row["plant"],
+            row["meter_id"],
+            row["meter_name"],
+            row.get("start_kwh", ""),
+            row.get("end_kwh", ""),
+            cons if cons is not None else "",
+        ])
+    writer.writerow([])
+    writer.writerow(["", "", "Group Total", "", "", round(total, 2)])
+
+    safe_name = group_data["name"].replace(" ", "_")
+    filename = f"group_{safe_name}_{from_dt_parsed.strftime('%Y%m%d_%H%M')}_to_{to_dt_parsed.strftime('%Y%m%d_%H%M')}.csv"
+    csv_data = output.getvalue()
+    output.close()
+
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/export_group_pdf")
+def export_group_pdf(
+    request: Request,
+    group_id: int = None,
+    from_dt: str = None,
+    to_dt: str = None,
+):
+    require_login(request)
+    if not group_id or not from_dt or not to_dt:
+        raise HTTPException(status_code=400, detail="group_id, from_dt and to_dt are required")
+
+    try:
+        from_dt_parsed = datetime.fromisoformat(from_dt)
+        to_dt_parsed = datetime.fromisoformat(to_dt)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid datetime format")
+
+    if to_dt_parsed <= from_dt_parsed:
+        raise HTTPException(status_code=400, detail="to_dt must be greater than from_dt")
+
+    group_data = group_service.get_group_with_members(group_id)
+    if not group_data:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    breakdown = get_member_breakdown(cur, group_data["members"], from_dt_parsed, to_dt_parsed)
+    conn.close()
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("helvetica", size=16, style="B")
+    pdf.set_text_color(79, 70, 229)
+    pdf.cell(0, 10, text="Group Energy Consumption Report", ln=1, align="C")
+
+    pdf.set_font("helvetica", size=12, style="B")
+    pdf.set_text_color(50, 50, 50)
+    pdf.cell(0, 8, text=f"Group: {group_data['name']}", ln=1, align="C")
+
+    pdf.set_font("helvetica", size=10)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(
+        0, 8,
+        text=f"Period: {from_dt_parsed.strftime('%Y-%m-%d %H:%M')} to {to_dt_parsed.strftime('%Y-%m-%d %H:%M')}",
+        ln=1, align="C",
+    )
+    pdf.ln(8)
+
+    pdf.set_fill_color(79, 70, 229)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("helvetica", size=10, style="B")
+    pdf.cell(45, 9, "Plant", border=1, fill=True)
+    pdf.cell(25, 9, "Meter", border=1, fill=True)
+    pdf.cell(55, 9, "Name", border=1, fill=True)
+    pdf.cell(30, 9, "Start kWh", border=1, fill=True)
+    pdf.cell(30, 9, "End kWh", border=1, fill=True)
+    pdf.cell(30, 9, "kWh Used", border=1, fill=True, ln=1)
+
+    pdf.set_text_color(50, 50, 50)
+    pdf.set_font("helvetica", size=9)
+    total = 0.0
+    fill = False
+    pdf.set_fill_color(245, 245, 255)
+
+    for row in breakdown:
+        cons = row.get("consumption")
+        if cons is not None:
+            total += cons
+        name = (row.get("meter_name") or "")[:28]
+        pdf.cell(45, 8, str(row["plant"])[:20], border=1, fill=fill)
+        pdf.cell(25, 8, str(row["meter_id"]), border=1, fill=fill)
+        pdf.cell(55, 8, name, border=1, fill=fill)
+        pdf.cell(30, 8, f"{row.get('start_kwh', '')}", border=1, fill=fill, align="R")
+        pdf.cell(30, 8, f"{row.get('end_kwh', '')}", border=1, fill=fill, align="R")
+        pdf.cell(30, 8, f"{cons if cons is not None else ''}", border=1, fill=fill, align="R", ln=1)
+        fill = not fill
+
+    pdf.ln(6)
+    pdf.set_font("helvetica", size=12, style="B")
+    pdf.set_text_color(79, 70, 229)
+    pdf.cell(0, 10, text=f"Group Total: {round(total, 2)} kWh", ln=1)
+
+    temp_file = NamedTemporaryFile(delete=False, suffix=".pdf")
+    temp_file.close()
+    pdf.output(temp_file.name)
+
+    safe_name = group_data["name"].replace(" ", "_")
+    return FileResponse(
+        temp_file.name,
+        media_type="application/pdf",
+        filename=f"group_{safe_name}_{from_dt_parsed.strftime('%Y%m%d')}.pdf",
     )

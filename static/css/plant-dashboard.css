@@ -1,0 +1,168 @@
+/* Plant dashboard — toolbar, live/history views, meter sections */
+
+.plant-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.plant-toolbar-left {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    flex: 1;
+    min-width: 240px;
+}
+
+.plant-toolbar .select-card {
+    min-width: 200px;
+}
+
+.plant-context-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(79, 70, 229, 0.12);
+    color: var(--accent-primary);
+    border: 1px solid rgba(79, 70, 229, 0.25);
+}
+
+.plant-live-panel .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.plant-history-panel .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.filter-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.filter-panel-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-sub);
+    margin: 0 0 12px;
+}
+
+.plant-grid-landing {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 24px;
+}
+
+.plant-pick-card {
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+}
+
+.plant-pick-card:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.plant-pick-card h4 {
+    margin: 0 0 6px;
+    font-size: 1rem;
+    color: var(--text-main);
+}
+
+.plant-pick-card p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-sub);
+}
+
+.plant-pick-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+/* Dashboard Toolbar & Tabs */
+.dashboard-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 16px;
+}
+
+.dashboard-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.dash-tab {
+    background: transparent;
+    color: var(--text-sub);
+    border: none;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.dash-tab:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dash-tab.active {
+    color: #ffffff !important;
+    background: var(--accent-primary, #4f46e5) !important;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.light-mode .dash-tab:not(.active) {
+    color: var(--text-main) !important;
+}
+
+.light-mode .dash-tab:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}

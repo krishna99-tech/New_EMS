@@ -1,0 +1,15 @@
+{# Visual data-access flow — pass steps as list of {label, href?, active?} #}
+{% macro render_flow(steps) %}
+<nav class="flow-steps" aria-label="Data access flow">
+    {% for step in steps %}
+        {% if not loop.first %}
+        <span class="flow-step-sep" aria-hidden="true">→</span>
+        {% endif %}
+        {% if step.href and not step.active %}
+        <a href="{{ step.href }}" class="flow-step">{{ step.label }}</a>
+        {% else %}
+        <span class="flow-step {% if step.active %}active{% endif %}">{{ step.label }}</span>
+        {% endif %}
+    {% endfor %}
+</nav>
+{% endmacro %}

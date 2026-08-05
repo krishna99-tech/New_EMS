@@ -3,161 +3,58 @@
 {% block title %}Admin | EMS Dashboard{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}?v=7">
 {% block admin_head %}{% endblock %}
 {% endblock %}
 
 {% block content %}
-<div class="admin-layout">
-    <!-- SIDEBAR -->
-    <aside class="admin-sidebar">
-        <div class="admin-sidebar-header">
-            <a href="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
-                <img src="{{ url_for('static', path='images/logo.png') }}" alt="Company Logo" class="company-logo" style="width: 36px; height: 36px;">
-                <div class="nav-titles">
-                    <h1 style="margin:0; font-size:1.1rem;">FUSO EMS</h1>
-                    <p class="subtitle" style="margin:0; font-size:0.75rem;">Administration</p>
-                </div>
-            </a>
-        </div>
-        <nav class="admin-sidebar-nav">
-            <a href="/admin" class="sidebar-link {% if active_page == 'devices' %}active{% endif %}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                <span class="sidebar-link-text">Devices</span>
-            </a>
-            <a href="/reports" class="sidebar-link {% if active_page == 'reports' %}active{% endif %}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                <span class="sidebar-link-text">Reports</span>
-            </a>
-        </nav>
-        <div style="flex-grow: 1;"></div>
-        <nav class="admin-sidebar-nav" style="margin-bottom: 24px;">
-            <a href="/" class="sidebar-link" style="color: var(--text-sub);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                <span class="sidebar-link-text">Main Dashboard</span>
-            </a>
-        </nav>
-    </aside>
+<div class="ems-layout">
+    {% include "partials/ems_sidebar.html" %}
 
-    <!-- MAIN CONTENT AREA -->
-    <main class="admin-content-area">
-        <!-- TOP NAVBAR -->
-        <div class="navbar" style="border-radius:0; margin:0;">
-            <div class="nav-left" style="display: flex; align-items: center; gap: 16px;">
-                <button id="sidebarToggleBtn" class="theme-btn" title="Toggle Sidebar" style="background: rgba(0,0,0,0.05); padding: 8px; border-radius: 8px; border: none; cursor: pointer; color: var(--text-main);">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    <div class="ems-main">
+        <header class="navbar ems-topbar">
+            <div class="nav-left">
+                <button type="button" id="emsMenuBtn" class="theme-btn ems-menu-btn" title="Toggle menu" aria-label="Toggle menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                 </button>
-                <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">
-                    {% block page_title %}Admin Panel{% endblock %}
-                </h2>
+                <img src="{{ url_for('static', path='images/logo.png') }}" alt="Company Logo" class="company-logo">
+                <h2 class="admin-topbar-title">{% block page_title %}Admin Panel{% endblock %}</h2>
             </div>
             <div class="nav-right">
+                {# Hidden theme toggle — ems-shell.js binds to this ID globally #}
+                <button id="themeToggle" class="theme-btn" type="button" title="Toggle theme" aria-label="Toggle theme" style="display:none;">
+                    <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+                </button>
                 <div class="profile-dropdown" id="profileDropdown">
-                    <button id="profileDropdownBtn" class="profile-btn">
-                        <img src="https://ui-avatars.com/api/?name=Admin&background=10b981&color=fff" alt="Avatar" class="avatar-img">
+                    <button id="profileDropdownBtn" class="profile-btn" type="button">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff" alt="Avatar" class="avatar-img">
                         <span class="profile-name">Administrator</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
                     <div id="profileDropdownMenu" class="dropdown-menu">
-                        <div class="dropdown-header">
-                            <p class="role">Admin Account</p>
-                        </div>
+                        <div class="dropdown-header"><p class="role">Admin Account</p></div>
                         <div class="dropdown-divider"></div>
-                        <button id="themeToggle" class="dropdown-item">
-                            <span class="icon" id="themeIconContainer" style="display:flex; align-items:center; opacity:0.8;">
-                                <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
-                            </span>
-                            Theme Mode
-                        </button>
-                        <div class="dropdown-divider"></div>
-                        <button id="logoutBtn" class="dropdown-item logout">
+                        <button id="themeToggleAdmin" class="dropdown-item" type="button">
                             <span class="icon" style="display:flex; align-items:center; opacity:0.8;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
                             </span>
-                            Logout
+                            Toggle Theme
                         </button>
+                        <div class="dropdown-divider"></div>
+                        <button id="logoutBtn" class="dropdown-item logout" type="button">Logout</button>
                     </div>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- PAGE CONTENT -->
-        {% block admin_content %}{% endblock %}
-    </main>
+        <div class="ems-content ems-content--wide">
+            {% block admin_content %}{% endblock %}
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    // Sidebar toggle logic
-    const sidebar = document.querySelector(".admin-sidebar");
-    const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
-    
-    if (localStorage.getItem("sidebar_collapsed") === "true") {
-        sidebar.classList.add("collapsed");
-    }
-    
-    if (sidebarToggleBtn) {
-        sidebarToggleBtn.addEventListener("click", () => {
-            sidebar.classList.toggle("collapsed");
-            localStorage.setItem("sidebar_collapsed", sidebar.classList.contains("collapsed"));
-        });
-    }
-
-    // Profile Dropdown logic
-    // Shared Admin Layout Scripts
-    const themeToggleBtn = document.getElementById("themeToggle");
-    const themeIcon = document.getElementById("themeIcon");
-
-    function applyThemeState() {
-        const isLight = document.body.classList.contains("light-mode");
-        if (isLight) {
-            themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-        } else {
-            themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-        }
-    }
-
-    function toggleTheme() {
-        document.body.classList.toggle("light-mode");
-        const isLight = document.body.classList.contains("light-mode");
-        localStorage.setItem("theme", isLight ? "light" : "dark");
-        applyThemeState();
-    }
-
-    themeToggleBtn?.addEventListener("click", toggleTheme);
-    if (localStorage.getItem("theme") === "light") {
-        document.body.classList.add("light-mode");
-    }
-    applyThemeState();
-
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", async () => {
-            await fetch("/api/logout", { method: "POST" });
-            window.location.href = "/login";
-        });
-    }
-
-    // Profile Dropdown Toggle Logic
-    const profileDropdown = document.getElementById("profileDropdown");
-    const profileDropdownBtn = document.getElementById("profileDropdownBtn");
-
-    if (profileDropdownBtn) {
-        profileDropdownBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            profileDropdown.classList.toggle("open");
-        });
-    }
-
-    // Close dropdown when clicking outside
-    document.addEventListener("click", (e) => {
-        if (profileDropdown && profileDropdown.classList.contains("open") && !profileDropdown.contains(e.target)) {
-            profileDropdown.classList.remove("open");
-        }
-    });
-});
-</script>
+<script src="{{ url_for('static', path='js/admin-shell.js') }}?v=3"></script>
 {% block admin_scripts %}{% endblock %}
 {% endblock %}

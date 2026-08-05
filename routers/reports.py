@@ -6,9 +6,9 @@ from fastapi.templating import Jinja2Templates
 from fpdf import FPDF
 import psycopg2.extras
 
-from database import get_db_connection
 from config import BASE_DIR
-from routers.auth import require_login
+from routers.auth import require_login, require_login_page, template_context
+from services.analytics_service import get_report_consumption_summary
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
@@ -16,8 +16,10 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 @router.get("/reports", response_class=HTMLResponse)
 def reports_page(request: Request):
     """Serve the Reports UI page."""
-    require_login(request)
-    return templates.TemplateResponse("reports.html", {"request": request})
+    redirect = require_login_page(request)
+    if redirect:
+        return redirect
+    return templates.TemplateResponse("reports.html", template_context(request))
 
 @router.get("/api/reports/download")
 def download_report(request: Request, plant: str, start_date: str, end_date: str):
@@ -35,24 +37,7 @@ def download_report(request: Request, plant: str, start_date: str, end_date: str
     if len(end_date) == 10:
         end_date += " 23:59:59"
 
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    
-    # Query summary of consumption per meter
-    cur.execute("""
-        SELECT 
-            meter_name, 
-            meter_type, 
-            MIN(kwh) as start_kwh, 
-            MAX(kwh) as end_kwh
-        FROM meter_data
-        WHERE plant = %s AND timestamp >= %s AND timestamp <= %s
-        GROUP BY meter_name, meter_type
-        ORDER BY meter_type ASC, meter_name ASC
-    """, (plant, start_date, end_date))
-    
-    rows = cur.fetchall()
-    conn.close()
+    rows = get_report_consumption_summary(plant, start_date, end_date)
 
     # Create PDF using fpdf2
     pdf = FPDF()

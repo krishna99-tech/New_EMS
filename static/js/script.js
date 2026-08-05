@@ -21,6 +21,12 @@ const customTimeToggle = document.getElementById("customTimeToggle");
 const barGraphToggle = document.getElementById("barGraphToggle");
 const shiftDisabledNote = document.getElementById("shiftDisabledNote");
 const floatingHomeBtn = document.getElementById("floatingHomeBtn");
+const historyFilterPanel = document.getElementById("historyFilterPanel");
+const btnPlantLive = document.getElementById("btnPlantLive");
+const btnPlantHistory = document.getElementById("btnPlantHistory");
+const plantKpiStrip = document.getElementById("plantKpiStrip");
+const plantContextBadge = document.getElementById("plantContextBadge");
+let plantViewMode = "live";
 const moonIcon = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
 const sunIcon = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="4.22" x2="19.78" y2="5.64"></line>';
 
@@ -102,11 +108,13 @@ function applyThemeState() {
 
         document.body.style.setProperty("--accent-1", hexToRgba(plantTheme.primaryColor, isLightMode ? 0.13 : 0.25));
         document.body.style.setProperty("--accent-2", hexToRgba(plantTheme.primaryColor, isLightMode ? 0.1 : 0.2));
+        document.body.style.setProperty("--accent-primary", plantTheme.primaryColor);
     } else {
         plantSelect.style.color = "inherit";
         dashboardTitle.style.color = "var(--text-main)";
         dashboardTitle.style.removeProperty("--title-glow");
         navbar.style.setProperty("--nav-border-bottom-color", "transparent");
+        document.body.style.removeProperty("--accent-primary");
     }
 
     document.body.style.setProperty("--dynamic-bg-gradient", activeGradient);
@@ -151,7 +159,10 @@ const iconMap = {
 function getCardHTML(label, value, unit, status, isEnergy = false, meterName = "", overrides = {}) {
     const icon = isEnergy ? iconMap["Energy Consumption"] : (iconMap[label] || iconMap["Voltage"]);
     const cardClass = status !== 'OK' ? 'card-container error-status' : 'card-container';
+    const btnClass = status === 'OK' ? 'card-btn status-online' : 'card-btn status-offline';
+    const dotColor = status === 'OK' ? 'var(--success)' : 'var(--danger)';
     const btnText = overrides.btnText || (status === 'OK' ? (isEnergy ? 'Operational' : 'Device Online') : 'Check Device');
+    const btnHtml = `<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${dotColor}; margin-right:6px; box-shadow: 0 0 6px ${dotColor};"></span>${btnText}`;
     const normalizedMeterName = meterName || "Meter";
     const titleLabel = overrides.titleLabel || (isEnergy ? `${normalizedMeterName} - Operational` : `${normalizedMeterName} - Live Data`);
     const displayTitle = overrides.displayTitle || (isEnergy ? 'Energy Consumption' : label);
@@ -172,20 +183,24 @@ function getCardHTML(label, value, unit, status, isEnergy = false, meterName = "
                     <span>${unit}</span>
                 </p>
                 <p class="description">${description}</p>
-                <button class="card-btn">${btnText}</button>
+                <button class="${btnClass}">${btnHtml}</button>
             </div>
         </div>`;
 }
 
 function updateTime(){
+    const el = document.getElementById("currentTime");
+    if (!el) return;
     const now = new Date();
     const shiftName = getShiftName(now);
-    document.getElementById("currentTime").innerText = `${now.toLocaleString()} | ${shiftName}`;
+    el.innerText = `${now.toLocaleString()} | ${shiftName}`;
 }
 
-setInterval(updateTime,1000);
-
-updateTime();
+// Clock handled by app-shell.js when present; keep fallback for legacy pages
+if (!window.EMS) {
+    setInterval(updateTime, 1000);
+    updateTime();
+}
 
 function getShiftName(dt) {
     const hour = dt.getHours();
@@ -216,6 +231,76 @@ function setDefaultDateRange() {
 }
 
 function updateInsightCardsMeta(_extra = {}) {}
+
+function setPlantViewMode(mode) {
+    plantViewMode = mode;
+    btnPlantLive?.classList.toggle("active-view-btn", mode === "live");
+    btnPlantHistory?.classList.toggle("active-view-btn", mode === "history");
+    if (historyFilterPanel) {
+        historyFilterPanel.style.display = mode === "history" ? "block" : "none";
+    }
+    if (!plantSelect?.value || !meterSelect?.value) return;
+    lastVisualSignature = "";
+    if (mode === "history") {
+        syncShiftUiForMeter();
+        if (!shiftAnalysisToggle.checked && !customTimeToggle.checked && !barGraphToggle.checked) {
+            shiftAnalysisToggle.checked = true;
+            syncShiftUiForMeter();
+            setDefaultDateRange();
+        }
+        loadData();
+    } else {
+        closeLiveStream();
+        setupLiveStream();
+        loadBaseCardsOnMeterSelection();
+    }
+}
+
+async function updatePlantKpis(plant) {
+    if (!plantKpiStrip) return;
+    if (!plant) {
+        plantKpiStrip.innerHTML = "";
+        return;
+    }
+    try {
+        const res = await fetch(`/latest?plant=${encodeURIComponent(plant)}`);
+        if (!res.ok) throw new Error("latest failed");
+        const rows = await res.json();
+        const online = rows.filter(r => r.status === "OK").length;
+        const incomer = rows.find(r => r.meter_type === "incomer");
+        const totalKw = rows.reduce((s, r) => s + (parseFloat(r.kw) || 0), 0);
+        plantKpiStrip.innerHTML = `
+            <div class="card premium-card kpi-card"><label>Meters</label><div class="kpi-value">${rows.length}</div><span class="kpi-unit">${online} online</span></div>
+            <div class="card premium-card kpi-card"><label>Plant Load</label><div class="kpi-value">${totalKw.toFixed(1)}</div><span class="kpi-unit">kW (sum)</span></div>
+            <div class="card premium-card kpi-card"><label>Incomer kWh</label><div class="kpi-value">${incomer ? (parseFloat(incomer.kwh) || 0).toFixed(1) : "—"}</div><span class="kpi-unit">register reading</span></div>
+            <div class="card premium-card kpi-card"><label>View Mode</label><div class="kpi-value" style="font-size:1rem;">${plantViewMode === "live" ? "Live" : "History"}</div><span class="kpi-unit">monitoring</span></div>
+        `;
+    } catch {
+        plantKpiStrip.innerHTML = "";
+    }
+}
+
+function renderPlantGridLanding(plants) {
+    const grid = document.getElementById("plantGridLanding");
+    if (!grid) return;
+    if (!plants.length) {
+        grid.innerHTML = "";
+        return;
+    }
+    grid.innerHTML = plants.map(p => {
+        const color = plantThemes[p]?.primaryColor || "#4f46e5";
+        return `<button type="button" class="plant-pick-card" data-plant="${p}">
+            <h4><span class="plant-pick-dot" style="background:${color}"></span>${p}</h4>
+            <p>Live monitoring &amp; shift analysis</p>
+        </button>`;
+    }).join("");
+    grid.querySelectorAll(".plant-pick-card").forEach(btn => {
+        btn.addEventListener("click", () => {
+            plantSelect.value = btn.dataset.plant;
+            plantSelect.dispatchEvent(new Event("change"));
+        });
+    });
+}
 
 function exportCsv() {
     if (exportCsvBtn?.disabled) {
@@ -265,6 +350,7 @@ function scheduleRefreshFromStream() {
         streamRefreshInProgress = true;
         try {
             if (!plantSelect.value || !meterSelect.value) return;
+            if (plantViewMode === "history") return;
             const selectedMeta = meterMetaById[meterSelect.value];
             // If custom time is active, the range is fixed, no need to live-refresh and flash the screen.
             if (customTimeToggle.checked) return;
@@ -480,7 +566,9 @@ function syncShiftUiForMeter() {
 function syncFloatingHomeBtn() {
     const landingView = document.getElementById("landingView");
     const showButton = !!(landingView && landingView.style.display === "none");
-    floatingHomeBtn?.classList.toggle("hidden", !showButton);
+    if (floatingHomeBtn) {
+        floatingHomeBtn.style.display = showButton ? "flex" : "none";
+    }
 }
 
 // ================= LOAD PLANTS =================
@@ -502,11 +590,12 @@ async function loadPlants(){
             option.style.color = theme.primaryColor;
         } else {
             option.innerHTML = `&#9679; ${p}`;
-            option.style.color = "#059669"; // Default purple
+            option.style.color = "#059669";
         }
 
         plantSelect.appendChild(option);
     });
+    renderPlantGridLanding(plants);
 }
 
 // ================= LOAD METERS =================
@@ -894,8 +983,6 @@ async function loadData(){
         return;
     }
 
-    const fromValue = fromDateTime.value;
-    const toValue = toDateTime.value;
     if (!fromValue || !toValue) {
         cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>Please select both From and To date-time, then click Submit.</div>`;
         updateInsightCardsMeta({ barCount: 0 });
@@ -1067,6 +1154,7 @@ async function loadBaseCardsOnMeterSelection() {
 
 function createSummaryCardsForAll(summaries) {
     cardsContainer.innerHTML = "";
+
     summaries.forEach(summary => {
         const meterDiv = document.createElement("div");
         meterDiv.className = "meter-section";
@@ -1106,6 +1194,8 @@ function createSummaryCardsForAll(summaries) {
 
 // ================= EVENTS =================
 
+// ================= EVENTS =================
+
 plantSelect.addEventListener("change", async ()=>{
     const plant = plantSelect.value;
     const landingView = document.getElementById("landingView");
@@ -1113,17 +1203,34 @@ plantSelect.addEventListener("change", async ()=>{
 
     if (plant) {
         dashboardTitle.innerText = `${plant} Dashboard`;
+        window.EMS?.updateFlowSteps([
+            { label: plant, active: true },
+            { label: "Live Data" },
+            { label: "Historical Analysis" },
+            { label: "Export" },
+        ]);
         if (landingView) landingView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
-        const filterBar = document.getElementById("filterBar");
-        if (filterBar) filterBar.style.display = "block";
+        if (plantContextBadge) {
+            plantContextBadge.style.display = "inline-flex";
+            plantContextBadge.textContent = plant;
+        }
+        setPlantViewMode("live");
+        updatePlantKpis(plant);
     } else {
         plantSelect.style.color = "inherit";
-        dashboardTitle.innerText = "Energy Monitoring System";
+        dashboardTitle.innerText = "Plant Dashboard";
+        window.EMS?.updateFlowSteps([
+            { label: "Select Plant", active: true },
+            { label: "Live Data" },
+            { label: "Historical Analysis" },
+            { label: "Export" },
+        ]);
         if (landingView) landingView.style.display = "block";
         if (dashboardView) dashboardView.style.display = "none";
-        const filterBar = document.getElementById("filterBar");
-        if (filterBar) filterBar.style.display = "none";
+        if (historyFilterPanel) historyFilterPanel.style.display = "none";
+        if (plantContextBadge) plantContextBadge.style.display = "none";
+        if (plantKpiStrip) plantKpiStrip.innerHTML = "";
     }
     applyThemeState();
 
@@ -1151,16 +1258,17 @@ meterSelect.addEventListener("change", () => {
     if (plantSelect.value && meterSelect.value) {
         cardsContainer.innerHTML = `<div class="dashboard-empty-state"><p>Loading data...</p></div>`;
         setupLiveStream();
-        // The SSE stream connects and sends an initial payload which will trigger the first fetch
-        // via scheduleRefreshFromStream, EXCEPT for cases we explicitly block from live-refreshing.
         const selectedMeta = meterMetaById[meterSelect.value];
         const isSingleSubmeterBaseMode = !shiftAnalysisToggle.checked && !customTimeToggle.checked && meterSelect.value !== "all" && selectedMeta && selectedMeta.type === "submeter";
 
-        if (customTimeToggle.checked) {
+        if (plantViewMode === "history") {
             loadData();
+        } else if (customTimeToggle.checked) {
+            setPlantViewMode("history");
         } else if (isSingleSubmeterBaseMode) {
             loadBaseCardsOnMeterSelection();
         }
+        updatePlantKpis(plantSelect.value);
     } else {
         cardsContainer.innerHTML = "";
         closeLiveStream();
@@ -1224,14 +1332,15 @@ floatingHomeBtn?.addEventListener("click", () => {
     cardsContainer.innerHTML = "";
     lastVisualSignature = "";
 
-    dashboardTitle.innerText = "Energy Monitoring System";
+    dashboardTitle.innerText = "Plant Dashboard";
     plantSelect.style.color = "inherit";
     applyThemeState();
 
     if (landingView) landingView.style.display = "block";
     if (dashboardView) dashboardView.style.display = "none";
-    const filterBar = document.getElementById("filterBar");
-    if (filterBar) filterBar.style.display = "none";
+    if (historyFilterPanel) historyFilterPanel.style.display = "none";
+    if (plantContextBadge) plantContextBadge.style.display = "none";
+    if (plantKpiStrip) plantKpiStrip.innerHTML = "";
     document.getElementById("liveStatus").style.display = "none";
 
     shiftAnalysisToggle.checked = false;
@@ -1243,32 +1352,18 @@ floatingHomeBtn?.addEventListener("click", () => {
 
 // ================= THEME TOGGLE =================
 
-function toggleTheme() {
-    const isLight = document.body.classList.toggle("light-mode");
-    localStorage.setItem("theme", isLight ? "light" : "dark");
-    updateThemeIcon(isLight);
-    applyThemeState();
-}
-
-function updateThemeIcon(isLight) {
-    themeIcon.innerHTML = isLight ? moonIcon : sunIcon;
-}
-
-themeToggle.addEventListener("click", toggleTheme);
+document.addEventListener("ems-theme-changed", () => applyThemeState());
 
 // ================= INIT =================
+
+btnPlantLive?.addEventListener("click", () => setPlantViewMode("live"));
+btnPlantHistory?.addEventListener("click", () => setPlantViewMode("history"));
 
 loadPlants();
 setDefaultDateRange();
 
-// Set initial theme
-const savedTheme = localStorage.getItem("theme");
-if (savedTheme === "light") {
-    document.body.classList.add("light-mode");
-    updateThemeIcon(true);
-} else { // Default to dark if no theme saved or saved as dark
-    updateThemeIcon(false);
-}
+// Set initial theme icon (toggle handled by app-shell.js)
+// updateThemeIcon is now removed as it's handled by ems-shell.js
 
 applyThemeState();
 updateInsightCardsMeta({ barCount: 0 });
@@ -1280,11 +1375,7 @@ window.addEventListener("beforeunload", closeLiveStream);
 
 // ================= AUTHENTICATION & ADMIN =================
 
-const authBtn = document.getElementById("authBtn");
-const loginModal = document.getElementById("loginModal");
-const loginForm = document.getElementById("loginForm");
-const loginError = document.getElementById("loginError");
-let isLoggedIn = false;
+var isLoggedIn = false;
 
 function checkAuthStatus() {
     fetch('/api/auth_status')
@@ -1297,67 +1388,59 @@ function checkAuthStatus() {
 }
 
 function updateAuthUI() {
-    if (isLoggedIn) {
-        authBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>';
-        authBtn.title = "Logout";
-    } else {
-        authBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>';
-        authBtn.title = "Login";
-    }
-    
-    // Hide auth button on specific plant dashboards
-    if (plantSelect && plantSelect.value !== "") {
-        authBtn.style.display = "none";
-    } else {
-        authBtn.style.display = "flex";
-    }
+    const btn = document.getElementById("authBtn");
+    if (!btn) return;
+    const svgLogout = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>';
+    const svgLogin  = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>';
+    btn.innerHTML = isLoggedIn ? svgLogout : svgLogin;
+    btn.title     = isLoggedIn ? "Logout"  : "Login";
+    btn.style.display = (plantSelect && plantSelect.value !== "") ? "none" : "flex";
 }
-
-authBtn.addEventListener("click", () => {
-    if (isLoggedIn) {
-        fetch('/api/logout', { method: 'POST' })
-            .then(() => {
-                isLoggedIn = false;
-                updateAuthUI();
-                if(typeof deviceManagerModal !== "undefined" && deviceManagerModal.style.display === "flex") closeDeviceManager();
-            });
-    } else {
-        loginModal.style.display = "flex";
-        loginError.style.display = "none";
-    }
-});
 
 function closeLoginModal() {
-    loginModal.style.display = "none";
+    const m = document.getElementById("loginModal");
+    if (m) m.style.display = "none";
 }
 
-loginForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const username = document.getElementById("loginUsername").value;
-    const password = document.getElementById("loginPassword").value;
-    
-    fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    })
-    .then(res => {
-        if (!res.ok) throw new Error("Invalid credentials");
-        return res.json();
-    })
-    .then(data => {
-        if(data.success) {
-            isLoggedIn = true;
-            // Redirect to admin device manager page immediately after login
-            window.location.href = "/admin";
+// Bind all auth interactions once DOM is fully ready
+document.addEventListener("DOMContentLoaded", () => {
+    const authBtn    = document.getElementById("authBtn");
+    const loginModal = document.getElementById("loginModal");
+    const loginForm  = document.getElementById("loginForm");
+    const loginError = document.getElementById("loginError");
+
+    // Check initial auth state
+    checkAuthStatus();
+
+    // Auth button: open login modal OR logout
+    authBtn?.addEventListener("click", () => {
+        if (isLoggedIn) {
+            fetch('/api/logout', { method: 'POST' }).then(() => {
+                isLoggedIn = false;
+                updateAuthUI();
+            });
+        } else {
+            // Redirect to the dedicated login page instead of showing a modal
+            window.location.href = "/login";
         }
-    })
-    .catch(err => {
-        loginError.style.display = "block";
+    });
+
+    // Login form submit
+    loginForm?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const username = document.getElementById("loginUsername")?.value;
+        const password = document.getElementById("loginPassword")?.value;
+        fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        })
+        .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+        .then(data => { if (data.success) window.location.href = "/admin"; })
+        .catch(() => { if (loginError) loginError.style.display = "block"; });
     });
 });
 
-checkAuthStatus();
 
 // ================= CUSTOM DROPDOWN LOGIC =================
 function makeCustomDropdown(selectId) {

@@ -142,6 +142,25 @@ def init_db():
         )
     """)
 
+    # ── meter_groups table ─────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS meter_groups (
+            id   SERIAL PRIMARY KEY,
+            name TEXT UNIQUE
+        )
+    """)
+
+    # ── meter_group_members table ──────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS meter_group_members (
+            id       SERIAL PRIMARY KEY,
+            group_id INTEGER REFERENCES meter_groups(id) ON DELETE CASCADE,
+            plant    TEXT NOT NULL,
+            meter_id INTEGER NOT NULL,
+            UNIQUE (group_id, plant, meter_id)
+        )
+    """)
+
     # ── Seed from meter_map.json (first run only) ──────────────────────────────
     cur.execute("SELECT COUNT(*) FROM meter_config")
     if cur.fetchone()[0] == 0:
@@ -168,6 +187,36 @@ def init_db():
         "INSERT INTO plants (name) "
         "SELECT DISTINCT plant FROM meter_config ON CONFLICT DO NOTHING"
     )
+
+    # ── group_daily_summary table ──────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS group_daily_summary (
+            id         SERIAL PRIMARY KEY,
+            group_id   INTEGER REFERENCES meter_groups(id) ON DELETE CASCADE,
+            date       DATE NOT NULL,
+            total_kwh  REAL NOT NULL,
+            UNIQUE (group_id, date)
+        )
+    """)
+
+    # ── vw_group_live_status view ──────────────────────────────────────────────
+    cur.execute("""
+        CREATE OR REPLACE VIEW vw_group_live_status AS
+        SELECT 
+            g.id AS group_id,
+            g.name AS group_name,
+            SUM(latest_md.kw) AS total_kw,
+            SUM(latest_md.kwh) AS total_kwh,
+            MAX(latest_md.timestamp) AS last_updated
+        FROM meter_groups g
+        JOIN meter_group_members gm ON g.id = gm.group_id
+        JOIN (
+            SELECT DISTINCT ON (plant, meter_id) *
+            FROM meter_data
+            ORDER BY plant, meter_id, timestamp DESC
+        ) latest_md ON gm.plant = latest_md.plant AND gm.meter_id = latest_md.meter_id
+        GROUP BY g.id, g.name;
+    """)
 
     conn.commit()
     conn.close()

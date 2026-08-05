@@ -13,75 +13,19 @@ import json
 from datetime import datetime
 
 import psycopg2.extras
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from database import get_db_connection
+
 from helpers import (
-    compute_live_status,
     get_all_meters,
     get_all_plants,
 )
-
+from services.meter_service import fetch_latest_rows
+from services import group_service
+from routers.auth import require_login
 router = APIRouter()
-
-
-# ── Internal helper ────────────────────────────────────────────────────────────
-
-def fetch_latest_rows(plant, meter, conn=None):
-    """
-    Return the most-recent meter_data row(s) for the given plant/meter.
-    Pass an open connection to reuse it (e.g. inside a long-lived SSE stream).
-    """
-    own_conn = conn is None
-    if own_conn:
-        conn = get_db_connection()
-
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    if meter == "all":
-        meters_dict = get_all_meters(str(plant))
-        rows = []
-        for meter_id, meta in meters_dict.items():
-            cur.execute(
-                "SELECT * FROM meter_data WHERE plant=%s AND meter_id=%s "
-                "ORDER BY timestamp DESC LIMIT 1",
-                (str(plant), int(meter_id)),
-            )
-            row = cur.fetchone()
-            if not row:
-                continue
-            normalized = dict(row)
-            if isinstance(normalized.get("timestamp"), datetime):
-                normalized["timestamp"] = normalized["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
-            normalized["meter_name"] = meta.get("name", normalized.get("meter_name"))
-            normalized["meter_type"] = meta.get("type", normalized.get("meter_type"))
-            normalized["status"] = compute_live_status(normalized)
-            rows.append(normalized)
-        rows.sort(key=lambda r: (r.get("meter_name") or ""))
-        if own_conn:
-            conn.close()
-        return rows
-
-    # Single meter
-    query = "SELECT * FROM meter_data WHERE plant=%s AND meter_id=%s ORDER BY timestamp DESC LIMIT 1"
-    try:
-        params = (str(plant), int(meter))
-    except (ValueError, TypeError):
-        params = (str(plant), str(meter))
-
-    cur.execute(query, params)
-    rows = []
-    for r in cur.fetchall():
-        normalized = dict(r)
-        if isinstance(normalized.get("timestamp"), datetime):
-            normalized["timestamp"] = normalized["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
-        normalized["status"] = compute_live_status(normalized)
-        rows.append(normalized)
-
-    if own_conn:
-        conn.close()
-    return rows
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
@@ -101,7 +45,55 @@ def meters(plant: str = None):
 
 @router.get("/latest")
 def latest(plant: str = None, meter: str = None):
+    if not plant:
+        raise HTTPException(status_code=400, detail="plant is required")
     return fetch_latest_rows(plant, meter)
+
+
+@router.get("/group_latest")
+def group_latest(request: Request, group_id: int):
+    require_login(request)
+    group_data = group_service.get_group_with_members(group_id)
+    if not group_data:
+        raise HTTPException(status_code=404, detail="Group not found")
+        
+    members = group_data["members"]
+    if not members:
+        return {"group_id": group_id, "name": group_data["name"], "overall_kwh": 0, "meters": []}
+        
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    
+    overall_kwh = 0
+    meter_results = []
+    
+    for member in members:
+        plant = member["plant"]
+        meter_id = member["meter_id"]
+        
+        cur.execute(
+            "SELECT * FROM meter_data WHERE plant=%s AND meter_id=%s "
+            "ORDER BY timestamp DESC LIMIT 1",
+            (plant, int(meter_id)),
+        )
+        row = cur.fetchone()
+        if row:
+            val_kwh = float(row.get("kwh") or 0)
+            overall_kwh += val_kwh
+            
+            normalized = dict(row)
+            if isinstance(normalized.get("timestamp"), datetime):
+                normalized["timestamp"] = normalized["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+            meter_results.append(normalized)
+            
+    conn.close()
+    
+    return {
+        "group_id": group_id,
+        "name": group_data["name"],
+        "overall_kwh": round(overall_kwh, 2),
+        "meters": meter_results
+    }
 
 
 @router.get("/stream_latest")

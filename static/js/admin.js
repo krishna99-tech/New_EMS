@@ -15,6 +15,7 @@ let heartbeatRefreshTimer = null;
 document.addEventListener("DOMContentLoaded", () => {
     loadAllDevices();
     loadDiscoveredDevices();
+    loadMeterGroups();
     setupWebSocket();
 });
 
@@ -44,28 +45,27 @@ function setupWebSocket() {
 window.loadDiscoveredDevices = async function() {
     const list = document.getElementById("discoveredDevicesList");
     const badge = document.getElementById("deviceCountBadge");
+    if (!list) return; // Prevent execution on pages without this element
     try {
         const res = await fetch("/api/device_heartbeats");
         if (!res.ok) throw new Error("Not logged in");
         const devices = await res.json();
         window.globalHeartbeats = devices;
 
-        badge.textContent = devices.length;
+        if (badge) badge.textContent = devices.length;
 
         if (devices.length === 0) {
-            list.innerHTML = `
-                <div style="grid-column:1/-1; text-align:center; padding:32px 20px; color:var(--text-sub);">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3; margin-bottom:10px; display:block; margin-inline:auto;"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-                    <p style="margin:0; font-size:0.85rem;">No devices discovered yet. Power on your ESP32 device and it will appear here automatically.</p>
-                </div>`;
+            list.innerHTML = `<div class="admin-empty-state">No devices discovered yet. Power on your ESP32 device and it will appear here.</div>`;
+            updateAdminStats(globalPlants, globalDevices, devices);
             return;
         }
 
         list.innerHTML = devices.map(d => renderDeviceCard(d)).join("");
         
-        // Update plant cards to reflect new online statuses if they are already loaded
         if (globalPlants.length > 0 && globalDevices.length > 0) {
             renderPlants(globalPlants, globalDevices);
+        } else {
+            updateAdminStats(globalPlants, globalDevices, devices);
         }
     } catch (e) {
         list.innerHTML = `<div style="grid-column:1/-1; color:#ef4444; font-size:0.83rem; padding:12px;">Failed to load devices. Make sure you are logged in.</div>`;
@@ -80,75 +80,62 @@ function formatSecondsAgo(sec) {
 
 function renderDeviceCard(d) {
     const online = d.online;
-    const dotColor = online ? "#22c55e" : "#ef4444";
-    const dotShadow = online ? "#22c55e" : "#ef4444";
     const statusText = online ? "Online" : "Offline";
-    const statusTextColor = online ? "#22c55e" : "#ef4444";
     const meterIdsText = d.meter_ids && d.meter_ids.length
-        ? d.meter_ids.map(id => `<span style="display:inline-block; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:4px; padding:1px 6px; font-size:0.72rem; font-family:monospace;">#${id}</span>`).join(" ")
-        : `<span style="color:var(--text-sub); font-size:0.78rem;">No meters responding</span>`;
+        ? d.meter_ids.map(id => `<span class="admin-badge">#${id}</span>`).join(" ")
+        : `<span class="text-muted">No meters responding</span>`;
 
     const configuredBadge = d.is_configured
-        ? `<span style="background:rgba(34,197,94,0.15); color:#22c55e; border:1px solid rgba(34,197,94,0.3); border-radius:20px; padding:2px 9px; font-size:0.72rem; font-weight:600;">✓ Configured</span>`
-        : `<span style="background:rgba(234,179,8,0.15); color:#ca8a04; border:1px solid rgba(234,179,8,0.3); border-radius:20px; padding:2px 9px; font-size:0.72rem; font-weight:600;">⚠ Not Configured</span>`;
+        ? `<span class="badge-configured">Configured</span>`
+        : `<span class="badge-unconfigured">Not Configured</span>`;
 
     const plantInfo = d.is_configured && d.plant
-        ? `<div style="font-size:0.78rem; color:var(--text-sub); margin-top:4px;">Plant: <strong style="color:var(--text-main);">${d.plant || ''}</strong></div>`
+        ? `<div>Plant: <strong>${d.plant || ""}</strong></div>`
         : "";
 
     const actionBtn = d.is_configured
-        ? `<button onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, true)"
-               style="background:transparent; border:1px solid var(--border-color); color:var(--text-sub); padding:5px 12px; border-radius:7px; font-size:0.78rem; cursor:pointer; white-space:nowrap;">
-               Edit
-           </button>
-           <button onclick="unregisterDevice('${d.device_id}')"
-               style="background:transparent; border:1px solid rgba(239,68,68,0.4); color:#f87171; padding:5px 12px; border-radius:7px; font-size:0.78rem; cursor:pointer; white-space:nowrap;">
-               Unlink
-           </button>`
-        : `<button onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, false)"
-               style="background:linear-gradient(135deg,#10b981,#059669); color:#fff; border:none; padding:6px 14px; border-radius:7px; font-size:0.78rem; cursor:pointer; font-weight:600; white-space:nowrap;">
-               Configure →
-           </button>`;
+        ? `<button type="button" class="btn-ghost" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, true)">Edit</button>
+           <button type="button" class="btn-ghost danger" onclick="unregisterDevice('${d.device_id}')">Unlink</button>`
+        : `<button type="button" class="submit-btn" style="padding:6px 14px; font-size:0.78rem;" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, false)">Configure</button>`;
 
     return `
-    <div style="
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 14px;
-        padding: 16px 18px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        transition: border-color 0.2s;
-        ${online ? 'border-left: 3px solid ' + dotColor + ';' : 'border-left: 3px solid #374151;'}
-    ">
-        <!-- Top row: ID + status -->
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:8px; height:8px; border-radius:50%; background:${dotColor}; box-shadow:0 0 6px ${dotShadow}; flex-shrink:0;"></div>
-                <span style="font-family:'Share Tech Mono',monospace; font-size:1rem; font-weight:700; color:var(--text-main);">${d.device_id}</span>
+    <div class="device-card ${online ? "online" : "offline"}">
+        <div class="device-card-top">
+            <div class="device-card-id">
+                <span class="status-dot ${online ? "online" : "offline"}"></span>
+                ${d.device_id}
                 ${configuredBadge}
             </div>
-            <span style="font-size:0.75rem; color:${statusTextColor}; font-weight:600;">${statusText}</span>
+            <span style="font-size:0.75rem; font-weight:600; color:${online ? "#22c55e" : "#ef4444"};">${statusText}</span>
         </div>
-
-        <!-- Meta info -->
-        <div style="font-size:0.78rem; color:var(--text-sub); display:flex; flex-direction:column; gap:3px;">
-            <div>IP: <code style="font-size:0.78rem;">${d.ip_addr || '—'}</code> &nbsp;|&nbsp; Last seen: ${formatSecondsAgo(d.seconds_ago)}</div>
+        <div class="device-card-meta">
+            <div>IP: <code>${d.ip_addr || "—"}</code> · Last seen: ${formatSecondsAgo(d.seconds_ago)}</div>
             <div>Meters responding: ${d.meter_count}</div>
             ${plantInfo}
         </div>
-
-        <!-- Meter IDs -->
-        <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
-            ${meterIdsText}
-        </div>
-
-        <!-- Action buttons -->
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px; flex-wrap:wrap;">
-            ${actionBtn}
-        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:4px;">${meterIdsText}</div>
+        <div class="device-card-actions">${actionBtn}</div>
     </div>`;
+}
+
+function updateAdminStats(plants, devices, heartbeats) {
+    const elPlants = document.getElementById("statPlants");
+    const elMeters = document.getElementById("statMeters");
+    const elDevices = document.getElementById("statDevices");
+    const elOnline = document.getElementById("statOnline");
+    if (!elPlants) return;
+    elPlants.textContent = plants?.length ?? 0;
+    elMeters.textContent = devices?.length ?? 0;
+    elDevices.textContent = heartbeats?.length ?? 0;
+    elOnline.textContent = (heartbeats || []).filter(h => h.online).length;
+}
+
+function updateGroupStats() {
+    const elGroups = document.getElementById("statGroupCount");
+    const elMembers = document.getElementById("statMemberCount");
+    if (!elGroups) return;
+    elGroups.textContent = globalMeterGroups.length;
+    elMembers.textContent = globalMeterGroups.reduce((s, g) => s + (g.members?.length || 0), 0);
 }
 
 // ── Register Device Modal ──────────────────────────────────────────────────────
@@ -195,7 +182,7 @@ window.closeRegisterDeviceModal = function() {
     document.getElementById("registerDeviceModal").style.display = "none";
 };
 
-document.getElementById("registerDeviceForm").addEventListener("submit", async (e) => {
+document.getElementById("registerDeviceForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const errEl = document.getElementById("regDeviceError");
     errEl.style.display = "none";
@@ -215,8 +202,8 @@ document.getElementById("registerDeviceForm").addEventListener("submit", async (
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "Save failed");
         closeRegisterDeviceModal();
-        loadDiscoveredDevices();
-        loadAllDevices();
+        if (window.loadDiscoveredDevices) loadDiscoveredDevices();
+        if (window.loadAllDevices) loadAllDevices();
     } catch (err) {
         errEl.textContent = err.message;
         errEl.style.display = "block";
@@ -228,7 +215,7 @@ window.unregisterDevice = async function(deviceId) {
     try {
         const res = await fetch(`/api/device_configs/${encodeURIComponent(deviceId)}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Unlink failed");
-        loadDiscoveredDevices();
+        if (window.loadDiscoveredDevices) loadDiscoveredDevices();
     } catch (err) {
         alert("Failed to unlink device: " + err.message);
     }
@@ -245,11 +232,15 @@ function loadAllDevices() {
     ])
     .then(([plants, devices]) => {
         globalDevices = devices;
+        globalPlants = plants;
         renderPlants(plants, devices);
+        updateAdminStats(plants, devices, window.globalHeartbeats || []);
     })
     .catch(err => {
         console.error("Error fetching data:", err);
-        plantsContainer.innerHTML = `<div style="color: #ef4444;">Failed to load data. Please try again.</div>`;
+        if (plantsGridView) {
+            plantsGridView.innerHTML = `<div class="admin-empty-state" style="color:#ef4444;">Failed to load data. Please try again.</div>`;
+        }
     });
 }
 
@@ -268,6 +259,7 @@ function renderPlants(plants, devices) {
         globalGroupedDevices[dev.plant].push(dev);
     });
 
+    if (!plantsGridView) return; // Prevent execution on pages without this element
     plantsGridView.innerHTML = "";
 
     if (document.getElementById("plantCountBadge")) {
@@ -275,10 +267,8 @@ function renderPlants(plants, devices) {
     }
 
     if (plants.length === 0) {
-        plantsGridView.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--text-sub);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2; margin-bottom:16px; display:block; margin-inline:auto;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-            No plants configured yet. Create one to get started!
-        </div>`;
+        plantsGridView.innerHTML = `<div class="admin-empty-state">No plants configured yet. Create one to get started.</div>`;
+        updateAdminStats(plants, devices, window.globalHeartbeats || []);
         return;
     }
 
@@ -338,8 +328,8 @@ function renderPlants(plants, devices) {
                     </h2>
                     <p class="plant-card-subtitle">${plantDevices.length} device${plantDevices.length !== 1 ? 's' : ''} configured</p>
                 </div>
-                <div class="actions-dropdown">
-                    <button class="submit-btn" style="padding: 6px 12px; font-size:0.75rem;">
+                <div class="actions-dropdown" onclick="this.classList.toggle('active')">
+                    <button class="action-btn" type="button" style="padding: 6px 12px; font-size:0.75rem;">
                         Options
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
@@ -373,6 +363,7 @@ function renderPlants(plants, devices) {
         `;
         plantsGridView.appendChild(card);
     });
+    updateAdminStats(plants, devices, window.globalHeartbeats || []);
 }
 
 window.filterPlants = function() {
@@ -432,7 +423,7 @@ window.closePlantModal = function() {
     plantModal.style.display = "none";
 };
 
-plantForm.addEventListener("submit", (e) => {
+plantForm?.addEventListener("submit", (e) => {
     e.preventDefault();
     const name = newPlantName.value.trim();
     if (!name) return;
@@ -508,7 +499,7 @@ window.deletePlant = function(plantName) {
         .catch(err => alert('Failed to delete plant: ' + err.message));
 };
 
-deviceForm.addEventListener("submit", (e) => {
+deviceForm?.addEventListener("submit", (e) => {
     e.preventDefault();
     devError.style.display = "none";
     
@@ -616,5 +607,255 @@ function populatePlantSelect(selectedValue = "") {
     
     if (selectedValue && globalPlants.includes(selectedValue)) {
         devPlantSelect.value = selectedValue;
+    }
+};
+
+// ================= CUSTOM METER GROUPS =================
+
+let globalMeterGroups = [];
+
+async function loadMeterGroups() {
+    try {
+        const res = await fetch("/api/meter_groups");
+        if (res.ok) {
+            globalMeterGroups = await res.json();
+            renderMeterGroups();
+            renderGroupPresets();
+        }
+    } catch (e) {
+        console.error("Failed to load meter groups", e);
+    }
+}
+
+async function renderGroupPresets() {
+    const container = document.getElementById("groupPresetsList");
+    if (!container) return;
+    try {
+        const res = await fetch("/api/meter_groups/presets");
+        if (!res.ok) throw new Error("Failed");
+        const presets = await res.json();
+        if (!presets.length) {
+            container.innerHTML = `<div class="admin-empty-state">Configure meters first to use presets.</div>`;
+            return;
+        }
+        window._availablePresets = presets;
+        
+        const optionsHtml = presets.map((p, i) => `
+            <option value="${i}">${p.label}</option>
+        `).join("");
+
+        container.innerHTML = `
+            <div style="display: flex; gap: 12px; align-items: center; max-width: 500px;">
+                <select id="presetSelect" class="form-control" style="flex: 1;">
+                    ${optionsHtml}
+                </select>
+                <button type="button" class="submit-btn" style="padding: 10px 18px;" onclick="executeSelectedPreset()">
+                    Create / Update
+                </button>
+            </div>
+        `;
+    } catch {
+        container.innerHTML = `<div class="admin-empty-state">Could not load presets.</div>`;
+    }
+}
+window.executeSelectedPreset = function() {
+    const sel = document.getElementById("presetSelect");
+    if (!sel || !window._availablePresets) return;
+    const p = window._availablePresets[sel.value];
+    if (p) {
+        createGroupPreset(p.id, p.plant);
+    }
+};
+
+window.createGroupPreset = async function(presetId, plant) {
+    try {
+        const res = await fetch("/api/meter_groups/presets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ preset_id: presetId, plant }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Failed");
+        alert(`Group "${data.name}" ready — ${data.members_added} meter(s) added, ${data.members_skipped} skipped (${data.total_members} total).`);
+        loadMeterGroups();
+    } catch (e) {
+        alert(e.message || "Failed to create preset group");
+    }
+};
+
+function renderMeterGroups() {
+    const list = document.getElementById("meterGroupsList");
+    if (!list) return;
+    
+    if (globalMeterGroups.length === 0) {
+        list.innerHTML = `<div class="admin-empty-state">No custom groups created yet.</div>`;
+        updateGroupStats();
+        return;
+    }
+    
+    let html = "";
+    globalMeterGroups.forEach(g => {
+        let membersHtml = g.members.length === 0 ? 
+            `<div style="font-size:0.85rem; color:var(--text-sub); padding:16px; text-align:center; background:rgba(0,0,0,0.02); border-radius:8px;">No meters added yet</div>` :
+            `<div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+                ${g.members.map(m => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-base); border:1px solid var(--border-color); border-radius:8px; transition:border-color 0.2s;">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <span style="font-size:0.85rem; font-weight:600; color:var(--text-main);">${m.plant}</span>
+                            <span style="font-size:0.75rem; color:var(--text-sub);">${m.meter_name} (ID: <span style="font-family:monospace;">${m.meter_id}</span>)</span>
+                        </div>
+                        <button onclick="removeGroupMember(${g.id}, ${m.id})" class="action-btn" style="color:#ef4444; border:1px solid rgba(239,68,68,0.2); background:rgba(239,68,68,0.05); padding:6px; border-radius:6px; cursor:pointer;" title="Remove meter">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+                `).join("")}
+            </div>`;
+            
+        html += `
+            <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:16px; transition:transform 0.2s, box-shadow 0.2s;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:16px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="background:var(--accent-primary); color:white; width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 6px rgba(79, 70, 229, 0.2);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        </div>
+                        <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-main); letter-spacing:-0.01em;">${g.name}</h3>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="openAddGroupMemberModal(${g.id})" class="action-btn" style="background:var(--bg-base); border:1px solid var(--border-color); color:var(--text-main); padding:6px 12px; border-radius:6px; cursor:pointer;" title="Add Meter">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Add
+                        </button>
+                        <button onclick="deleteGroup(${g.id})" class="action-btn" style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); color:#ef4444; padding:6px 12px; border-radius:6px; cursor:pointer;" title="Delete Group">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                </div>
+                ${membersHtml}
+            </div>
+        `;
+    });
+    
+    list.innerHTML = html;
+    updateGroupStats();
+}
+
+window.openCreateGroupModal = function() {
+    document.getElementById("createGroupModal").style.display = "flex";
+    document.getElementById("newGroupName").value = "";
+    document.getElementById("groupError").style.display = "none";
+};
+
+window.closeCreateGroupModal = function() {
+    document.getElementById("createGroupModal").style.display = "none";
+};
+
+document.getElementById("createGroupForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("newGroupName").value;
+    const err = document.getElementById("groupError");
+    
+    try {
+        const res = await fetch("/api/meter_groups", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ name })
+        });
+        if (res.ok) {
+            closeCreateGroupModal();
+            loadMeterGroups();
+        } else {
+            const data = await res.json();
+            err.textContent = data.detail || "Failed to create group";
+            err.style.display = "block";
+        }
+    } catch (error) {
+        err.textContent = "Network error";
+        err.style.display = "block";
+    }
+});
+
+window.deleteGroup = async function(id) {
+    if (!confirm("Are you sure you want to delete this group?")) return;
+    try {
+        const res = await fetch(`/api/meter_groups/${id}`, { method: "DELETE" });
+        if (res.ok) {
+            loadMeterGroups();
+        } else {
+            alert("Failed to delete group");
+        }
+    } catch (e) {
+        alert("Network error");
+    }
+}
+
+window.openAddGroupMemberModal = function(groupId) {
+    document.getElementById("addGroupMemberModal").style.display = "flex";
+    document.getElementById("memberGroupId").value = groupId;
+    document.getElementById("memberError").style.display = "none";
+    
+    // Populate plant select
+    const plantSelect = document.getElementById("memberPlantSelect");
+    plantSelect.innerHTML = '<option value="" disabled selected>Select a Plant...</option>';
+    globalPlants.forEach(p => {
+        plantSelect.innerHTML += `<option value="${p}">${p}</option>`;
+    });
+    
+    document.getElementById("memberMeterSelect").innerHTML = '<option value="" disabled selected>Select a Plant first...</option>';
+}
+
+window.closeAddGroupMemberModal = function() {
+    document.getElementById("addGroupMemberModal").style.display = "none";
+}
+
+function populateMemberMeterSelect() {
+    const plant = document.getElementById("memberPlantSelect").value;
+    const meterSelect = document.getElementById("memberMeterSelect");
+    
+    meterSelect.innerHTML = '<option value="" disabled selected>Select a Meter...</option>';
+    
+    // Find devices for this plant
+    globalDevices.filter(d => d.plant === plant).forEach(d => {
+        meterSelect.innerHTML += `<option value="${d.meter_id}">${d.name} (ID: ${d.meter_id})</option>`;
+    });
+}
+
+document.getElementById("addGroupMemberForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const groupId = document.getElementById("memberGroupId").value;
+    const plant = document.getElementById("memberPlantSelect").value;
+    const meter_id = document.getElementById("memberMeterSelect").value;
+    const err = document.getElementById("memberError");
+    
+    try {
+        const res = await fetch(`/api/meter_groups/${groupId}/members`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ plant, meter_id })
+        });
+        if (res.ok) {
+            closeAddGroupMemberModal();
+            loadMeterGroups();
+        } else {
+            const data = await res.json();
+            err.textContent = data.detail || "Failed to add member";
+            err.style.display = "block";
+        }
+    } catch (error) {
+        err.textContent = "Network error";
+        err.style.display = "block";
+    }
+});
+
+window.removeGroupMember = async function(groupId, memberId) {
+    if (!confirm("Remove this meter from the group?")) return;
+    try {
+        const res = await fetch(`/api/meter_groups/${groupId}/members/${memberId}`, { method: "DELETE" });
+        if (res.ok) {
+            loadMeterGroups();
+        } else {
+            alert("Failed to remove member");
+        }
+    } catch (e) {
+        alert("Network error");
     }
 };
