@@ -3,9 +3,10 @@
 }
 
 :root {
-    --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color-scheme: dark;
+    --bg-gradient: linear-gradient(135deg, #022c22 0%, #064e3b 100%);
     --nav-bg: #0b1f3a;
-    --card-bg: #1e293b;
+    --card-bg: #064e3b;
     --text-main: #f8fafc;
     --text-sub: #94a3b8;
     --nav-border-bottom-color: transparent;
@@ -15,10 +16,11 @@
 }
 
 .light-mode {
+    color-scheme: light;
     --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
     --nav-bg: #ffffff;
     --card-bg: #ffffff;
-    --text-main: #0f172a;
+    --text-main: #022c22;
     --text-sub: #64748b;
     --nav-border-bottom-color: transparent;
     --dynamic-bg-gradient: var(--bg-gradient);
@@ -44,7 +46,7 @@ body {
     font-size: 1.6rem;
     font-weight: 700;
     letter-spacing: -0.025em;
-    background: linear-gradient(to right, #60a5fa, #a78bfa);
+    background: linear-gradient(to right, #34d399, #10b981);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     transition: all 0.3s ease;
@@ -214,7 +216,7 @@ body {
     height: 28px;
     border-radius: 8px;
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: #059669;
 }
 
 .light-mode .time-icon {
@@ -512,7 +514,7 @@ table td {
     font-size: 2.5rem;
     font-weight: 800;
     margin-bottom: 1rem;
-    background: linear-gradient(to right, #60a5fa, #a78bfa);
+    background: linear-gradient(to right, #34d399, #10b981);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -602,7 +604,7 @@ table td {
     border-radius: 12px;
     display: grid;
     place-items: center;
-    color: #3b82f6;
+    color: #059669;
     margin-bottom: 16px;
     background: rgba(59, 130, 246, 0.1);
 }
@@ -732,7 +734,7 @@ table td {
 
 .fallback-chart-fill {
     width: 100%;
-    background: linear-gradient(90deg, #60a5fa 0%, #7c3aed 100%);
+    background: linear-gradient(90deg, #34d399 0%, #047857 100%);
 }
 
 .fallback-chart-value {
@@ -1023,7 +1025,7 @@ table td {
 }
 
 .card-container .card-content .card-btn {
-    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(90deg, #059669, #8b5cf6);
     padding: 10px;
     border: none;
     width: 100%;
@@ -1288,7 +1290,7 @@ table td {
 .orb-1 {
     width: 600px;
     height: 600px;
-    background: #3b82f6; /* Soft Blue */
+    background: #059669; /* Soft Blue */
     top: -200px;
     left: -150px;
     animation-delay: 0s;
@@ -1315,11 +1317,11 @@ table td {
 }
 
 .light-mode .orb-1 {
-    background: #60a5fa;
+    background: #34d399;
     opacity: 0.5;
 }
 .light-mode .orb-2 {
-    background: #a78bfa;
+    background: #10b981;
     opacity: 0.5;
 }
 .light-mode .orb-3 {
@@ -1401,7 +1403,7 @@ table td {
     font-size: 1.6rem;
     font-weight: 600;
     letter-spacing: -0.02em;
-    background: linear-gradient(to right, #60a5fa, #a855f7);
+    background: linear-gradient(to right, #34d399, #047857);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -1459,7 +1461,7 @@ table td {
 }
 
 .form-group input:focus, .form-group select:focus {
-    border-color: #3b82f6;
+    border-color: #059669;
     background: rgba(0, 0, 0, 0.4);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
@@ -1467,12 +1469,12 @@ table td {
 .light-mode .form-group input, .light-mode .form-group select {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    color: #0f172a;
+    color: #022c22;
 }
 
 .light-mode .form-group input:focus, .light-mode .form-group select:focus {
     background: #ffffff;
-    border-color: #3b82f6;
+    border-color: #059669;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
@@ -1515,12 +1517,12 @@ table td {
 }
 .edit-btn { 
     background: rgba(59, 130, 246, 0.15); 
-    color: #60a5fa; 
+    color: #34d399; 
     margin-right: 8px; 
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
 .edit-btn:hover {
-    background: #3b82f6;
+    background: #059669;
     color: white;
 }
 .delete-btn { 
@@ -1539,7 +1541,7 @@ table td {
     border-color: #bfdbfe;
 }
 .light-mode .edit-btn:hover {
-    background: #3b82f6;
+    background: #059669;
     color: white;
 }
 .light-mode .delete-btn {
@@ -1556,7 +1558,7 @@ table td {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #059669 0%, #8b5cf6 100%);
     border: none;
     padding: 12px;
     font-size: 1.05rem;
@@ -1600,7 +1602,7 @@ table td {
     font-size: 1.6rem;
     font-weight: 600;
     letter-spacing: -0.02em;
-    background: linear-gradient(to right, #60a5fa, #a855f7);
+    background: linear-gradient(to right, #34d399, #047857);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -1658,7 +1660,7 @@ table td {
 }
 
 .form-group input:focus, .form-group select:focus {
-    border-color: #3b82f6;
+    border-color: #059669;
     background: rgba(0, 0, 0, 0.4);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
@@ -1666,12 +1668,12 @@ table td {
 .light-mode .form-group input, .light-mode .form-group select {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    color: #0f172a;
+    color: #022c22;
 }
 
 .light-mode .form-group input:focus, .light-mode .form-group select:focus {
     background: #ffffff;
-    border-color: #3b82f6;
+    border-color: #059669;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
@@ -1714,12 +1716,12 @@ table td {
 }
 .edit-btn { 
     background: rgba(59, 130, 246, 0.15); 
-    color: #60a5fa; 
+    color: #34d399; 
     margin-right: 8px; 
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
 .edit-btn:hover {
-    background: #3b82f6;
+    background: #059669;
     color: white;
 }
 .delete-btn { 
@@ -1738,7 +1740,7 @@ table td {
     border-color: #bfdbfe;
 }
 .light-mode .edit-btn:hover {
-    background: #3b82f6;
+    background: #059669;
     color: white;
 }
 .light-mode .delete-btn {
@@ -1755,7 +1757,7 @@ table td {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #059669 0%, #8b5cf6 100%);
     border: none;
     padding: 12px;
     font-size: 1.05rem;
@@ -1833,13 +1835,13 @@ table td {
 
 .badge-submeter {
     background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
+    color: #34d399;
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .badge-incomer {
     background: rgba(139, 92, 246, 0.15);
-    color: #a78bfa;
+    color: #10b981;
     border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
@@ -1851,7 +1853,7 @@ table td {
 
 .light-mode .badge-incomer {
     background: #f3e8ff;
-    color: #7c3aed;
+    color: #047857;
     border-color: #e9d5ff;
 }
 
@@ -1967,12 +1969,12 @@ table td {
 }
 .custom-option:hover, .custom-option.selected {
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, transparent 100%);
-    color: #60a5fa;
+    color: #34d399;
     padding-left: 20px;
 }
 .light-mode .custom-option:hover, .light-mode .custom-option.selected {
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
-    color: #3b82f6;
+    color: #059669;
 }
 .custom-select-arrow {
     transition: transform 0.3s ease;
@@ -2056,7 +2058,7 @@ table td {
 }
 
 .submit-btn {
-    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    background: linear-gradient(135deg, #059669, #2563eb) !important;
     border-radius: 12px !important;
     font-weight: 600 !important;
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
@@ -2124,7 +2126,7 @@ table td {
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    background: linear-gradient(90deg, #059669, #34d399);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -2132,7 +2134,7 @@ table td {
 .plant-home-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 12px 24px rgba(0,0,0,0.15);
-    border-color: #3b82f6;
+    border-color: #059669;
 }
 
 .plant-home-card:hover::before {
@@ -2144,7 +2146,7 @@ table td {
     height: 64px;
     border-radius: 50%;
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: #059669;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2177,7 +2179,7 @@ table td {
 }
 
 .plant-home-btn {
-    background: #3b82f6;
+    background: #059669;
     color: white;
     border: none;
     border-radius: 8px;
@@ -2247,7 +2249,7 @@ table td {
     width: 48px;
     height: 48px;
     border: 4px solid rgba(59, 130, 246, 0.2);
-    border-top: 4px solid #3b82f6;
+    border-top: 4px solid #059669;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
@@ -2276,7 +2278,7 @@ table td {
     box-sizing: border-box;
 }
 .dashboard-empty-state svg {
-    color: #3b82f6;
+    color: #059669;
     opacity: 0.8;
 }
 .dashboard-empty-state p {
@@ -2294,7 +2296,7 @@ table td {
     width: 48px;
     height: 48px;
     border: 4px solid rgba(59, 130, 246, 0.2);
-    border-top: 4px solid #3b82f6;
+    border-top: 4px solid #059669;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);

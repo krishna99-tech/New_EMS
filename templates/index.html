@@ -5,7 +5,7 @@
 {% block content %}
     <div class="navbar">
         <div class="nav-left">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Company Logo" class="company-logo">
+            <img src="{{ url_for('static', path='images/logo.png') }}" alt="Company Logo" class="company-logo">
             <div class="nav-titles">
                 <h1 id="dashboardTitle">
                   Fuso  Energy Monitoring System
@@ -16,9 +16,9 @@
             </div>
         </div>
         <div class="nav-right">
-            <button id="authBtn" class="theme-btn" title="Login">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-            </button>
+            <a href="/admin" id="authBtn" class="theme-btn" title="Admin">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: inherit;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            </a>
             <button id="themeToggle" class="theme-btn" title="Toggle Light/Dark Mode">
                 <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
             </button>
@@ -147,32 +147,10 @@
         </svg>
         <span>Home</span>
     </button>
-    <!-- LOGIN MODAL -->
-    <div id="loginModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content login-modal">
-            <div class="modal-header">
-                <h2>Admin Login</h2>
-                <button type="button" class="close-modal-btn" onclick="closeLoginModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" id="loginUsername" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="loginPassword" required>
-                    </div>
-                    <p id="loginError" style="color: #ef4444; display: none; font-size: 0.9em;">Invalid credentials</p>
-                    <button type="submit" class="submit-btn" style="width: 100%; margin-top: 10px;">Login</button>
-                </form>
-            </div>
-        </div>
-    </div>
+
 
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', path='js/script.js') }}"></script>
 {% endblock %}

@@ -7,4 +7,4 @@ print("Listening...")
 
 while True:
     data, addr = sock.recvfrom(1024)
-    print("Received:", data.decode())
+    print(f"Received from {addr[0]}:{addr[1]} ->", data.decode())

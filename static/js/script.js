@@ -36,7 +36,7 @@ const plantThemes = {
         lightBgGradient: "linear-gradient(135deg, #f1f5f9 0%, #cffafe 50%, #e0e7ff 100%)"
     },
     "Machining": {
-        primaryColor: "#8b5cf6", // Purple
+        primaryColor: "#059669", // Purple
         darkBgGradient: "linear-gradient(135deg, #0f172a 0%, #221c35 50%, #1e293b 100%)",
         lightBgGradient: "linear-gradient(135deg, #f1f5f9 0%, #f5f3ff 50%, #e0e7ff 100%)"
     },
@@ -502,7 +502,7 @@ async function loadPlants(){
             option.style.color = theme.primaryColor;
         } else {
             option.innerHTML = `&#9679; ${p}`;
-            option.style.color = "#8b5cf6"; // Default purple
+            option.style.color = "#059669"; // Default purple
         }
 
         plantSelect.appendChild(option);

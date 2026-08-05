@@ -5,10 +5,9 @@
 #include <ArduinoJson.h>
 
 // ================= PLANT ID =================
-// Set this once when flashing. Each device gets a unique number.
+// Set this once when flashing. Each device gets a unique number or string.
 // Register this ID in the Admin Dashboard → assign it to a plant name.
-// You NEVER need to change this again, even if you rename the plant.
-#define PLANT_ID "202326"
+#define PLANT_ID "20246"
 
 // ================= W5500 =================
 #define W5500_MISO 12
@@ -25,7 +24,7 @@
 // ================= NETWORK =================
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
-IPAddress ip(192, 168, 0, 229);
+IPAddress ip(192, 168, 0, 228);
 IPAddress gateway(192, 168, 0, 1);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress dns(8, 8, 8, 8);
@@ -43,10 +42,11 @@ ModbusMaster node;
 #define MIN_SLAVE_ID  1
 #define MAX_SLAVE_ID  32
 
-// Schneider iEM3xxx series kWh register
-// Datasheet address: 3204 (Wh delivered, 32-bit float, 2 registers)
-// Zero-based offset for ModbusMaster: 2699
-uint16_t SCH_KWH_REG = 2699;
+// Elmeasure kWh Register
+// Datasheet: 40167
+// Zero-based offset for ModbusMaster: 166
+// Adjusted to 158 per your config
+uint16_t ELM_KWH_REG = 158;
 
 // ================= CONSECUTIVE FAIL TRACKING =================
 // Track how many consecutive failures each address has had.
@@ -66,9 +66,9 @@ void postTransmission() {
 }
 
 // ================= FLOAT DECODING =================
-// Schneider uses big-endian word order (normal)
-float decodeNormal(uint16_t r1, uint16_t r2) {
-  uint32_t val = ((uint32_t)r1 << 16) | r2;
+// Elmeasure uses swapped word order
+float decodeSwapped(uint16_t r1, uint16_t r2) {
+  uint32_t val = ((uint32_t)r2 << 16) | r1;
   float f;
   memcpy(&f, &val, 4);
   return f;
@@ -89,12 +89,12 @@ uint8_t readKwh(uint8_t slave, float &value) {
     Serial2.read();
   }
 
-  uint8_t res = node.readHoldingRegisters(SCH_KWH_REG, 2);
+  uint8_t res = node.readHoldingRegisters(ELM_KWH_REG, 2);
 
   if (res == node.ku8MBSuccess) {
     uint16_t r1 = node.getResponseBuffer(0);
     uint16_t r2 = node.getResponseBuffer(1);
-    value = round(decodeNormal(r1, r2) * 100) / 100.0;
+    value = round(decodeSwapped(r1, r2) * 100) / 100.0;
     return 0; // SUCCESS
   }
 
@@ -118,7 +118,7 @@ void setup() {
   pinMode(MAX485_RE_DE, OUTPUT);
   digitalWrite(MAX485_RE_DE, LOW);
 
-  // Schneider default baud: 9600, 8E1
+  // Elmeasure default baud: 9600, 8E1
   Serial2.begin(9600, SERIAL_8E1, RX2_PIN, TX2_PIN);
 
   node.preTransmission(preTransmission);
@@ -154,7 +154,7 @@ void loop() {
 
   // Increased buffer: 32 meters × ~60 bytes each = ~1920 + overhead
   StaticJsonDocument<4096> doc;
-  doc["device"] = PLANT_ID;   // e.g. "20236"
+  doc["device"] = PLANT_ID;
   JsonArray meterArray = doc.createNestedArray("meters");
 
   uint8_t respondingCount = 0;
