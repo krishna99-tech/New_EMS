@@ -288,10 +288,16 @@ function renderPlantGridLanding(plants) {
         return;
     }
     grid.innerHTML = plants.map(p => {
-        const color = plantThemes[p]?.primaryColor || "#4f46e5";
-        return `<button type="button" class="plant-pick-card" data-plant="${p}">
-            <h4><span class="plant-pick-dot" style="background:${color}"></span>${p}</h4>
-            <p>Live monitoring &amp; shift analysis</p>
+        const color = plantThemes[p]?.primaryColor || "var(--accent-primary)";
+        return `<button type="button" class="glass-card plant-pick-card" data-plant="${p}" style="--plant-color: ${color}">
+            <div class="plant-card-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+            </div>
+            <div class="plant-card-content">
+                <h4>${p}</h4>
+                <p>Live monitoring &amp; shift analysis</p>
+                <div class="plant-card-action">View Dashboard <span>→</span></div>
+            </div>
         </button>`;
     }).join("");
     grid.querySelectorAll(".plant-pick-card").forEach(btn => {

@@ -90,10 +90,38 @@
             if (!res.ok) throw new Error("overview");
             const d = await res.json();
             container.innerHTML = `
-                <div class="overview-card"><label>Plants</label><div class="stat-value">${d.plant_count}</div><div class="stat-meta">configured</div></div>
-                <div class="overview-card"><label>Meters</label><div class="stat-value">${d.meter_count}</div><div class="stat-meta">${d.online_meter_count} online</div></div>
-                <div class="overview-card"><label>Groups</label><div class="stat-value">${d.group_count}</div><div class="stat-meta">${d.group_member_count} members</div></div>
-                <div class="overview-card"><label>Last Reading</label><div class="stat-value" style="font-size:1rem;">${d.last_reading || "—"}</div><div class="stat-meta">${d.production_day_note}</div></div>`;
+                <div class="overview-card premium-stat-card">
+                    <div class="stat-icon-wrapper"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"></path><path d="M9 8h1"></path><path d="M9 12h1"></path><path d="M9 16h1"></path><path d="M14 8h1"></path><path d="M14 12h1"></path><path d="M14 16h1"></path><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path></svg></div>
+                    <div class="stat-content">
+                        <label>Plants</label>
+                        <div class="stat-value">${d.plant_count}</div>
+                        <div class="stat-meta">configured</div>
+                    </div>
+                </div>
+                <div class="overview-card premium-stat-card">
+                    <div class="stat-icon-wrapper" style="color: var(--accent-primary);"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></div>
+                    <div class="stat-content">
+                        <label>Meters</label>
+                        <div class="stat-value">${d.meter_count}</div>
+                        <div class="stat-meta"><span style="color: var(--success);">${d.online_meter_count} online</span></div>
+                    </div>
+                </div>
+                <div class="overview-card premium-stat-card">
+                    <div class="stat-icon-wrapper"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
+                    <div class="stat-content">
+                        <label>Groups</label>
+                        <div class="stat-value">${d.group_count}</div>
+                        <div class="stat-meta">${d.group_member_count} members</div>
+                    </div>
+                </div>
+                <div class="overview-card premium-stat-card">
+                    <div class="stat-icon-wrapper" style="color: var(--success);"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+                    <div class="stat-content">
+                        <label>Last Reading</label>
+                        <div class="stat-value" style="font-size:1.1rem;">${d.last_reading || "—"}</div>
+                        <div class="stat-meta">${d.production_day_note}</div>
+                    </div>
+                </div>`;
         } catch {
             container.innerHTML = `<p class="inline-note">Could not load overview.</p>`;
         }

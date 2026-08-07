@@ -2,43 +2,13 @@
     box-sizing: border-box;
 }
 
-:root {
-    color-scheme: dark;
-    --bg-base: #0f172a;
-    --card-bg: #1e293b;
-    --nav-bg: #1e293b;
-    --text-main: #f8fafc;
-    --text-sub: #94a3b8;
-    --border-color: #334155;
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --accent-primary: #4f46e5;
-    --accent-hover: #4338ca;
-    --dynamic-bg-gradient: var(--bg-base);
-    --nav-border-bottom-color: var(--border-color);
-}
-
-.light-mode {
-    color-scheme: light;
-    --bg-base: #f8fafc;
-    --card-bg: #ffffff;
-    --nav-bg: #ffffff;
-    --text-main: #0f172a;
-    --text-sub: #64748b;
-    --border-color: #e2e8f0;
-    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    --accent-primary: #4f46e5;
-    --accent-hover: #4338ca;
-    --dynamic-bg-gradient: var(--bg-base);
-    --nav-border-bottom-color: var(--border-color);
-}
-
 html,
 body {
     margin: 0;
     padding: 0;
     width: 100%;
     overflow-x: clip;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
     background: var(--dynamic-bg-gradient);
     color: var(--text-main);
     min-height: 100vh;
@@ -67,6 +37,8 @@ body {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 /* Sticky state when scrolled */
@@ -139,6 +111,14 @@ body {
     letter-spacing: 0.05em;
     text-transform: uppercase;
     opacity: 0.8;
+}
+
+/* Time card glassmorphism */
+.time-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
 }
 
 .nav-right {

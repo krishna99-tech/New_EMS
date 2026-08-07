@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | EMS Dashboard</title>
+    <link rel="stylesheet" href="http://localhost:10012/static/css/font.css?v=2">
+    <link rel="stylesheet" href="http://localhost:10012/static/css/ems-core.css?v=2">
+    <link rel="stylesheet" href="http://localhost:10012/static/css/style.css?v=9">
+    
+<style>
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--bg-base);
+}
+.login-container {
+    width: 100%;
+    max-width: 420px;
+    padding: 40px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px var(--shadow);
+    text-align: center;
+}
+.login-logo {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 20px;
+}
+.login-container h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+.login-container p {
+    color: var(--text-sub);
+    margin-bottom: 30px;
+    font-size: 0.95rem;
+}
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-main);
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+.light-mode .form-group input {
+    background: rgba(255,255,255,0.8);
+}
+.form-group input:focus {
+    outline: none;
+    border-color: #34d399;
+    box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2);
+}
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+}
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+#loginError {
+    color: #ef4444;
+    font-size: 0.85rem;
+    margin-bottom: 15px;
+    display: none;
+}
+.back-link {
+    display: inline-block;
+    margin-top: 24px;
+    color: var(--text-sub);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+.back-link:hover {
+    color: #34d399;
+}
+</style>
+
+</head>
+
+<body>
+    
+<div class="login-container">
+    <img src="http://localhost:10012/static/images/logo.png" alt="Logo" class="login-logo">
+    <h2>Welcome Back</h2>
+    <p>Sign in to the Administration Panel</p>
+    
+    <p id="loginError"></p>
+    
+    <form id="standaloneLoginForm">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" required placeholder="Enter your username">
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" required placeholder="Enter your password">
+        </div>
+        <button type="submit" class="submit-btn">Login</button>
+    </form>
+    
+    <a href="/" class="back-link">← Return to Main Dashboard</a>
+</div>
+
+
+    <!-- Global Page Loader Overlay -->
+    <div id="globalLoader" class="global-loader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- Global Loader Script -->
+    <script>
+        let skipLoader = false;
+        
+        document.addEventListener('click', function(e) {
+            let a = e.target.closest('a');
+            if (a && a.hasAttribute('download')) {
+                skipLoader = true;
+                setTimeout(() => skipLoader = false, 1000);
+            }
+        });
+
+        window.addEventListener('beforeunload', function() {
+            if (!skipLoader) {
+                document.getElementById('globalLoader').classList.add('active');
+            }
+        });
+        window.addEventListener('pageshow', function(event) {
+            // Hide the loader if the page is loaded from cache (e.g. back button)
+            if (event.persisted) {
+                document.getElementById('globalLoader').classList.remove('active');
+            }
+        });
+    </script>
+
+    <script src="http://localhost:10012/static/js/ems-shell.js?v=3"></script>
+    
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Basic Theme Initialization
+    if (localStorage.getItem("theme") === "light") {
+        document.body.classList.add("light-mode");
+    }
+
+    const form = document.getElementById("standaloneLoginForm");
+    const errorMsg = document.getElementById("loginError");
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        try {
+            const response = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                window.location.href = "/admin";
+            } else {
+                errorMsg.textContent = data.error || "Login failed";
+                errorMsg.style.display = "block";
+            }
+        } catch (err) {
+            errorMsg.textContent = "Network error occurred.";
+            errorMsg.style.display = "block";
+        }
+    });
+});
+</script>
+
+</body>
+</html>

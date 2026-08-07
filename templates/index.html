@@ -8,9 +8,15 @@
 {% block page_subtitle %}Live monitoring &amp; shift analysis{% endblock %}
 
 {% block sidebar %}{% endblock %}
-{% block menu_btn %}{% endblock %}
+{% block menu_btn %}
+<div class="landing-brand-logo">
+    <div class="company-logo-wrapper" style="background: rgba(255,255,255,0.05); border-radius: var(--radius-sm); padding: 4px; display: grid; place-items: center; border: 1px solid var(--border-color);">
+        <img src="{{ url_for('static', path='images/logo.png') }}" alt="FUSO EMS" class="company-logo" style="height: 48px; width: auto; object-fit: contain; border: none; box-shadow: none; background: transparent;">
+    </div>
+</div>
+{% endblock %}
 {% block app_head %}
-<link rel="stylesheet" href="{{ url_for('static', path='css/plant-dashboard.css') }}?v=4">
+<link rel="stylesheet" href="{{ url_for('static', path='css/plant-dashboard.css') }}?v=5">
 {% endblock %}
 
 {% block flow_bar %}
@@ -69,14 +75,16 @@
 
 {% block app_content %}
 <div id="landingView">
-    <div class="hero-section">
-        <h2>Welcome to FUSO Energy Monitoring System</h2>
-        <p>Select a plant to monitor live parameters, analyze shift-wise kWh, and export data.</p>
+    <div class="hero-section premium-hero">
+        <div class="hero-bg-glow"></div>
+        <h2 class="hero-title">Welcome to FUSO Energy Monitoring System</h2>
+        <p class="hero-subtitle">Real-time intelligence for your manufacturing operations.</p>
+        
         <div class="plant-selection-wrapper">
-            <div class="select-card" id="plantSelectContainer">
-                <label>Manufacturing Plant</label>
-                <select id="plantSelect" aria-label="Select Manufacturing Plant">
-                    <option value="">Select Plant</option>
+            <div class="select-card" id="plantSelectContainer" style="min-width: 300px;">
+                <label>Select Facility</label>
+                <select id="plantSelect" aria-label="Select Manufacturing Plant" class="premium-select">
+                    <option value="">Choose a plant to monitor...</option>
                 </select>
             </div>
         </div>

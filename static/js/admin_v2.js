@@ -619,6 +619,7 @@ async function loadMeterGroups() {
         const res = await fetch("/api/meter_groups");
         if (res.ok) {
             globalMeterGroups = await res.json();
+            updateGroupFilterSelect();
             renderMeterGroups();
             renderGroupPresets();
         }
@@ -683,6 +684,26 @@ window.createGroupPreset = async function(presetId, plant) {
     }
 };
 
+function updateGroupFilterSelect() {
+    const sel = document.getElementById("groupFilterSelect");
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="all">All Groups</option>';
+    globalMeterGroups.forEach(g => {
+        const opt = document.createElement("option");
+        opt.value = g.id;
+        opt.textContent = g.name;
+        sel.appendChild(opt);
+    });
+    if (globalMeterGroups.some(g => g.id.toString() === currentVal)) {
+        sel.value = currentVal;
+    }
+}
+
+window.filterMeterGroups = function() {
+    renderMeterGroups();
+};
+
 function renderMeterGroups() {
     const list = document.getElementById("meterGroupsList");
     if (!list) return;
@@ -693,11 +714,15 @@ function renderMeterGroups() {
         return;
     }
     
+    const filterVal = document.getElementById("groupFilterSelect")?.value || "all";
+    
     let html = "";
     globalMeterGroups.forEach(g => {
+        if (filterVal !== "all" && g.id.toString() !== filterVal) return;
+        
         let membersHtml = g.members.length === 0 ? 
             `<div style="font-size:0.85rem; color:var(--text-sub); padding:16px; text-align:center; background:rgba(0,0,0,0.02); border-radius:8px;">No meters added yet</div>` :
-            `<div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+            `<div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
                 ${g.members.map(m => `
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-base); border:1px solid var(--border-color); border-radius:8px; transition:border-color 0.2s;">
                         <div style="display:flex; flex-direction:column; gap:2px;">
@@ -711,9 +736,29 @@ function renderMeterGroups() {
                 `).join("")}
             </div>`;
             
+        let plantOptions = '<option value="" disabled selected>Select a Plant...</option>';
+        globalPlants.forEach(p => { plantOptions += `<option value="${p}">${p}</option>`; });
+
+        let addFormHtml = `
+            <div id="inlineAddForm_${g.id}" style="display:none; margin-top: 16px; padding: 16px; background: var(--bg-base); border-radius: 8px; border: 1px solid var(--border-color);">
+                <h4 style="margin-top:0; margin-bottom: 12px; font-size: 0.9rem;">Add Meter to Group</h4>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <select id="inlinePlant_${g.id}" class="form-control" style="flex:1; min-width: 120px;" onchange="populateInlineMeterSelect(${g.id})">
+                        ${plantOptions}
+                    </select>
+                    <select id="inlineMeter_${g.id}" class="form-control" style="flex:1; min-width: 120px;">
+                        <option value="" disabled selected>Select Plant first...</option>
+                    </select>
+                    <button type="button" class="submit-btn" style="padding: 8px 16px;" onclick="submitInlineAddMember(${g.id})">Add</button>
+                    <button type="button" class="action-btn" style="padding: 8px 16px; border: 1px solid var(--border-color);" onclick="document.getElementById('inlineAddForm_${g.id}').style.display='none'">Cancel</button>
+                </div>
+                <p id="inlineError_${g.id}" class="form-error" style="display:none; margin-top:8px; margin-bottom:0;"></p>
+            </div>
+        `;
+            
         html += `
             <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:16px; transition:transform 0.2s, box-shadow 0.2s;">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <div style="background:var(--accent-primary); color:white; width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 6px rgba(79, 70, 229, 0.2);">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
@@ -721,7 +766,7 @@ function renderMeterGroups() {
                         <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-main); letter-spacing:-0.01em;">${g.name}</h3>
                     </div>
                     <div style="display:flex; gap:8px;">
-                        <button onclick="openAddGroupMemberModal(${g.id})" class="action-btn" style="background:var(--bg-base); border:1px solid var(--border-color); color:var(--text-main); padding:6px 12px; border-radius:6px; cursor:pointer;" title="Add Meter">
+                        <button onclick="document.getElementById('inlineAddForm_${g.id}').style.display='block'" class="action-btn" style="background:var(--bg-base); border:1px solid var(--border-color); color:var(--text-main); padding:6px 12px; border-radius:6px; cursor:pointer;" title="Add Meter">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             Add
                         </button>
@@ -730,7 +775,14 @@ function renderMeterGroups() {
                         </button>
                     </div>
                 </div>
-                ${membersHtml}
+                ${addFormHtml}
+                <details style="border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <summary style="cursor: pointer; font-weight: 600; color: var(--text-sub); display: flex; align-items: center; gap: 8px; user-select: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        ${g.members.length} Meters Configured
+                    </summary>
+                    ${membersHtml}
+                </details>
             </div>
         `;
     });
@@ -788,43 +840,30 @@ window.deleteGroup = async function(id) {
     }
 }
 
-window.openAddGroupMemberModal = function(groupId) {
-    document.getElementById("addGroupMemberModal").style.display = "flex";
-    document.getElementById("memberGroupId").value = groupId;
-    document.getElementById("memberError").style.display = "none";
-    
-    // Populate plant select
-    const plantSelect = document.getElementById("memberPlantSelect");
-    plantSelect.innerHTML = '<option value="" disabled selected>Select a Plant...</option>';
-    globalPlants.forEach(p => {
-        plantSelect.innerHTML += `<option value="${p}">${p}</option>`;
-    });
-    
-    document.getElementById("memberMeterSelect").innerHTML = '<option value="" disabled selected>Select a Plant first...</option>';
-}
-
-window.closeAddGroupMemberModal = function() {
-    document.getElementById("addGroupMemberModal").style.display = "none";
-}
-
-function populateMemberMeterSelect() {
-    const plant = document.getElementById("memberPlantSelect").value;
-    const meterSelect = document.getElementById("memberMeterSelect");
+window.populateInlineMeterSelect = function(groupId) {
+    const plant = document.getElementById(`inlinePlant_${groupId}`).value;
+    const meterSelect = document.getElementById(`inlineMeter_${groupId}`);
     
     meterSelect.innerHTML = '<option value="" disabled selected>Select a Meter...</option>';
     
-    // Find devices for this plant
     globalDevices.filter(d => d.plant === plant).forEach(d => {
         meterSelect.innerHTML += `<option value="${d.meter_id}">${d.name} (ID: ${d.meter_id})</option>`;
     });
-}
+};
 
-document.getElementById("addGroupMemberForm")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const groupId = document.getElementById("memberGroupId").value;
-    const plant = document.getElementById("memberPlantSelect").value;
-    const meter_id = document.getElementById("memberMeterSelect").value;
-    const err = document.getElementById("memberError");
+window.submitInlineAddMember = async function(groupId) {
+    const plantSelect = document.getElementById(`inlinePlant_${groupId}`);
+    const meterSelect = document.getElementById(`inlineMeter_${groupId}`);
+    const err = document.getElementById(`inlineError_${groupId}`);
+    
+    const plant = plantSelect.value;
+    const meter_id = meterSelect.value;
+    
+    if (!plant || !meter_id) {
+        err.textContent = "Please select both a plant and a meter.";
+        err.style.display = "block";
+        return;
+    }
     
     try {
         const res = await fetch(`/api/meter_groups/${groupId}/members`, {
@@ -833,7 +872,7 @@ document.getElementById("addGroupMemberForm")?.addEventListener("submit", async 
             body: JSON.stringify({ plant, meter_id })
         });
         if (res.ok) {
-            closeAddGroupMemberModal();
+            document.getElementById(`inlineAddForm_${groupId}`).style.display = "none";
             loadMeterGroups();
         } else {
             const data = await res.json();
@@ -844,7 +883,7 @@ document.getElementById("addGroupMemberForm")?.addEventListener("submit", async 
         err.textContent = "Network error";
         err.style.display = "block";
     }
-});
+};
 
 window.removeGroupMember = async function(groupId, memberId) {
     if (!confirm("Remove this meter from the group?")) return;
