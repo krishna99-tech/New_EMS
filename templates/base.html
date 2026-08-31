@@ -21,32 +21,9 @@
         <div class="loader-spinner"></div>
     </div>
 
-    <!-- Global Loader Script -->
-    <script>
-        let skipLoader = false;
-        
-        document.addEventListener('click', function(e) {
-            let a = e.target.closest('a');
-            if (a && a.hasAttribute('download')) {
-                skipLoader = true;
-                setTimeout(() => skipLoader = false, 1000);
-            }
-        });
+    <!-- Global Loader Script moved to ems-shell.js -->
 
-        window.addEventListener('beforeunload', function() {
-            if (!skipLoader) {
-                document.getElementById('globalLoader').classList.add('active');
-            }
-        });
-        window.addEventListener('pageshow', function(event) {
-            // Hide the loader if the page is loaded from cache (e.g. back button)
-            if (event.persisted) {
-                document.getElementById('globalLoader').classList.remove('active');
-            }
-        });
-    </script>
-
-    <script src="{{ url_for('static', path='js/ems-shell.js') }}?v=3"></script>
+    <script src="{{ url_for('static', path='js/ems-shell.js') }}?v=4"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

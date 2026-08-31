@@ -19,10 +19,10 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from config import ADMIN_USERNAME, ADMIN_PASSWORD, BASE_DIR
+import config
 
 router = APIRouter()
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+templates = Jinja2Templates(directory=os.path.join(config.BASE_DIR, "templates"))
 
 
 def is_logged_in(request: Request) -> bool:
@@ -64,7 +64,7 @@ def login_page(request: Request):
 @router.post("/api/login")
 async def login(request: Request):
     data = await request.json()
-    if data.get("username") == ADMIN_USERNAME and data.get("password") == ADMIN_PASSWORD:
+    if data.get("username") == config.ADMIN_USERNAME and data.get("password") == config.ADMIN_PASSWORD:
         request.session["logged_in"] = True
         return {"success": True}
     return JSONResponse({"error": "Invalid credentials"}, status_code=401)
@@ -79,3 +79,22 @@ def logout(request: Request):
 @router.get("/api/auth_status")
 def auth_status(request: Request):
     return {"logged_in": is_logged_in(request)}
+
+
+@router.post("/api/change_password")
+async def change_password(request: Request):
+    require_login(request)
+    data = await request.json()
+    old_pw = data.get("old_password")
+    new_pw = data.get("new_password")
+    confirm_pw = data.get("confirm_password")
+
+    if old_pw != config.ADMIN_PASSWORD:
+        return JSONResponse({"error": "Current password is incorrect"}, status_code=400)
+    if not new_pw or len(new_pw) < 4:
+        return JSONResponse({"error": "New password must be at least 4 characters long"}, status_code=400)
+    if new_pw != confirm_pw:
+        return JSONResponse({"error": "New password and confirmation do not match"}, status_code=400)
+
+    config.ADMIN_PASSWORD = new_pw
+    return {"success": True, "message": "Password updated successfully"}

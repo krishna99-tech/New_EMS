@@ -1,0 +1,46 @@
+{% macro render_filter_bar(panel_id="historyFilterPanel", panel_class="filter-panel", has_title=false, submit_text="Apply Filters", extra_buttons="") %}
+<div id="{{ panel_id }}" class="{{ panel_class }}" style="display: none;">
+    {% if has_title %}
+    <p class="filter-panel-title">Historical filters</p>
+    {% endif %}
+    <div class="select-container">
+        <label class="tick-card" for="shiftAnalysisToggle">
+            <input id="shiftAnalysisToggle" type="checkbox" checked />
+            <span class="tick-dot"></span>
+            <span>Shift Analysis (Date)</span>
+        </label>
+        <label class="tick-card" for="customTimeToggle">
+            <input id="customTimeToggle" type="checkbox" />
+            <span class="tick-dot"></span>
+            <span>Custom Time</span>
+        </label>
+        <label class="tick-card" for="barGraphToggle">
+            <input id="barGraphToggle" type="checkbox" />
+            <span class="tick-dot"></span>
+            <span>Show Bar Graphs</span>
+        </label>
+        <div class="select-card">
+            <label>Shift</label>
+            <select id="shiftSelect" aria-label="Select Shift">
+                <option value="all">All Shifts</option>
+                <option value="Shift A">Shift A</option>
+                <option value="Shift B">Shift B</option>
+                <option value="Shift C">Shift C</option>
+            </select>
+        </div>
+        <div class="select-card">
+            <label>From</label>
+            <input id="fromDateTime" type="datetime-local" />
+        </div>
+        <div class="select-card">
+            <label>To</label>
+            <input id="toDateTime" type="datetime-local" />
+        </div>
+        <button id="submitFiltersBtn" class="submit-btn" type="button">{{ submit_text }}</button>
+        {{ extra_buttons | safe }}
+    </div>
+    {% if has_title %}
+    <p id="shiftDisabledNote" class="inline-note" style="display:none;"></p>
+    {% endif %}
+</div>
+{% endmacro %}

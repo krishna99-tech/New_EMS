@@ -25,7 +25,7 @@
     }
 
     function initTheme() {
-        if (localStorage.getItem("theme") === "light") {
+        if (localStorage.getItem("theme") !== "dark") {
             document.body.classList.add("light-mode");
         }
         applyThemeIcon();
@@ -106,14 +106,7 @@
                         <div class="stat-meta"><span style="color: var(--success);">${d.online_meter_count} online</span></div>
                     </div>
                 </div>
-                <div class="overview-card premium-stat-card">
-                    <div class="stat-icon-wrapper"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
-                    <div class="stat-content">
-                        <label>Groups</label>
-                        <div class="stat-value">${d.group_count}</div>
-                        <div class="stat-meta">${d.group_member_count} members</div>
-                    </div>
-                </div>
+
                 <div class="overview-card premium-stat-card">
                     <div class="stat-icon-wrapper" style="color: var(--success);"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
                     <div class="stat-content">
@@ -127,18 +120,7 @@
         }
     }
 
-    function updateFlowSteps(steps) {
-        const bar = document.querySelector("#flowBar .flow-steps");
-        if (!bar || !steps?.length) return;
-        bar.innerHTML = steps.map((step, i) => {
-            const sep = i > 0 ? '<span class="flow-step-sep">→</span>' : "";
-            const cls = step.active ? "is-active" : "";
-            if (step.href && !step.active) {
-                return `${sep}<a href="${step.href}" class="flow-step">${step.label}</a>`;
-            }
-            return `${sep}<span class="flow-step ${cls}">${step.label}</span>`;
-        }).join("");
-    }
+
 
     function initProfileDropdown() {
         const dropdown = document.getElementById("profileDropdown");
@@ -154,16 +136,75 @@
         });
     }
 
+    let isLoggedIn = false;
+
+    function checkAuthStatus() {
+        fetch('/api/auth_status')
+            .then(res => res.json())
+            .then(data => {
+                isLoggedIn = data.logged_in;
+                updateAuthUI();
+            })
+            .catch(err => console.error("Auth check failed:", err));
+    }
+
+    function updateAuthUI() {
+        const btn = document.getElementById("authBtn");
+        if (!btn) return;
+        const svgLogout = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>';
+        const svgLogin  = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>';
+        btn.innerHTML = isLoggedIn ? svgLogout : svgLogin;
+        btn.title     = isLoggedIn ? "Logout"  : "Login";
+        
+        // Specific logic for plant dashboard to hide auth btn when a plant is selected
+        const plantSelect = document.getElementById("plantSelect");
+        btn.style.display = (plantSelect && plantSelect.value !== "") ? "none" : "flex";
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         initSidebar();
         initProfileDropdown();
         updateClock();
         setInterval(updateClock, 1000);
         loadOverviewStats("overviewStats");
+        
+        checkAuthStatus();
+        const authBtn = document.getElementById("authBtn");
+        authBtn?.addEventListener("click", () => {
+            if (isLoggedIn) {
+                fetch('/api/logout', { method: 'POST' }).then(() => {
+                    isLoggedIn = false;
+                    updateAuthUI();
+                });
+            } else {
+                window.location.href = "/login";
+            }
+        });
     });
 
     window.EMS = window.EMS || {};
     window.EMS.loadOverviewStats = loadOverviewStats;
     window.EMS.getShiftName = getShiftName;
-    window.EMS.updateFlowSteps = updateFlowSteps;
+
+
+    // Global Loader Script
+    let skipLoader = false;
+    document.addEventListener('click', function(e) {
+        let a = e.target.closest('a');
+        if (a && a.hasAttribute('download')) {
+            skipLoader = true;
+            setTimeout(() => skipLoader = false, 1000);
+        }
+    });
+
+    window.addEventListener('beforeunload', function() {
+        if (!skipLoader) {
+            document.getElementById('globalLoader')?.classList.add('active');
+        }
+    });
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            document.getElementById('globalLoader')?.classList.remove('active');
+        }
+    });
 })();

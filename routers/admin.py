@@ -90,13 +90,7 @@ def delete_meter_config(config_id: int, request: Request):
 
 
 # ── Meter groups ───────────────────────────────────────────────────────────────
-
-@router.get("/admin/groups", response_class=HTMLResponse)
-def admin_groups_page(request: Request):
-    redirect = require_login_page(request)
-    if redirect:
-        return redirect
-    return templates.TemplateResponse("admin_groups.html", template_context(request))
+# /admin/groups page removed — groups are managed via the Groups tab in /admin
 
 @router.get("/api/meter_groups")
 def get_meter_groups(request: Request):

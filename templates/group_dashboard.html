@@ -1,0 +1,88 @@
+{% extends "admin_layout.html" %}
+{% from "partials/filter_bar.html" import render_filter_bar %}
+
+{% block admin_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/plant-dashboard.css') }}?v=5">
+<style>
+    .group-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--dj-border);
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .group-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        color: var(--dj-header-bg);
+        white-space: nowrap;
+    }
+    .group-header-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    @media (max-width: 768px) {
+        .group-header h2 {
+            font-size: 1.1rem;
+        }
+        .group-header {
+            gap: 8px;
+            padding-bottom: 8px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="group-dashboard-wrapper">
+    <div class="group-header">
+        <div class="group-header-controls">
+            <h2 id="groupTitle">Meter Group Dashboard</h2>
+            <select id="groupSelect" class="form-select" style="padding: 6px 12px; border-radius: 4px; border: 1px solid var(--dj-border); background: var(--dj-bg); color: var(--dj-text); font-size: 0.9rem;">
+                <option value="" disabled selected>Loading groups...</option>
+            </select>
+        </div>
+        <div>
+            <a href="/admin#groups" class="submit-btn" style="text-decoration: none; display: inline-block; font-size: 0.85rem; padding: 6px 12px;">Manage Groups</a>
+        </div>
+    </div>
+
+    <input type="hidden" id="groupIdInput" value="{{ initial_group_id or '' }}">
+
+    <div class="dashboard-toolbar" style="margin-bottom: 20px;">
+        <div class="dashboard-tabs">
+            <button class="dash-tab active" id="btnGroupLive" type="button">Live Monitoring</button>
+            <button class="dash-tab" id="btnGroupHistory" type="button">Historical Analysis</button>
+        </div>
+    </div>
+
+    <!-- Filter Bar for Historical Analysis -->
+    {{ render_filter_bar(panel_id="groupHistoryFilterPanel", panel_class="filter-panel", submit_text="Apply Filters") }}
+
+    <!-- Live View -->
+    <div id="liveViewContainer" class="plant-live-panel">
+        <div id="liveKpiStrip" class="kpi-grid" style="margin-bottom: 24px;"></div>
+        <p id="liveLastUpdated" class="last-updated-info"></p>
+        <div class="cards" id="cardsContainer"></div>
+    </div>
+    
+    <!-- History View -->
+    <div id="historyViewContainer" class="plant-history-panel" style="display: none;">
+        <div id="historySummaryStrip" class="kpi-grid" style="margin-bottom: 24px;"></div>
+        <div class="cards" id="historyCardsContainer"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<!-- We include Chart.js and standard dashboard scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script src="{{ url_for('static', path='js/ems-shell.js') }}?v=11"></script>
+<script src="{{ url_for('static', path='js/group_dashboard.js') }}?v=1"></script>
+{% endblock %}

@@ -7,18 +7,12 @@
 
 {% block content %}
 <div class="ems-layout">
-    {% block sidebar %}
-    {% include "partials/ems_sidebar.html" %}
-    {% endblock %}
-
-    <div class="ems-main">
+    <div class="ems-main" style="margin-left: 0; width: 100%;">
         <header class="navbar ems-topbar">
-            <div class="nav-left">
-                {% block menu_btn %}
-                <button type="button" id="emsMenuBtn" class="theme-btn ems-menu-btn" title="Toggle menu" aria-label="Toggle menu">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                </button>
-                {% endblock %}
+            <div class="nav-left" style="padding-left: 20px;">
+                <a href="/" style="display: flex; align-items: center; text-decoration: none; margin-right: 20px;">
+                    <img src="{{ url_for('static', path='images/logo.png') }}" alt="FUSO" style="height: 32px; filter: drop-shadow(0 0 2px rgba(255,255,255,0.2));">
+                </a>
                 <div class="nav-titles">
                     {% block page_heading %}
                     <h1 id="dashboardTitle">{% block page_title %}EMS Dashboard{% endblock %}</h1>

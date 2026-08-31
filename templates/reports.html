@@ -4,45 +4,48 @@
 {% block page_title %}Reports{% endblock %}
 
 {% block admin_content %}
-<div class="admin-page-shell">
-    <div class="admin-page-header">
-        <div class="admin-page-header-text">
-            <h2 class="admin-page-title">Energy Reports</h2>
-            <p class="admin-page-subtitle">Generate PDF consumption reports by plant and date range</p>
-        </div>
-    </div>
 
-    <div class="admin-panel" style="max-width: 560px; margin: 0 auto;">
-        <div class="admin-panel-header">
-            <h3>Download PDF Report</h3>
+
+
+        <div class="django-breadcrumbs" style="padding: 10px; background: #f8f9fa; border: 1px solid var(--border-color); font-size: 0.85rem; margin-bottom: 20px; border-radius: 4px;">
+            <a href="/admin" style="color: #417690; text-decoration: none;">Home</a> &rsaquo; 
+            <span id="breadcrumb-current">Energy Reports</span>
         </div>
-        <div class="admin-panel-body">
-            <form action="/api/reports/download" method="GET" id="reportForm">
-                <div class="form-group">
-                    <label for="plantSelect">Plant</label>
-                    <select name="plant" id="plantSelect" required>
-                        <option value="" disabled selected>Loading plants...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="startDate">Start Date</label>
-                    <input type="date" name="start_date" id="startDate" required>
-                </div>
-                <div class="form-group">
-                    <label for="endDate">End Date</label>
-                    <input type="date" name="end_date" id="endDate" required>
-                </div>
-                <button type="submit" class="submit-btn" style="width:100%;">Download PDF</button>
-            </form>
+
+        <h1 style="margin: 0 0 15px 0; font-size: 1.5rem; font-weight: normal; color: #333;">Energy Reports</h1>
+        
+        <p style="color: #666; margin-bottom: 20px;">Generate PDF consumption reports by plant and date range.</p>
+
+        <div class="admin-panel" style="max-width: 560px;">
+            <div class="admin-panel-header">
+                <h3>Download PDF Report</h3>
+            </div>
+            <div class="admin-panel-body">
+                <form action="/api/reports/download" method="GET" id="reportForm">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="plantSelect">Plant</label>
+                        <select name="plant" id="plantSelect" required>
+                            <option value="" disabled selected>Loading plants...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" name="start_date" id="startDate" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="endDate">End Date</label>
+                        <input type="date" name="end_date" id="endDate" required>
+                    </div>
+                    <button type="submit" class="submit-btn" style="width:100%; padding: 10px;">Download PDF</button>
+                </form>
+            </div>
         </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block admin_scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    fetch('/plants')
+    fetch('/api/plants')
         .then(res => res.json())
         .then(plants => {
             const select = document.getElementById("plantSelect");

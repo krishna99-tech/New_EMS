@@ -81,40 +81,55 @@ function formatSecondsAgo(sec) {
 function renderDeviceCard(d) {
     const online = d.online;
     const statusText = online ? "Online" : "Offline";
+    const statusColor = online ? "var(--dj-success)" : "var(--dj-danger)";
     const meterIdsText = d.meter_ids && d.meter_ids.length
-        ? d.meter_ids.map(id => `<span class="admin-badge">#${id}</span>`).join(" ")
-        : `<span class="text-muted">No meters responding</span>`;
+        ? d.meter_ids.map(id => `<span style="background:var(--dj-bg-sub); border:1px solid var(--dj-border); padding:2px 6px; border-radius:3px; font-size:0.75rem; font-family:monospace;">#${id}</span>`).join(" ")
+        : `<span style="color:var(--dj-text-sub); font-size:0.8rem;">No meters responding</span>`;
 
     const configuredBadge = d.is_configured
-        ? `<span class="badge-configured">Configured</span>`
-        : `<span class="badge-unconfigured">Not Configured</span>`;
+        ? `<span style="background:var(--dj-success); color:white; padding:2px 6px; border-radius:3px; font-size:0.7rem; font-weight:bold; text-transform:uppercase;">Configured</span>`
+        : `<span style="background:#999; color:white; padding:2px 6px; border-radius:3px; font-size:0.7rem; font-weight:bold; text-transform:uppercase;">Unconfigured</span>`;
 
     const plantInfo = d.is_configured && d.plant
-        ? `<div>Plant: <strong>${d.plant || ""}</strong></div>`
+        ? `<tr><td style="padding:4px 0; color:var(--dj-text-sub);">Plant</td><td style="padding:4px 0; text-align:right; font-weight:bold;">${d.plant || "—"}</td></tr>`
         : "";
 
     const actionBtn = d.is_configured
-        ? `<button type="button" class="btn-ghost" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, true)">Edit</button>
-           <button type="button" class="btn-ghost danger" onclick="unregisterDevice('${d.device_id}')">Unlink</button>`
-        : `<button type="button" class="submit-btn" style="padding:6px 14px; font-size:0.78rem;" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, false)">Configure</button>`;
+        ? `<button type="button" class="action-btn edit-btn" style="padding:4px 12px; font-size:0.75rem;" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, true)">Edit</button>
+           <button type="button" class="action-btn delete-btn" style="padding:4px 12px; font-size:0.75rem;" onclick="unregisterDevice('${d.device_id}')">Unlink</button>`
+        : `<button type="button" class="submit-btn" style="padding:5px 12px; font-size:0.75rem;" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, false)">Configure</button>`;
 
     return `
-    <div class="device-card ${online ? "online" : "offline"}">
-        <div class="device-card-top">
-            <div class="device-card-id">
-                <span class="status-dot ${online ? "online" : "offline"}"></span>
-                ${d.device_id}
-                ${configuredBadge}
+    <div style="border: 1px solid var(--dj-border); border-radius: 4px; background: var(--dj-bg); color: var(--dj-text); overflow: hidden; display: flex; flex-direction: column;">
+        <div style="background: var(--dj-header-bg-sub); color: var(--dj-header-text); padding: 8px 12px; font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+            <span>${d.device_id}</span>
+            ${configuredBadge}
+        </div>
+        <div style="padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <tr>
+                    <td style="padding:4px 0; color:var(--dj-text-sub);">Status</td>
+                    <td style="padding:4px 0; text-align:right; font-weight:bold; color:${statusColor};">${statusText}</td>
+                </tr>
+                <tr>
+                    <td style="padding:4px 0; color:var(--dj-text-sub);">IP Address</td>
+                    <td style="padding:4px 0; text-align:right; font-family:monospace;">${d.ip_addr || "—"}</td>
+                </tr>
+                <tr>
+                    <td style="padding:4px 0; color:var(--dj-text-sub);">Last Seen</td>
+                    <td style="padding:4px 0; text-align:right;">${formatSecondsAgo(d.seconds_ago)}</td>
+                </tr>
+                ${plantInfo}
+            </table>
+            
+            <div style="margin-top: 4px;">
+                <div style="font-size:0.75rem; color:var(--dj-text-sub); margin-bottom:4px;">Meters Responding (${d.meter_count}):</div>
+                <div style="display:flex; flex-wrap:wrap; gap:4px;">${meterIdsText}</div>
             </div>
-            <span style="font-size:0.75rem; font-weight:600; color:${online ? "#22c55e" : "#ef4444"};">${statusText}</span>
         </div>
-        <div class="device-card-meta">
-            <div>IP: <code>${d.ip_addr || "—"}</code> · Last seen: ${formatSecondsAgo(d.seconds_ago)}</div>
-            <div>Meters responding: ${d.meter_count}</div>
-            ${plantInfo}
+        <div style="padding: 8px 12px; background: var(--dj-bg-sub); border-top: 1px solid var(--dj-border); display: flex; justify-content: flex-end; gap: 8px;">
+            ${actionBtn}
         </div>
-        <div style="display:flex; flex-wrap:wrap; gap:4px;">${meterIdsText}</div>
-        <div class="device-card-actions">${actionBtn}</div>
     </div>`;
 }
 
@@ -124,10 +139,10 @@ function updateAdminStats(plants, devices, heartbeats) {
     const elDevices = document.getElementById("statDevices");
     const elOnline = document.getElementById("statOnline");
     if (!elPlants) return;
-    elPlants.textContent = plants?.length ?? 0;
-    elMeters.textContent = devices?.length ?? 0;
-    elDevices.textContent = heartbeats?.length ?? 0;
-    elOnline.textContent = (heartbeats || []).filter(h => h.online).length;
+    if (elPlants) elPlants.textContent = plants?.length ?? 0;
+    if (elMeters) elMeters.textContent = devices?.length ?? 0;
+    if (elDevices) elDevices.textContent = heartbeats?.length ?? 0;
+    if (elOnline) elOnline.textContent = (heartbeats || []).filter(h => h.online).length;
 }
 
 function updateGroupStats() {
@@ -227,7 +242,7 @@ window.unregisterDevice = async function(deviceId) {
 
 function loadAllDevices() {
     Promise.all([
-        fetch('/plants').then(res => res.json()),
+        fetch('/api/plants').then(res => res.json()),
         fetch('/api/meter_config').then(res => res.json())
     ])
     .then(([plants, devices]) => {
@@ -259,7 +274,7 @@ function renderPlants(plants, devices) {
         globalGroupedDevices[dev.plant].push(dev);
     });
 
-    if (!plantsGridView) return; // Prevent execution on pages without this element
+    if (!plantsGridView) return;
     plantsGridView.innerHTML = "";
 
     if (document.getElementById("plantCountBadge")) {
@@ -274,110 +289,76 @@ function renderPlants(plants, devices) {
 
     plants.forEach(plant => {
         const plantDevices = globalGroupedDevices[plant] || [];
-        
-        let devicesHtml = "";
+
+        let tableRows = "";
         if (plantDevices.length === 0) {
-            devicesHtml = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub); padding:40px 20px;">No devices added to this plant yet.</td></tr>`;
+            tableRows = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:24px;">No meters added yet.</td></tr>`;
         } else {
-            devicesHtml = plantDevices.map(dev => {
-                const badgeClass = dev.type === "incomer" ? "badge-incomer" : "badge-submeter";
-                const badgeLabel = dev.type === "incomer" ? "Main Incomer" : "Submeter";
-                
-                // Determine if this meter is online based on heartbeats
-                // 1. Find if any heartbeat is mapped to this plant
-                // 2. Check if this meter's ID is in the responding meter_ids list
+            tableRows = plantDevices.map(dev => {
                 const hb = (window.globalHeartbeats || []).find(h => h.plant === dev.plant && h.online);
                 const isOnline = hb && hb.meter_ids && hb.meter_ids.includes(String(dev.meter_id));
-                const statusDot = isOnline ? '<div style="width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 6px #22c55e; display:inline-block; margin-right:6px;" title="Online"></div>' : '<div style="width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block; margin-right:6px;" title="Offline"></div>';
+                const statusLabel = isOnline
+                    ? `<span style="color:var(--dj-success); font-weight:600; font-size:0.8rem;">● Online</span>`
+                    : `<span style="color:var(--dj-danger); font-weight:600; font-size:0.8rem;">● Offline</span>`;
+                const typeLabel = dev.type === "incomer" ? "Incomer" : "Submeter";
 
                 return `
                 <tr class="admin-table-row">
-                    <td style="font-weight:600; font-family:'Share Tech Mono',monospace; font-size:0.85rem;">#${dev.meter_id}</td>
-                    <td style="font-weight:500;">${statusDot} ${dev.name}</td>
-                    <td><span class="badge-type ${badgeClass}">${badgeLabel}</span></td>
-                    <td style="text-align:right;">
-                        <div class="actions-dropdown" style="display:inline-block; text-align:left;">
-                            <button class="action-btn" style="padding:4px 8px; border:none; background:transparent; color:var(--text-main); cursor:pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                            </button>
-                            <div class="dropdown-content" style="min-width:140px; right:0; top:100%; z-index:999;">
-                                <button class="dropdown-item" onclick='editDevice(${JSON.stringify(dev)})'>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                                    Edit Meter
-                                </button>
-                                <button class="dropdown-item" onclick='deleteDevice(${dev.id})' style="color:#f87171;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
+                    <td style="width:90px;">${statusLabel}</td>
+                    <td style="width:60px; font-family:monospace; font-weight:600;">#${dev.meter_id}</td>
+                    <td>${dev.name || '—'}</td>
+                    <td style="width:90px;">${typeLabel}</td>
+                    <td style="width:120px; text-align:right;">
+                        <button class="action-btn edit-btn" style="padding:4px 10px; font-size:0.75rem;" onclick='editDevice(${JSON.stringify(dev)})'>Edit</button>
+                        <button class="action-btn delete-btn" style="padding:4px 10px; font-size:0.75rem;" onclick='deleteDevice(${dev.id})'>Del</button>
                     </td>
                 </tr>`;
             }).join("");
         }
 
-        const card = document.createElement("div");
-        card.className = "plant-card-industrial";
-        card.style.overflow = "visible";
-        card.innerHTML = `
-            <div class="plant-card-header">
-                <div>
-                    <h2 class="plant-card-title">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/></svg>
-                        <span class="plant-card-name-text">${plant}</span>
-                    </h2>
-                    <p class="plant-card-subtitle">${plantDevices.length} device${plantDevices.length !== 1 ? 's' : ''} configured</p>
-                </div>
-                <div class="actions-dropdown" onclick="this.classList.toggle('active')">
-                    <button class="action-btn" type="button" style="padding: 6px 12px; font-size:0.75rem;">
-                        Options
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div class="dropdown-content">
-                        <button class="dropdown-item" onclick="window.openDeviceModal('${plant}')">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Add Device
-                        </button>
-                        <button class="dropdown-item" onclick="window.deletePlant('${plant}')" style="color:#f87171;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                            Delete Plant
-                        </button>
-                    </div>
+        const section = document.createElement("div");
+        section.className = "admin-panel";
+        section.setAttribute("data-plant", plant);
+        section.innerHTML = `
+            <div class="admin-panel-header">
+                <h3>
+                    <span class="plant-card-name-text">${plant}</span>
+                    <span class="admin-badge">${plantDevices.length}</span>
+                </h3>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <a href="/?plant=${encodeURIComponent(plant)}" class="action-btn edit-btn" style="text-decoration:none; padding:5px 12px; font-size:0.78rem;">Dashboard →</a>
+                    <button class="action-btn edit-btn" style="padding:5px 12px; font-size:0.78rem;" onclick="window.openDeviceModal('${plant}')">+ Add Meter</button>
+                    <button class="action-btn delete-btn" style="padding:5px 12px; font-size:0.78rem;" onclick="window.deletePlant('${plant}')">Delete Plant</button>
                 </div>
             </div>
-            <div class="plant-table-container">
-                <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <div style="padding:0; overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse;">
                     <thead>
                         <tr class="admin-table-header">
-                            <th>Meter ID</th>
-                            <th>Meter Name</th>
+                            <th>Status</th>
+                            <th>ID</th>
+                            <th>Name</th>
                             <th>Type</th>
                             <th style="text-align:right;">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${devicesHtml}
-                    </tbody>
+                    <tbody>${tableRows}</tbody>
                 </table>
             </div>
         `;
-        plantsGridView.appendChild(card);
+        plantsGridView.appendChild(section);
     });
     updateAdminStats(plants, devices, window.globalHeartbeats || []);
 }
 
 window.filterPlants = function() {
     const input = document.getElementById("plantSearchInput").value.toLowerCase();
-    const cards = plantsGridView.querySelectorAll(".plant-card-industrial");
-    cards.forEach(card => {
-        const textSpan = card.querySelector(".plant-card-name-text");
+    const panels = plantsGridView.querySelectorAll(".admin-panel");
+    panels.forEach(panel => {
+        const textSpan = panel.querySelector(".plant-card-name-text");
         if (textSpan) {
             const text = textSpan.textContent.toLowerCase();
-            if (text.includes(input)) {
-                card.style.display = "flex";
-            } else {
-                card.style.display = "none";
-            }
+            panel.style.display = text.includes(input) ? "" : "none";
         }
     });
 };
@@ -720,69 +701,74 @@ function renderMeterGroups() {
     globalMeterGroups.forEach(g => {
         if (filterVal !== "all" && g.id.toString() !== filterVal) return;
         
-        let membersHtml = g.members.length === 0 ? 
-            `<div style="font-size:0.85rem; color:var(--text-sub); padding:16px; text-align:center; background:rgba(0,0,0,0.02); border-radius:8px;">No meters added yet</div>` :
-            `<div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
-                ${g.members.map(m => `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-base); border:1px solid var(--border-color); border-radius:8px; transition:border-color 0.2s;">
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <span style="font-size:0.85rem; font-weight:600; color:var(--text-main);">${m.plant}</span>
-                            <span style="font-size:0.75rem; color:var(--text-sub);">${m.meter_name} (ID: <span style="font-family:monospace;">${m.meter_id}</span>)</span>
-                        </div>
-                        <button onclick="removeGroupMember(${g.id}, ${m.id})" class="action-btn" style="color:#ef4444; border:1px solid rgba(239,68,68,0.2); background:rgba(239,68,68,0.05); padding:6px; border-radius:6px; cursor:pointer;" title="Remove meter">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                    </div>
-                `).join("")}
-            </div>`;
+        let tableRows = "";
+        if (g.members.length === 0) {
+            tableRows = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub); padding:24px;">No meters assigned yet.</td></tr>`;
+        } else {
+            tableRows = g.members.map(m => `
+                <tr class="admin-table-row">
+                    <td>${m.plant}</td>
+                    <td>${m.meter_name}</td>
+                    <td style="font-family:monospace; font-weight:600;">#${m.meter_id}</td>
+                    <td style="width:80px; text-align:right;">
+                        <button onclick="removeGroupMember(${g.id}, ${m.id})" class="action-btn delete-btn" style="padding:4px 10px; font-size:0.75rem;">Remove</button>
+                    </td>
+                </tr>
+            `).join("");
+        }
             
         let plantOptions = '<option value="" disabled selected>Select a Plant...</option>';
         globalPlants.forEach(p => { plantOptions += `<option value="${p}">${p}</option>`; });
 
         let addFormHtml = `
-            <div id="inlineAddForm_${g.id}" style="display:none; margin-top: 16px; padding: 16px; background: var(--bg-base); border-radius: 8px; border: 1px solid var(--border-color);">
-                <h4 style="margin-top:0; margin-bottom: 12px; font-size: 0.9rem;">Add Meter to Group</h4>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <select id="inlinePlant_${g.id}" class="form-control" style="flex:1; min-width: 120px;" onchange="populateInlineMeterSelect(${g.id})">
-                        ${plantOptions}
-                    </select>
-                    <select id="inlineMeter_${g.id}" class="form-control" style="flex:1; min-width: 120px;">
-                        <option value="" disabled selected>Select Plant first...</option>
-                    </select>
-                    <button type="button" class="submit-btn" style="padding: 8px 16px;" onclick="submitInlineAddMember(${g.id})">Add</button>
-                    <button type="button" class="action-btn" style="padding: 8px 16px; border: 1px solid var(--border-color);" onclick="document.getElementById('inlineAddForm_${g.id}').style.display='none'">Cancel</button>
+            <div id="inlineAddForm_${g.id}" style="display:none; padding:16px 20px; border-top:1px solid var(--border-color); background:rgba(0,0,0,0.02);">
+                <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                    <div class="form-group" style="flex:1; min-width:140px;">
+                        <label for="inlinePlant_${g.id}">Plant</label>
+                        <select id="inlinePlant_${g.id}" onchange="populateInlineMeterSelect(${g.id})" style="padding:8px 10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-main); width:100%;">
+                            ${plantOptions}
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1; min-width:140px;">
+                        <label for="inlineMeter_${g.id}">Meter</label>
+                        <select id="inlineMeter_${g.id}" style="padding:8px 10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-main); width:100%;">
+                            <option value="" disabled selected>Select Plant first...</option>
+                        </select>
+                    </div>
+                    <button type="button" class="submit-btn" style="padding:8px 16px; height:fit-content;" onclick="submitInlineAddMember(${g.id})">Add</button>
+                    <button type="button" class="action-btn" style="padding:8px 12px; height:fit-content; border:1px solid var(--border-color);" onclick="document.getElementById('inlineAddForm_${g.id}').style.display='none'">Cancel</button>
                 </div>
-                <p id="inlineError_${g.id}" class="form-error" style="display:none; margin-top:8px; margin-bottom:0;"></p>
+                <p id="inlineError_${g.id}" style="display:none; margin-top:8px; margin-bottom:0; color:#dc2626; font-size:0.85rem;"></p>
             </div>
         `;
             
         html += `
-            <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:16px; transition:transform 0.2s, box-shadow 0.2s;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="background:var(--accent-primary); color:white; width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 6px rgba(79, 70, 229, 0.2);">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                        </div>
-                        <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-main); letter-spacing:-0.01em;">${g.name}</h3>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <button onclick="document.getElementById('inlineAddForm_${g.id}').style.display='block'" class="action-btn" style="background:var(--bg-base); border:1px solid var(--border-color); color:var(--text-main); padding:6px 12px; border-radius:6px; cursor:pointer;" title="Add Meter">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            Add
-                        </button>
-                        <button onclick="deleteGroup(${g.id})" class="action-btn" style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); color:#ef4444; padding:6px 12px; border-radius:6px; cursor:pointer;" title="Delete Group">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
+            <div class="admin-panel" style="margin-bottom:16px;">
+                <div class="admin-panel-header">
+                    <h3>
+                        ${g.name}
+                        <span class="admin-badge">${g.members.length}</span>
+                    </h3>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <a href="/group_dashboards?group=${g.id}" class="action-btn edit-btn" style="text-decoration:none; padding:5px 12px; font-size:0.78rem;">View Dashboard →</a>
+                        <button onclick="document.getElementById('inlineAddForm_${g.id}').style.display='block'" class="action-btn edit-btn" style="padding:5px 12px; font-size:0.78rem;">+ Add Meter</button>
+                        <button onclick="deleteGroup(${g.id})" class="action-btn delete-btn" style="padding:5px 12px; font-size:0.78rem;">Delete</button>
                     </div>
                 </div>
+                <div style="padding:0; overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr class="admin-table-header">
+                                <th>Plant</th>
+                                <th>Meter Name</th>
+                                <th>Meter ID</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
                 ${addFormHtml}
-                <details style="border-top: 1px solid var(--border-color); padding-top: 12px;">
-                    <summary style="cursor: pointer; font-weight: 600; color: var(--text-sub); display: flex; align-items: center; gap: 8px; user-select: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        ${g.members.length} Meters Configured
-                    </summary>
-                    ${membersHtml}
-                </details>
             </div>
         `;
     });

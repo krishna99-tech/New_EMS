@@ -11,7 +11,7 @@
 /.amplify
 .antigravity
 .env
-routers/__pycache__
-services/__pycache__
-__pycache__
-C:\Users\vakav\virtualpy\fuso_multiple_energymeters\EMS_Fuso\routers\__pycache__
+*routers/__pycache__
+*services/__pycache__
+*__pycache__
+*C:\Users\vakav\virtualpy\fuso_multiple_energymeters\EMS_Fuso\routers\__pycache__

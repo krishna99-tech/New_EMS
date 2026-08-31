@@ -264,7 +264,7 @@ async function loadData() {
     cardsContainer.innerHTML = `<div class="dashboard-empty-state"><p>Loading data...</p></div>`;
 
     try {
-        const res = await fetch(`/group_energy_summary?group_id=${groupId}&mode=${mode}&shift=${encodeURIComponent(shift)}&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}`);
+        const res = await fetch(`/api/group_energy_summary?group_id=${groupId}&mode=${mode}&shift=${encodeURIComponent(shift)}&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}`);
         if (!res.ok) {
             cardsContainer.innerHTML = `<div class="dashboard-empty-state"><p>Failed to load group summary.</p></div>`;
             return;
@@ -547,7 +547,7 @@ function renderMeterCards(meters, registerTotal) {
 
 async function fetchAndRenderLiveGroup(groupId) {
     try {
-        const res = await fetch(`/group_live_kpis?group_id=${groupId}`);
+        const res = await fetch(`/api/group_live_kpis?group_id=${groupId}`);
         if (!res.ok) return;
         const data = await res.json();
 

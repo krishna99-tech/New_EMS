@@ -30,12 +30,12 @@ router = APIRouter()
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
-@router.get("/plants")
+@router.get("/api/plants")
 def plants():
     return get_all_plants()
 
 
-@router.get("/meters")
+@router.get("/api/meters")
 def meters(plant: str = None):
     return [
         {"id": mid, "name": data["name"], "type": data.get("type", "submeter")}
@@ -43,14 +43,14 @@ def meters(plant: str = None):
     ]
 
 
-@router.get("/latest")
+@router.get("/api/latest")
 def latest(plant: str = None, meter: str = None):
     if not plant:
         raise HTTPException(status_code=400, detail="plant is required")
     return fetch_latest_rows(plant, meter)
 
 
-@router.get("/group_latest")
+@router.get("/api/group_latest")
 def group_latest(request: Request, group_id: int):
     require_login(request)
     group_data = group_service.get_group_with_members(group_id)
@@ -96,7 +96,7 @@ def group_latest(request: Request, group_id: int):
     }
 
 
-@router.get("/stream_latest")
+@router.get("/api/stream_latest")
 async def stream_latest(plant: str = None, meter: str = None):
     if not plant or not meter:
         raise HTTPException(status_code=400, detail="plant and meter are required")

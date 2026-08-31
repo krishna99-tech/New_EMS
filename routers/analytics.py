@@ -36,7 +36,7 @@ router = APIRouter()
 # /energy_summary
 # ══════════════════════════════════════════════════════════════════════════════
 
-@router.get("/energy_summary")
+@router.get("/api/energy_summary")
 def energy_summary(
     plant: str = None,
     meter: str = None,
@@ -272,7 +272,7 @@ def energy_summary(
 # /group_energy_summary
 # ══════════════════════════════════════════════════════════════════════════════
 
-@router.get("/group_energy_summary")
+@router.get("/api/group_energy_summary")
 def group_energy_summary(
     request: Request,
     group_id: int = None,
@@ -483,7 +483,7 @@ def group_energy_summary(
     }
 
 
-@router.get("/group_live_kpis")
+@router.get("/api/group_live_kpis")
 def group_live_kpis(request: Request, group_id: int = None):
     require_login(request)
     if not group_id:
@@ -574,7 +574,7 @@ INCOMER_PARAMETERS = [
 ]
 
 
-@router.get("/incomer_shift_summary")
+@router.get("/api/incomer_shift_summary")
 def incomer_shift_summary(
     plant: str = None,
     meter: str = None,

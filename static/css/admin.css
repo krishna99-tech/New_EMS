@@ -5,6 +5,56 @@
             sidebar layout, profile dropdown
    Loaded after style.css on all /admin/* pages (admin_layout.html)
    ============================================================ */
+/* ── CSS Variables for Django Admin Theme (Light & Dark) ─────────────────── */
+:root, :root[data-theme="light"] {
+    --dj-bg: #ffffff;
+    --dj-bg-sub: #f8f9fa;
+    --dj-text: #333333;
+    --dj-text-sub: #666666;
+    --dj-border: #cccccc;
+    --dj-header-bg: #417690;
+    --dj-header-bg-sub: #79aec8;
+    --dj-header-text: #ffffff;
+    --dj-row-hover: #f4f4f4;
+    --dj-success: #28a745;
+    --dj-danger: #dc3545;
+    --dj-link: #417690;
+    --dj-calendar-filter: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --dj-bg: #1e1e1e;
+        --dj-bg-sub: #252526;
+        --dj-text: #e0e0e0;
+        --dj-text-sub: #aaaaaa;
+        --dj-border: #444444;
+        --dj-header-bg: #2b4e60;
+        --dj-header-bg-sub: #3d6a80;
+        --dj-header-text: #ffffff;
+        --dj-row-hover: #2a2a2a;
+        --dj-success: #4ade80;
+        --dj-danger: #f87171;
+        --dj-link: #6db6db;
+        --dj-calendar-filter: invert(1);
+    }
+}
+
+:root[data-theme="dark"] {
+    --dj-bg: #1e1e1e;
+    --dj-bg-sub: #252526;
+    --dj-text: #e0e0e0;
+    --dj-text-sub: #aaaaaa;
+    --dj-border: #444444;
+    --dj-header-bg: #2b4e60;
+    --dj-header-bg-sub: #3d6a80;
+    --dj-header-text: #ffffff;
+    --dj-row-hover: #2a2a2a;
+    --dj-success: #4ade80;
+    --dj-danger: #f87171;
+    --dj-link: #6db6db;
+    --dj-calendar-filter: invert(1);
+}
 
 /* ── Page layout ─────────────────────────────────────── */
 .admin-page-wrapper {
@@ -234,14 +284,14 @@
 
 /* ── Modal content box ────────────────────────────────── */
 .modal-content {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
+    background: #ffffff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
     width: 100%;
     max-width: 640px;
-    box-shadow: var(--shadow);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     overflow: hidden;
-    animation: slideUpModal 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: slideUpModal 0.2s ease-out;
 }
 
 .device-modal {
@@ -262,21 +312,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 22px 28px 18px;
-    border-bottom: 1px solid var(--border-color);
-    background: rgba(15, 23, 42, 0.2);
+    padding: 12px 20px;
+    background: #417690;
+    color: white;
 }
 
 .light-mode .modal-header {
-    background: rgba(241, 245, 249, 0.5);
+    background: #417690;
+    color: white;
 }
 
 .modal-header h2 {
     margin: 0;
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-main);
-    letter-spacing: -0.02em;
+    font-size: 1.25rem;
+    font-weight: normal;
+    color: white;
+    letter-spacing: normal;
 }
 
 /* Close button */
@@ -284,28 +335,40 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-sub);
-    font-size: 1.4rem;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: white;
+    font-size: 1.5rem;
     line-height: 1;
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    opacity: 0.8;
 }
 
 .close-modal-btn:hover {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.35);
-    color: #f87171;
+    opacity: 1;
 }
 
 /* Modal body */
 .modal-body {
-    padding: 26px 28px 28px;
+    padding: 20px 20px 20px;
+}
+
+.modal-content .submit-btn {
+    background: #417690 !important;
+    border-radius: 4px !important;
+    font-weight: bold;
+    color: white !important;
+    text-transform: none;
+    letter-spacing: normal;
+    padding: 10px 15px;
+    border: none;
+}
+.modal-content .submit-btn:hover {
+    background: #79aec8 !important;
 }
 
 /* ── Form elements ────────────────────────────────────── */
@@ -341,11 +404,11 @@
 .form-group select {
     width: 100%;
     margin-top: 0;
-    padding: 11px 14px;
-    background: rgba(15, 23, 42, 0.4);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    color: var(--text-main);
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #333;
     font-size: 0.9rem;
     font-family: inherit;
     outline: none;
@@ -354,7 +417,7 @@
 
 .light-mode .form-group input,
 .light-mode .form-group select {
-    background: rgba(241, 245, 249, 0.8);
+    background: #ffffff;
 }
 
 .form-group input:focus,
@@ -772,7 +835,7 @@
 
 .admin-brand-link .company-logo {
     width: 36px;
-    height: 36px;
+    height: 100%;
 }
 
 .admin-menu-btn {
@@ -983,4 +1046,487 @@
 
 .profile-dropdown .dropdown-item.logout:hover {
     background: rgba(239, 68, 68, 0.1);
+}
+
+/* -- Meter Chips (Redesign) ---------------------------- */
+.meter-chip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 0 0 11px 11px;
+}
+
+.meter-chip {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.meter-chip:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.meter-chip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.meter-chip-id {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.meter-chip-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.meter-chip-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+/* -- Pill Tags (Group Members Redesign) ---------------- */
+.pill-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.pill-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    font-size: 0.8rem;
+    color: var(--text-main);
+    transition: all 0.2s;
+}
+
+.pill-tag:hover {
+    border-color: var(--accent-primary);
+}
+
+.pill-tag-remove {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.pill-tag-remove:hover {
+    background: #ef4444;
+    color: #fff;
+}
+
+/* -- Device Card Glows --------------------------------- */
+.device-card.online-glow {
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.1);
+}
+
+.device-card.offline-glow {
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.1);
+}
+
+/* Inline Add Row */
+.inline-add-row {
+    display: flex;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.02);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+    align-items: center;
+}
+
+/* ── Structured Group Cards (Redesign) ──────────────── */
+.group-container-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.group-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: rgba(0, 0, 0, 0.015);
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.group-card-title-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.group-card-icon {
+    background: var(--accent-primary);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
+}
+
+.group-card-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+}
+
+.group-card-subtitle {
+    margin: 2px 0 0 0;
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    font-weight: 500;
+}
+
+.group-card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.group-card-body {
+    padding: 0;
+}
+
+.group-member-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.group-member-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    gap: 16px;
+    transition: background 0.2s;
+}
+
+}
+
+/* ── Structured Group Cards (Redesign) ──────────────── */
+.group-container-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.group-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: rgba(0, 0, 0, 0.015);
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.group-card-title-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.group-card-icon {
+    background: var(--accent-primary);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
+}
+
+.group-card-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+}
+
+.group-card-subtitle {
+    margin: 2px 0 0 0;
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    font-weight: 500;
+}
+
+.group-card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.group-card-body {
+    padding: 0;
+}
+
+.group-member-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.group-member-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    gap: 16px;
+    transition: background 0.2s;
+}
+
+.group-member-row:last-child {
+    border-bottom: none;
+}
+
+.group-member-row:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.group-member-icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-sub);
+}
+
+.group-member-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.member-plant {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.member-name {
+    font-size: 0.85rem;
+    color: var(--text-sub);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.member-id {
+    font-family: var(--font-mono, monospace);
+    background: rgba(0, 0, 0, 0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.group-member-empty {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--text-sub);
+    font-size: 0.9rem;
+}
+
+.group-form-container {
+    padding: 20px 24px;
+    background: rgba(59, 130, 246, 0.03);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.group-form-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+    .group-form-row {
+        flex-direction: column;
+    }
+}
+
+/* Override for Django-like tables and panels */
+.django-nav-link { display: block; padding: 8px 16px; color: var(--dj-link); text-decoration: none; font-size: 0.9rem; border-bottom: 1px solid var(--dj-border); }
+.django-nav-link:hover { background: var(--dj-bg-sub); }
+.django-nav-link.active { background: var(--dj-row-hover); font-weight: bold; color: var(--dj-text); border-left: 3px solid var(--dj-link); padding-left: 13px; }
+.model-view { display: none; }
+.model-view.active { display: block; }
+.admin-panel { background: var(--dj-bg) !important; border-radius: 4px !important; box-shadow: none !important; border: 1px solid var(--dj-border) !important; margin-bottom: 20px !important; color: var(--dj-text) !important; }
+.admin-panel-header { background: var(--dj-header-bg-sub) !important; color: var(--dj-header-text) !important; border-bottom: 1px solid var(--dj-border) !important; padding: 8px 12px !important; }
+.admin-panel-header h3 { color: var(--dj-header-text) !important; font-weight: bold !important; margin: 0 !important; }
+.admin-panel-header .admin-badge { background: var(--dj-bg) !important; color: var(--dj-header-bg-sub) !important; font-weight: bold !important; }
+.admin-table-header th { background: var(--dj-bg-sub) !important; color: var(--dj-text-sub) !important; text-transform: uppercase !important; letter-spacing: normal !important; border-bottom: 1px solid var(--dj-border) !important; font-weight: bold !important; font-size: 0.8rem !important; }
+.admin-table-row td { border-bottom: 1px solid var(--dj-border) !important; padding: 8px 12px !important; color: var(--dj-text) !important; }
+.admin-table-row:hover { background-color: var(--dj-row-hover) !important; }
+.action-btn.edit-btn { background: #999 !important; color: white !important; border-radius: 15px !important; border: none !important; font-weight: bold !important; }
+.form-group select, .form-group input { background: var(--dj-bg) !important; border: 1px solid var(--dj-border) !important; border-radius: 4px !important; color: var(--dj-text) !important; }
+.submit-btn { background: var(--dj-header-bg) !important; border-radius: 4px !important; font-weight: bold !important; color: var(--dj-header-text) !important; padding: 8px 12px !important; border: none !important; text-shadow: none !important; }
+
+/* Filter Panel Django UI Overrides */
+.filter-panel {
+    background: var(--dj-bg-sub) !important;
+    border: 1px solid var(--dj-border) !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    padding: 12px 16px !important;
+    margin-bottom: 20px !important;
+    color: var(--dj-text) !important;
+}
+.filter-panel .select-container {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    align-items: center !important;
+}
+.filter-panel .tick-card {
+    background: var(--dj-bg) !important;
+    border: 1px solid var(--dj-border) !important;
+    border-radius: 4px !important;
+    padding: 6px 12px !important;
+    color: var(--dj-text) !important;
+    box-shadow: none !important;
+    font-size: 0.85rem !important;
+}
+.filter-panel .select-card {
+    background: var(--dj-bg) !important;
+    border: 1px solid var(--dj-border) !important;
+    border-radius: 4px !important;
+    padding: 4px 10px !important;
+    color: var(--dj-text) !important;
+    box-shadow: none !important;
+}
+.filter-panel .select-card label {
+    color: var(--dj-text-sub) !important;
+    font-size: 0.75rem !important;
+}
+.filter-panel .select-card input,
+.filter-panel .select-card select {
+    background: transparent !important;
+    color: var(--dj-text) !important;
+    border: none !important;
+    font-size: 0.85rem !important;
+    color-scheme: light dark;
+}
+
+.filter-panel input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    display: inline-block !important;
+    cursor: pointer !important;
+    opacity: 0.85 !important;
+    filter: var(--dj-calendar-filter, none) !important;
+}
+.filter-panel input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1 !important;
+}@media (max-width: 768px) {
+    .admin-header-logo {
+        height: 32px !important;
+    }
+    #sidebarToggleBtn {
+        display: inline-block !important;
+    }
+    .django-admin-container {
+        flex-direction: column !important;
+    }
+    .django-admin-sidebar {
+        display: none !important; /* Collapsed by default on mobile */
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--dj-border) !important;
+        flex-direction: column !important;
+        background: var(--dj-bg-sub) !important;
+    }
+    .django-admin-sidebar.mobile-open {
+        display: flex !important; /* Expanded when hamburger clicked */
+    }
+    .django-app-module {
+        width: 100% !important;
+    }
+    .django-top-header {
+        padding: 8px 12px !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+    }
+    .django-header-title {
+        font-size: 1rem !important;
+    }
+    .desktop-only {
+        display: none !important;
+    }
+    .mobile-only {
+        display: block !important;
+    }
+    .django-admin-main {
+        width: 100% !important;
+        padding: 12px !important;
+    }
+    .admin-panel {
+        overflow-x: auto !important;
+    }
+    .admin-table-wrapper {
+        min-width: 500px;
+    }
+}
+
+/* User 3-dots Dropdown Menu */
+.user-dropdown-menu.open {
+    display: block !important;
 }

@@ -263,7 +263,7 @@ async function updatePlantKpis(plant) {
         return;
     }
     try {
-        const res = await fetch(`/latest?plant=${encodeURIComponent(plant)}`);
+        const res = await fetch(`/api/latest?plant=${encodeURIComponent(plant)}`);
         if (!res.ok) throw new Error("latest failed");
         const rows = await res.json();
         const online = rows.filter(r => r.status === "OK").length;
@@ -451,7 +451,7 @@ function setupLiveStream() {
     const meter = meterSelect.value;
     if (!plant || !meter) return;
 
-    const streamUrl = `/stream_latest?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}`;
+    const streamUrl = `/api/stream_latest?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}`;
     liveEventSource = new EventSource(streamUrl);
 
     liveEventSource.addEventListener("latest", async (event) => {
@@ -581,12 +581,10 @@ function syncFloatingHomeBtn() {
 
 async function loadPlants(){
 
-    const res = await fetch("/plants");
-
-    const plants = await res.json();
+    const res = await fetch("/api/plants");    const plants = await res.json();
+    const landingPlantSelect = document.getElementById("landingPlantSelect");
 
     plants.forEach(p=>{
-
         const option = document.createElement("option");
         option.value = p;
 
@@ -598,9 +596,22 @@ async function loadPlants(){
             option.innerHTML = `&#9679; ${p}`;
             option.style.color = "#059669";
         }
-
-        plantSelect.appendChild(option);
+        
+        if (plantSelect) {
+            plantSelect.appendChild(option.cloneNode(true));
+        }
+        if (landingPlantSelect) {
+            landingPlantSelect.appendChild(option.cloneNode(true));
+        }
     });
+
+    if (landingPlantSelect) {
+        landingPlantSelect.addEventListener('change', (e) => {
+            if(e.target.value) {
+                window.location.href = `/dashboard?plant=${encodeURIComponent(e.target.value)}`;
+            }
+        });
+    }
     renderPlantGridLanding(plants);
 }
 
@@ -613,7 +624,7 @@ async function loadMeters(plant){
     meterMetaById = {};
 
     const res =
-    await fetch(`/meters?plant=${plant}`);
+    await fetch(`/api/meters?plant=${plant}`);
 
     const meters = await res.json();
 
@@ -844,7 +855,7 @@ async function loadEnergySummary(plant, meter) {
     }
     const shift = shiftSelect.value || "all";
     const mode = customTimeToggle.checked ? "custom" : "shiftwise";
-    const res = await fetch(`/energy_summary?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}&mode=${mode}&shift=${encodeURIComponent(shift)}&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}`);
+    const res = await fetch(`/api/energy_summary?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}&mode=${mode}&shift=${encodeURIComponent(shift)}&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}`);
     if (!res.ok) {
         const errText = await res.text();
         return { error: `Energy summary failed (${res.status}).`, details: errText.slice(0, 180) };
@@ -856,7 +867,7 @@ async function loadIncomerShiftSummary(plant, meter) {
     const from_dt = fromDateTime.value;
     const to_dt = toDateTime.value;
     const shift = shiftSelect.value || "all";
-    const res = await fetch(`/incomer_shift_summary?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}&shift=${encodeURIComponent(shift)}&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}`);
+    const res = await fetch(`/api/incomer_shift_summary?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}&shift=${encodeURIComponent(shift)}&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}`);
     if (!res.ok) {
         const errText = await res.text();
         return { error: `Incomer summary failed (${res.status}).`, details: errText.slice(0, 180) };
@@ -1008,7 +1019,7 @@ async function loadData(){
     document.getElementById("liveStatus").style.display = "flex";
 
     if(meter === "all"){
-        const resMeters = await fetch(`/meters?plant=${encodeURIComponent(plant)}`);
+        const resMeters = await fetch(`/api/meters?plant=${encodeURIComponent(plant)}`);
         const allMeters = await resMeters.json();
         const submeters = allMeters.filter(m => m.type === "submeter");
         const summaries = await Promise.all(submeters.map(m => loadEnergySummary(plant, m.id)));
@@ -1042,7 +1053,7 @@ async function loadData(){
             return;
         }
 
-        const res = await fetch(`/latest?plant=${plant}&meter=${meter}`);
+        const res = await fetch(`/api/latest?plant=${plant}&meter=${meter}`);
 
         const data = await res.json();
 
@@ -1072,7 +1083,7 @@ async function loadBaseCardsOnMeterSelection() {
     document.getElementById("liveStatus").style.display = "flex";
 
     if (meter === "all") {
-        const res = await fetch(`/latest?plant=${plant}&meter=all`);
+        const res = await fetch(`/api/latest?plant=${plant}&meter=all`);
         const allData = await res.json();
         const filteredData = allData
             .map(d => {
@@ -1094,7 +1105,7 @@ async function loadBaseCardsOnMeterSelection() {
         return;
     }
 
-    const res = await fetch(`/latest?plant=${plant}&meter=${meter}`);
+    const res = await fetch(`/api/latest?plant=${plant}&meter=${meter}`);
     const data = await res.json();
     if (reqId !== loadBaseReqSeq) return;
     if (data.length > 0) {
@@ -1105,7 +1116,7 @@ async function loadBaseCardsOnMeterSelection() {
                 return;
             }
             const meterName = meterSelect.options[meterSelect.selectedIndex]?.text || "Meter";
-            const yesterdayRes = await fetch(`/energy_summary?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}&mode=shiftwise&shift=all`);
+            const yesterdayRes = await fetch(`/api/energy_summary?plant=${encodeURIComponent(plant)}&meter=${encodeURIComponent(meter)}&mode=shiftwise&shift=all`);
             const yesterdaySummary = await yesterdayRes.json();
             if (yesterdaySummary.yesterday_total_kwh === null || yesterdaySummary.yesterday_total_kwh === undefined) {
                 cardsContainer.innerHTML = `<div class="dashboard-empty-state"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>No data recorded for yesterday.</p></div>`;
@@ -1209,12 +1220,7 @@ plantSelect.addEventListener("change", async ()=>{
 
     if (plant) {
         dashboardTitle.innerText = `${plant} Dashboard`;
-        window.EMS?.updateFlowSteps([
-            { label: plant, active: true },
-            { label: "Live Data" },
-            { label: "Historical Analysis" },
-            { label: "Export" },
-        ]);
+
         if (landingView) landingView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
         if (plantContextBadge) {
@@ -1226,12 +1232,7 @@ plantSelect.addEventListener("change", async ()=>{
     } else {
         plantSelect.style.color = "inherit";
         dashboardTitle.innerText = "Plant Dashboard";
-        window.EMS?.updateFlowSteps([
-            { label: "Select Plant", active: true },
-            { label: "Live Data" },
-            { label: "Historical Analysis" },
-            { label: "Export" },
-        ]);
+
         if (landingView) landingView.style.display = "block";
         if (dashboardView) dashboardView.style.display = "none";
         if (historyFilterPanel) historyFilterPanel.style.display = "none";
@@ -1364,8 +1365,19 @@ document.addEventListener("ems-theme-changed", () => applyThemeState());
 
 btnPlantLive?.addEventListener("click", () => setPlantViewMode("live"));
 btnPlantHistory?.addEventListener("click", () => setPlantViewMode("history"));
+async function initDashboard() {
+    await loadPlants();
+    
+    // Check if plant is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const plantParam = urlParams.get('plant');
+    if (plantParam && plantSelect) {
+        plantSelect.value = plantParam;
+        plantSelect.dispatchEvent(new Event('change'));
+    }
+}
 
-loadPlants();
+initDashboard();
 setDefaultDateRange();
 
 // Set initial theme icon (toggle handled by app-shell.js)
@@ -1380,29 +1392,6 @@ window.addEventListener("beforeunload", closeLiveStream);
 
 
 // ================= AUTHENTICATION & ADMIN =================
-
-var isLoggedIn = false;
-
-function checkAuthStatus() {
-    fetch('/api/auth_status')
-        .then(res => res.json())
-        .then(data => {
-            isLoggedIn = data.logged_in;
-            updateAuthUI();
-        })
-        .catch(err => console.error("Auth check failed:", err));
-}
-
-function updateAuthUI() {
-    const btn = document.getElementById("authBtn");
-    if (!btn) return;
-    const svgLogout = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>';
-    const svgLogin  = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>';
-    btn.innerHTML = isLoggedIn ? svgLogout : svgLogin;
-    btn.title     = isLoggedIn ? "Logout"  : "Login";
-    btn.style.display = (plantSelect && plantSelect.value !== "") ? "none" : "flex";
-}
-
 function closeLoginModal() {
     const m = document.getElementById("loginModal");
     if (m) m.style.display = "none";
@@ -1410,26 +1399,8 @@ function closeLoginModal() {
 
 // Bind all auth interactions once DOM is fully ready
 document.addEventListener("DOMContentLoaded", () => {
-    const authBtn    = document.getElementById("authBtn");
-    const loginModal = document.getElementById("loginModal");
     const loginForm  = document.getElementById("loginForm");
     const loginError = document.getElementById("loginError");
-
-    // Check initial auth state
-    checkAuthStatus();
-
-    // Auth button: open login modal OR logout
-    authBtn?.addEventListener("click", () => {
-        if (isLoggedIn) {
-            fetch('/api/logout', { method: 'POST' }).then(() => {
-                isLoggedIn = false;
-                updateAuthUI();
-            });
-        } else {
-            // Redirect to the dedicated login page instead of showing a modal
-            window.location.href = "/login";
-        }
-    });
 
     // Login form submit
     loginForm?.addEventListener("submit", (e) => {
@@ -1556,17 +1527,11 @@ function makeCustomDropdown(selectId) {
 // Initialize immediately if DOM is ready, else wait
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
-        makeCustomDropdown("plantSelect");
-        makeCustomDropdown("meterSelect");
         makeCustomDropdown("shiftSelect");
     });
 } else {
-    makeCustomDropdown("plantSelect");
-    makeCustomDropdown("meterSelect");
     makeCustomDropdown("shiftSelect");
 }
-
-
 // ================= NAVBAR OBSERVER =================
 // Dynamically track the height of the navbar so the sticky filter bar
 // always sits exactly below it, even on mobile when the navbar wraps.

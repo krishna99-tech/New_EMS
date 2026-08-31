@@ -1,150 +1,126 @@
 {% extends "admin_layout.html" %}
+{% from "partials/icons.html" import icon_search, icon_chevron_down %}
 {% set active_page = 'devices' %}
 
-{% block page_title %}Device Manager{% endblock %}
+{% block page_title %}Network Configuration{% endblock %}
+
+{% block admin_head %}
+<!-- SortableJS for Drag and Drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+{% endblock %}
 
 {% block admin_content %}
-<div class="admin-page-shell">
 
-    <div class="admin-page-header">
-        <div class="admin-page-header-text">
-            <h2 class="admin-page-title">Plants &amp; Devices</h2>
-            <p class="admin-page-subtitle">Configure your energy meter network</p>
+
+
+        <div class="django-breadcrumbs" style="padding: 10px; background: var(--dj-bg-sub); border: 1px solid var(--dj-border); font-size: 0.85rem; margin-bottom: 20px; border-radius: 4px; color: var(--dj-text-sub);">
+            <a href="/admin" style="color: var(--dj-link); text-decoration: none;">Home</a> &rsaquo; 
+            <a href="#" style="color: var(--dj-link); text-decoration: none;">Network Configuration</a> &rsaquo; 
+            <span id="breadcrumb-current" style="color: var(--dj-text);">Plants</span>
         </div>
-        <div class="admin-header-actions">
-            <div class="actions-dropdown" onclick="this.classList.toggle('active')">
-                <button class="submit-btn" type="button">
-                    Actions
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="dropdown-content">
-                    <button class="dropdown-item" type="button" onclick="openPlantModal()">Create Plant</button>
-                    <button type="button" class="dropdown-item" onclick="document.getElementById('importFileInput').click()">Import Config</button>
-                    <a id="exportConfigBtn" href="/api/export_config" download="ems_config.json" class="dropdown-item">Export Config</a>
+        
+        <div id="importResult" style="display:none; padding: 10px; background: #dff0d8; color: #3c763d; margin-bottom: 15px; border-radius: 4px; border: 1px solid #d6e9c6;"></div>
+
+        <!-- Plants View -->
+        <div id="view_plants" class="model-view active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <h1 style="margin: 0; font-size: 1.5rem; font-weight: normal; color: var(--dj-text);">Select plant to change</h1>
+                <button type="button" onclick="openPlantModal()" style="background: #999; color: white; padding: 5px 15px; border: none; border-radius: 15px; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; cursor: pointer;">Add plant <span class="admin-badge" id="statPlants" style="background: white; color: black; border-radius: 10px; padding: 1px 6px; margin-left: 5px;">0</span></button>
+            </div>
+            
+            <div class="admin-search-wrap" style="margin-bottom: 15px;">
+                <input type="text" id="plantSearchInput" class="admin-search-input" placeholder="Search plants..." onkeyup="filterPlants()" style="padding: 8px 12px; border: 1px solid var(--dj-border); background: var(--dj-bg); color: var(--dj-text); width: 100%; max-width: 300px; border-radius: 4px; font-size: 0.9rem;">
+            </div>
+            
+            <div id="plantsGridView" style="display:flex; flex-direction:column; gap:16px;">
+                <!-- Table rendered via admin_v2.js -->
+            </div>
+        </div>
+
+        <!-- Groups View -->
+        <div id="view_groups" class="model-view">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <h1 style="margin: 0; font-size: 1.5rem; font-weight: normal; color: var(--dj-text);">Select meter group to change</h1>
+                <button type="button" onclick="openCreateGroupModal()" style="background: #999; color: white; padding: 5px 15px; border: none; border-radius: 15px; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; cursor: pointer;">Add meter group <span class="admin-badge" id="statGroupCount" style="background: white; color: black; border-radius: 10px; padding: 1px 6px; margin-left: 5px;">0</span></button>
+            </div>
+            
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <label for="groupFilterSelect" style="font-weight: bold; color: #666; font-size: 0.85rem;">Filter:</label>
+                <select id="groupFilterSelect" class="form-control" style="width: 250px; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" onchange="filterMeterGroups()">
+                    <option value="all">All Groups</option>
+                </select>
+            </div>
+            
+            <!-- Quick Presets -->
+            <div style="margin-bottom: 20px; border: 1px solid #ddd; padding: 10px 15px; background: #f9f9f9; border-radius: 4px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 0.95rem; color: #666; font-weight: bold; text-transform: uppercase;">Quick Presets</h3>
+                <div id="groupPresetsList">Loading presets...</div>
+            </div>
+            
+            <div id="meterGroupsList" style="display:flex; flex-direction:column; gap:16px;">
+                <div class="admin-empty-state">Loading groups...</div>
+            </div>
+        </div>
+
+        <!-- Devices View -->
+        <div id="view_devices" class="model-view">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h1 style="margin: 0; font-size: 1.5rem; font-weight: normal; color: #333;">Discovered Devices</h1>
+                <div>
+                    <span style="margin-right: 15px; color: #666; font-size: 0.9rem;">Inbox: <span id="deviceCountBadgeTop" style="font-weight: bold;">0</span></span>
+                    <button type="button" class="btn-refresh" onclick="loadDiscoveredDevices()" style="background: #417690; color: white; padding: 5px 15px; border: none; border-radius: 15px; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; cursor: pointer;">Refresh <span class="admin-badge live" id="deviceCountBadge" style="background: white; color: black; border-radius: 10px; padding: 1px 6px; margin-left: 5px;">0</span></button>
                 </div>
             </div>
-            <input type="file" id="importFileInput" accept=".json" class="sr-only" onchange="handleImportConfig(this)">
-        </div>
-    </div>
-
-    <div id="importResult" style="display:none;"></div>
-
-    <div class="admin-stats-row" id="adminStatsRow">
-        <div class="admin-stat-card"><label>Plants</label><div class="stat-val" id="statPlants">—</div></div>
-        <div class="admin-stat-card"><label>Configured Meters</label><div class="stat-val" id="statMeters">—</div></div>
-        <div class="admin-stat-card"><label>Discovered Devices</label><div class="stat-val" id="statDevices">—</div></div>
-        <div class="admin-stat-card"><label>Online Now</label><div class="stat-val" id="statOnline">—</div></div>
-    </div>
-
-    <div class="admin-panel">
-        <div class="admin-panel-header">
-            <h3><span class="pulse-dot"></span> Discovered Devices <span class="admin-badge live" id="deviceCountBadge">0</span></h3>
-            <button type="button" class="btn-refresh" onclick="loadDiscoveredDevices()">Refresh</button>
-        </div>
-        <div class="admin-panel-body">
-            <div id="discoveredDevicesList" class="admin-grid-view">
+            
+            <div id="discoveredDevicesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 12px; margin-bottom: 20px;">
                 <div class="admin-empty-state">Loading devices...</div>
             </div>
-        </div>
-    </div>
-
-    <div class="admin-panel">
-        <div class="admin-panel-header">
-            <h3>Configured Plants</h3>
-        </div>
-        <div class="admin-panel-body">
-            <div class="admin-search-wrap">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="plantSearchInput" class="admin-search-input" placeholder="Search plants..." onkeyup="filterPlants()">
+            
+            <h2 style="font-size: 1.2rem; font-weight: normal; color: #333; margin: 30px 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px;">Device Inbox Log</h2>
+            <div id="inboxDevicesList" class="admin-empty-state" style="padding: 15px; border: 1px solid #ddd; background: #fafafa; text-align: left; font-family: monospace; font-size: 0.85rem; border-radius: 4px;">
+                Loading inbox...
             </div>
-            <div id="plantsGridView" class="admin-grid-view"></div>
         </div>
-    </div>
-</div>
+<!-- Modals -->
+{% include "partials/admin_modals.html" %}
 
-<div id="deviceManagerModal" class="modal-overlay" style="display: none;">
-    <div class="modal-content device-modal">
+<!-- Create Group Modal (Moved from admin_groups.html) -->
+<div id="createGroupModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 400px;">
         <div class="modal-header">
-            <h2 id="deviceModalTitle">Add Device</h2>
-            <button type="button" class="close-modal-btn" onclick="closeDeviceModal()">&times;</button>
+            <h2>Create Custom Group</h2>
+            <button type="button" class="close-modal-btn" onclick="closeCreateGroupModal()">&times;</button>
         </div>
         <div class="modal-body">
-            <form id="deviceForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="devPlant">Plant Name</label>
-                        <select id="devPlant" required><option value="" disabled selected>Select a Plant…</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="devMeterId">Meter ID</label>
-                        <input type="number" id="devMeterId" required placeholder="e.g. 8">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="devName">Meter Name</label>
-                        <input type="text" id="devName" required placeholder="e.g. Top Furnace">
-                    </div>
-                    <div class="form-group">
-                        <label for="devType">Type</label>
-                        <select id="devType">
-                            <option value="submeter">Submeter</option>
-                            <option value="incomer">Main Incomer</option>
-                        </select>
-                    </div>
-                </div>
-                <p id="devError" style="display: none;"></p>
-                <button type="submit" class="submit-btn" style="width: 100%; margin-top: 8px; background: #4f46e5; color: #fff;">Save Device</button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div id="plantModal" class="modal-overlay" style="display: none;">
-    <div class="modal-content" style="max-width: 480px;">
-        <div class="modal-header">
-            <h2>Create New Plant</h2>
-            <button type="button" class="close-modal-btn" onclick="closePlantModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <form id="plantForm">
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label for="newPlantName">Plant Name</label>
-                    <input type="text" id="newPlantName" required placeholder="e.g. Factory Block B">
-                </div>
-                <div id="plantError" style="margin-bottom: 12px;"></div>
-                <button type="submit" class="submit-btn" style="width: 100%; background: #4f46e5; color: #fff;">Create Plant</button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div id="registerDeviceModal" class="modal-overlay" style="display: none;">
-    <div class="modal-content" style="max-width: 480px;">
-        <div class="modal-header">
-            <h2>Register Device</h2>
-            <button type="button" class="close-modal-btn" onclick="closeRegisterDeviceModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div id="registerDevicePreview" class="device-preview-box"></div>
-            <form id="registerDeviceForm">
-                <input type="hidden" id="regDeviceId">
+            <form id="createGroupForm">
                 <div class="form-group" style="margin-bottom: 14px;">
-                    <label for="regPlantSelect">Assign to Plant</label>
-                    <select id="regPlantSelect" required><option value="" disabled selected>Select a Plant…</option></select>
+                    <label for="newGroupName">Group Name</label>
+                    <input type="text" id="newGroupName" required placeholder="e.g. All Compressors">
                 </div>
-                <div class="form-group" style="margin-bottom: 14px;">
-                    <label for="regDeviceLabel">Device Label <span class="text-muted">(optional)</span></label>
-                    <input type="text" id="regDeviceLabel" placeholder="e.g. Architecture Gateway">
-                </div>
-                <p id="regDeviceError" class="form-error" style="display:none;"></p>
-                <button type="submit" class="submit-btn" style="width: 100%; background: #4f46e5; color: #fff;">Save Mapping</button>
+                <p id="groupError" class="form-error" style="display:none;"></p>
+                <button type="submit" class="submit-btn" style="width:100%;">Create Group</button>
             </form>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block admin_scripts %}
+<script>
+    function switchModel(modelId, modelName) {
+        document.querySelectorAll('.model-view').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.django-nav-link').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById('view_' + modelId).classList.add('active');
+        const navEl = document.getElementById('nav_' + modelId);
+        if(navEl) navEl.classList.add('active');
+        
+        if (modelName) {
+            document.getElementById('breadcrumb-current').textContent = modelName;
+        }
+    }
+</script>
 <script src="{{ url_for('static', path='js/admin_v2.js') }}"></script>
 {% endblock %}
