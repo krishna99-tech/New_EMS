@@ -228,34 +228,47 @@
 }
 
 .dash-tab {
-    background: transparent;
-    color: var(--text-sub);
-    border: none;
-    padding: 8px 16px;
+    background: var(--card-bg, rgba(30, 41, 59, 0.4));
+    color: var(--text-sub, #94a3b8);
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.15));
+    padding: 8px 18px;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 8px;
     transition: all 0.2s ease;
 }
 
-.dash-tab:hover {
-    color: var(--text-main);
+.dash-tab:hover:not(.active-view-btn) {
+    color: var(--text-main, #f1f5f9);
     background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
-.dash-tab.active {
+.dash-tab.active-view-btn {
     color: #ffffff !important;
-    background: var(--accent-primary, #4f46e5) !important;
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    background: var(--accent-primary, #06b6d4) !important;
+    border-color: var(--accent-primary, #06b6d4) !important;
+    box-shadow: 0 4px 12px var(--accent-2, rgba(6, 182, 212, 0.2));
 }
 
-.light-mode .dash-tab:not(.active) {
-    color: var(--text-main) !important;
+body.light-mode .dash-tab {
+    background: #ffffff !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
 }
 
-.light-mode .dash-tab:hover:not(.active) {
-    background: rgba(0, 0, 0, 0.05);
+body.light-mode .dash-tab:hover:not(.active-view-btn) {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+/* Explicit Active state for light mode so it doesn't get overridden by the white background */
+body.light-mode .dash-tab.active-view-btn {
+    background: var(--accent-primary, #06b6d4) !important;
+    color: #ffffff !important;
+    border-color: var(--accent-primary, #06b6d4) !important;
+    box-shadow: 0 4px 12px var(--accent-2, rgba(6, 182, 212, 0.4)) !important;
 }
 
 .dashboard-controls {
@@ -400,10 +413,660 @@
     transform: scale(1.05);
 }
 
+/* ── SCADA Control Room Telemetry Strip & Plant Cards ──────────────────────── */
+.scada-telemetry-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    max-width: 1100px;
+    margin: 0 auto 30px;
+    padding: 0 20px;
+}
+
+.scada-kpi-card {
+    background: var(--dj-bg-sub, #ffffff);
+    border: 1px solid var(--dj-border, #cbd5e1);
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.2s ease;
+}
+
+.scada-kpi-card:hover {
+    border-color: var(--dj-header-bg, #417690);
+    transform: translateY(-2px);
+}
+
+.scada-kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--dj-bg, #f1f5f9);
+    color: var(--dj-header-bg, #417690);
+    display: grid;
+    place-items: center;
+    font-size: 1.2rem;
+    border: 1px solid var(--dj-border, #cbd5e1);
+    flex-shrink: 0;
+}
+
+.scada-kpi-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.scada-kpi-val {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--dj-text, #0f172a);
+    font-family: monospace;
+    line-height: 1.2;
+}
+
+.scada-kpi-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--dj-text-sub, #64748b);
+}
+
+/* SCADA Plant Grid Cards */
+.scada-plants-section {
+    max-width: 1100px;
+    margin: 30px auto 40px;
+    padding: 0 20px;
+}
+
+.scada-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--dj-border, #cbd5e1);
+    padding-bottom: 10px;
+}
+
+.scada-section-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--dj-text, #0f172a);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scada-plants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.scada-plant-card {
+    background: var(--dj-bg-sub, #ffffff);
+    border: 1px solid var(--dj-border, #cbd5e1);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+    transition: all 0.25s ease;
+}
+
+.scada-plant-card:hover {
+    border-color: var(--dj-header-bg, #417690);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.scada-plant-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.scada-plant-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dj-text, #0f172a);
+    margin: 0 0 4px 0;
+}
+
+.scada-plant-sub {
+    font-size: 0.8rem;
+    color: var(--dj-text-sub, #64748b);
+}
+
+.scada-plant-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.scada-plant-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    background: var(--dj-bg, #f8fafc);
+    border: 1px solid var(--dj-border, #e2e8f0);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.scada-plant-metric-lbl {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--dj-text-sub, #64748b);
+}
+
+.scada-plant-metric-val {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: monospace;
+    color: var(--dj-text, #0f172a);
+}
+
+.scada-plant-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--dj-header-bg, #417690);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.2s ease;
+}
+
+.scada-plant-btn:hover {
+    opacity: 0.92;
+}
+
 /* Feature Grid Additions */
 .feature-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+/* ── Centered Landing Page ─────────────────────────────────────────── */
+
+.landing-centered-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: calc(100vh - 70px);
+    width: 100%;
+    padding: 60px 20px;
+    background-color: #121826;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+    position: relative;
+    z-index: 1;
+}
+
+body.light-mode .landing-centered-layout,
+body.light-mode .dashboard-centered-layout {
+    background-color: #f8fafc;
+    background-image: radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+}
+
+.dashboard-centered-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 70px);
+    width: 100%;
+    padding: 30px 20px 60px;
+    background-color: #121826;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Dashboard Toolbar Additions */
+.floating-home-btn {
+    background: var(--card-bg, #1e293b) !important;
+    color: var(--accent-primary, #0ea5e9) !important;
+    border: 1px solid var(--accent-primary, rgba(14, 165, 233, 0.4)) !important;
+    box-shadow: 0 4px 15px var(--accent-2, rgba(14, 165, 233, 0.2)) !important;
+}
+
+.floating-home-btn:hover {
+    background: var(--accent-primary, #0ea5e9) !important;
+    color: #ffffff !important;
+}
+
+body.light-mode .floating-home-btn {
+    background: #ffffff !important;
+    color: var(--accent-primary, #0ea5e9) !important;
+}
+
+body.light-mode .floating-home-btn:hover {
+    background: var(--accent-primary, #0ea5e9) !important;
+    color: #ffffff !important;
+}
+
+#historyFilterPanel {
+    background: var(--card-bg, rgba(30, 41, 59, 0.4)) !important;
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.15)) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+    margin: 0 0 24px 0 !important;
+    padding: 24px !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+body.light-mode #historyFilterPanel {
+    background: #ffffff !important;
+    border-color: rgba(148, 163, 184, 0.25) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* History Filter Panel Inner UI */
+#historyFilterPanel .select-container {
+    gap: 8px; /* Reduced gap between elements */
+    flex-wrap: wrap;
+}
+
+#historyFilterPanel .tick-card,
+#historyFilterPanel .submit-btn,
+#historyFilterPanel .export-btn {
+    height: 36px !important; /* Reduced from 44px */
+    padding: 0 12px !important;
+    font-size: 12px !important;
+}
+
+#historyFilterPanel .select-card {
+    height: auto !important;
+    min-height: 36px !important;
+    padding: 4px 12px !important;
+    font-size: 12px !important;
+}
+
+#historyFilterPanel .tick-card,
+#historyFilterPanel .select-card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px !important;
+    color: var(--text-main, #f1f5f9) !important;
+}
+
+#historyFilterPanel .tick-dot {
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+}
+
+#historyFilterPanel .select-card label {
+    color: var(--text-sub, #94a3b8) !important;
+    text-transform: uppercase;
+    font-size: 0.65rem !important;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+}
+
+/* Date range picker icon fixes */
+#historyFilterPanel input[type="datetime-local"] {
+    color-scheme: dark;
+    font-size: 12px !important;
+    padding: 0 !important;
+}
+
+#historyFilterPanel .tick-card:has(input:checked) {
+    background: var(--accent-primary, #06b6d4) !important;
+    border-color: var(--accent-primary, #06b6d4) !important;
+    color: #ffffff !important;
+}
+
+/* Ensure the dot inside the checked tick-card doesn't stay green */
+#historyFilterPanel .tick-card:has(input:checked) .tick-dot {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    border-color: #ffffff !important;
+}
+
+#historyFilterPanel .select-card select,
+#historyFilterPanel .select-card input {
+    background: transparent !important;
+    color: var(--text-main, #f1f5f9) !important;
+    border: none !important;
+    font-size: 12px !important;
+}
+
+#historyFilterPanel .submit-btn,
+#historyFilterPanel .export-btn {
+    background: var(--accent-primary, #06b6d4) !important;
+    color: #ffffff !important;
+    border-radius: 6px !important;
+    border: none !important;
+    font-weight: 600 !important;
+}
+
+body.light-mode #historyFilterPanel .tick-card,
+body.light-mode #historyFilterPanel .select-card {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+body.light-mode #historyFilterPanel input[type="datetime-local"] {
+    color-scheme: light;
+}
+
+body.light-mode #historyFilterPanel .select-card label {
+    color: #64748b !important;
+}
+
+body.light-mode #historyFilterPanel .tick-card:has(input:checked) {
+    background: var(--accent-primary, #06b6d4) !important;
+    border-color: var(--accent-primary, #06b6d4) !important;
+    color: #ffffff !important;
+}
+
+body.light-mode #historyFilterPanel .select-card select,
+body.light-mode #historyFilterPanel .select-card input {
+    color: #0f172a !important;
+}
+
+.dashboard-device-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dashboard-device-selector label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-sub, #94a3b8);
+}
+
+.select-wrapper .landing-select {
+    padding: 8px 32px 8px 12px;
+    font-size: 0.9rem;
+    min-width: 180px;
+    background-color: var(--card-bg, rgba(30, 41, 59, 0.7));
+}
+
+/* Background Watermark */
+.landing-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 900px;
+    opacity: 0.25; /* Increased opacity to 25% */
+    pointer-events: none;
+    z-index: 0; /* Changed to 0 so it stays visible */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.landing-watermark img {
+    width: 100%;
+    height: auto;
+    /* Removed grayscale to keep original logo colors */
+}
+
+body.light-mode .landing-watermark {
+    opacity: 0.15;
+}
+
+.landing-header-center {
+    text-align: center;
+    max-width: 800px;
+    margin-bottom: 50px;
+    position: relative;
+    z-index: 2; /* Ensure it stays above watermark */
+}
+
+.landing-headline {
+    font-size: 3.2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text-main, #f1f5f9);
+    margin: 0 0 20px 0;
+}
+
+.landing-brand {
+    background: linear-gradient(135deg, #06b6d4, #22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.landing-tagline {
+    font-size: 1.1rem;
+    color: var(--text-sub, #94a3b8);
+    line-height: 1.65;
+    margin: 0 auto 32px auto;
+    max-width: 650px;
+}
+
+/* Plant Selector */
+.landing-plant-selector-wrapper {
+    max-width: 460px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.landing-plant-selector {
+    background: var(--card-bg, rgba(30, 41, 59, 0.7));
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.15));
+    border-radius: 12px;
+    padding: 16px 20px;
+}
+
+.landing-selector-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-sub, #94a3b8);
+    margin-bottom: 10px;
+}
+
+.landing-kbd {
+    margin-left: auto;
+    background: var(--glass-bg, rgba(255, 255, 255, 0.06));
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.15));
+    color: var(--text-sub, #94a3b8);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.7rem;
+}
+
+.landing-select {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.15));
+    background: var(--bg-main, #0f172a);
+    color: var(--text-main, #f1f5f9);
+    font-size: 0.95rem;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-family: inherit;
+}
+
+.landing-select:focus {
+    border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+}
+
+/* Feature Cards Grid */
+.landing-cards-grid-center {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    max-width: 1100px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+}
+
+.landing-card {
+    background: var(--card-bg, rgba(30, 41, 59, 0.6));
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.12));
+    border-radius: 14px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    transition: all 0.25s ease;
+}
+
+.landing-card:hover {
+    border-color: rgba(6, 182, 212, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Card Icon Badges */
+.landing-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.landing-card-icon.lc-telemetry {
+    background: rgba(6, 182, 212, 0.15);
+    color: #06b6d4;
+}
+
+.landing-card-icon.lc-analytics {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.landing-card-icon.lc-groups {
+    background: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+}
+
+.landing-card-icon.lc-reports {
+    background: rgba(244, 63, 94, 0.15);
+    color: #f43f5e;
+}
+
+.landing-card-body h3 {
+    margin: 0 0 6px 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-main, #f1f5f9);
+}
+
+.landing-card-body p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-sub, #94a3b8);
+    line-height: 1.5;
+}
+
+/* ── Light Mode Overrides for Split Landing ───────────────────────────────── */
+body.light-mode .landing-headline {
+    color: #0f172a;
+}
+
+body.light-mode .landing-brand {
+    background: linear-gradient(135deg, #0891b2, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.light-mode .landing-tagline {
+    color: #475569;
+}
+
+body.light-mode .landing-plant-selector {
+    background: #ffffff;
+    border-color: #e2e8f0;
+}
+
+body.light-mode .landing-select {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #cbd5e1;
+}
+
+body.light-mode .landing-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+body.light-mode .landing-card:hover {
+    border-color: #0891b2;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .landing-card-body h3 {
+    color: #0f172a;
+}
+
+body.light-mode .landing-card-body p {
+    color: #475569;
+}
+
+body.light-mode .landing-kbd {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #64748b;
+}
+
+/* ── Responsive: Stack panels on mobile ───────────────────────────────────── */
+@media (max-width: 900px) {
+    .landing-centered-layout {
+        padding: 40px 16px;
+    }
+    
+    .landing-headline {
+        font-size: 2.5rem;
+    }
+
+    .landing-cards-grid-center {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 550px) {
+    .landing-cards-grid-center {
+        grid-template-columns: 1fr;
+    }
+    
+    .landing-headline {
+        font-size: 2.2rem;
+    }
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 24px;
     max-width: 1000px;
     margin: 0 auto 4rem;
@@ -411,8 +1074,8 @@
 }
 
 .feature-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
+    background: var(--dj-bg-sub, #f8f9fa);
+    border: 1px solid var(--dj-border, #cbd5e1);
     border-radius: 16px;
     padding: 28px 24px;
     text-align: left;
@@ -427,8 +1090,8 @@
 
 .feature-card:hover {
     transform: translateY(-5px);
-    border-color: var(--accent-primary);
-    box-shadow: 0 12px 24px rgba(79, 70, 229, 0.15);
+    border-color: var(--dj-header-bg, #417690);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
 }
 
 .feature-icon-wrapper {
@@ -437,8 +1100,9 @@
     width: 54px;
     height: 54px;
     border-radius: 14px;
-    background: rgba(79, 70, 229, 0.1);
-    color: var(--accent-primary);
+    background: var(--dj-bg, #ffffff);
+    color: var(--dj-header-bg, #417690);
+    border: 1px solid var(--dj-border, #cbd5e1);
     transition: transform 0.3s ease;
 }
 
@@ -449,13 +1113,13 @@
 .feature-title {
     font-size: 1.15rem;
     font-weight: 700;
-    color: var(--text-main);
+    color: var(--dj-text, #1e293b);
     margin: 0;
 }
 
 .feature-description {
     font-size: 0.9rem;
-    color: var(--text-sub);
+    color: var(--dj-text-sub, #64748b);
     line-height: 1.5;
     margin: 0;
 }

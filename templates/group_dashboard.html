@@ -2,7 +2,7 @@
 {% from "partials/filter_bar.html" import render_filter_bar %}
 
 {% block admin_head %}
-<link rel="stylesheet" href="{{ url_for('static', path='css/plant-dashboard.css') }}?v=5">
+<link rel="stylesheet" href="{{ url_for('static', path='css/plant-dashboard.css') }}?v=6">
 <style>
     .group-header {
         display: flex;
@@ -75,6 +75,7 @@
     <div id="historyViewContainer" class="plant-history-panel" style="display: none;">
         <div id="historySummaryStrip" class="kpi-grid" style="margin-bottom: 24px;"></div>
         <div class="cards" id="historyCardsContainer"></div>
+        <div id="memberBreakdownContainer" style="margin-top: 24px;"></div>
     </div>
 </div>
 {% endblock %}
@@ -84,5 +85,5 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 <script src="{{ url_for('static', path='js/ems-shell.js') }}?v=11"></script>
-<script src="{{ url_for('static', path='js/group_dashboard.js') }}?v=1"></script>
+<script src="{{ url_for('static', path='js/group_dashboard.js') }}?v=2"></script>
 {% endblock %}

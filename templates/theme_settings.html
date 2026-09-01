@@ -1,0 +1,361 @@
+{% extends "admin_layout.html" %}
+{% set active_page = 'theme_settings' %}
+
+{% block page_title %}Theme & Color Customization{% endblock %}
+
+{% block admin_content %}
+<div class="django-breadcrumbs" style="padding: 10px; background: var(--dj-bg-sub); border: 1px solid var(--dj-border); font-size: 0.85rem; margin-bottom: 20px; border-radius: 4px;">
+    <a href="/admin" style="color: var(--dj-link); text-decoration: none;">Home</a> &rsaquo; 
+    <span id="breadcrumb-current">Theme & Color Customization</span>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+    <div>
+        <h1 style="margin: 0 0 6px 0; font-size: 1.5rem; font-weight: normal; color: var(--dj-text);">Theme & Color Customization</h1>
+        <p style="margin: 0; color: var(--dj-text-sub); font-size: 0.9rem;">Customize the primary color scheme for the Administration Application. Default is Classic Light Blue.</p>
+    </div>
+</div>
+
+<!-- Color Selection Presets Grid -->
+<div class="admin-panel" style="margin-bottom: 30px;">
+    <div class="admin-panel-header">
+        <h3>Select Primary Color Scheme</h3>
+    </div>
+    <div class="admin-panel-body" style="padding: 24px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+            
+            <!-- 1. Classic Blue (Default) -->
+            <div class="color-preset-card" onclick="selectPreset('blue')" id="preset-blue" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #417690; box-shadow: 0 2px 6px rgba(65, 118, 144, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Classic Blue</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">Default Django Slate Blue</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #417690;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #79aec8;"></span>
+                </div>
+            </div>
+
+            <!-- 2. Industrial Orange -->
+            <div class="color-preset-card" onclick="selectPreset('orange')" id="preset-orange" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #ea580c; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Industrial Orange</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">Vibrant Warm Amber / Orange</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #ea580c;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #f97316;"></span>
+                </div>
+            </div>
+
+            <!-- 3. Emerald Green -->
+            <div class="color-preset-card" onclick="selectPreset('green')" id="preset-green" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #059669; box-shadow: 0 2px 6px rgba(5, 150, 105, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Emerald Green</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">Energy Efficiency Green</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #059669;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #10b981;"></span>
+                </div>
+            </div>
+
+            <!-- 4. Royal Indigo -->
+            <div class="color-preset-card" onclick="selectPreset('indigo')" id="preset-indigo" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #4f46e5; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Royal Indigo</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">Modern Deep Blue / Indigo</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #4f46e5;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #6366f1;"></span>
+                </div>
+            </div>
+
+            <!-- 5. Crimson Red -->
+            <div class="color-preset-card" onclick="selectPreset('red')" id="preset-red" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #dc2626; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Crimson Red</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">High Contrast Crimson</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #dc2626;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #ef4444;"></span>
+                </div>
+            </div>
+
+            <!-- 6. Charcoal Slate -->
+            <div class="color-preset-card" onclick="selectPreset('slate')" id="preset-slate" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #334155; box-shadow: 0 2px 6px rgba(51, 65, 85, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Charcoal Slate</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">Minimalist Dark Slate</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #334155;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #475569;"></span>
+                </div>
+            </div>
+
+            <!-- 7. Rose Pink -->
+            <div class="color-preset-card" onclick="selectPreset('pink')" id="preset-pink" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #db2777; box-shadow: 0 2px 6px rgba(219, 39, 119, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Rose Pink</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">Vibrant Pink / Rose</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #db2777;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #f43f5e;"></span>
+                </div>
+            </div>
+
+            <!-- 8. Warm Amber Gold -->
+            <div class="color-preset-card" onclick="selectPreset('amber')" id="preset-amber" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #d97706; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Warm Amber Gold</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">Rich Warm Amber / Gold</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #d97706;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #f59e0b;"></span>
+                </div>
+            </div>
+
+            <!-- 9. Cyan Teal -->
+            <div class="color-preset-card" onclick="selectPreset('teal')" id="preset-teal" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #0891b2; box-shadow: 0 2px 6px rgba(8, 145, 178, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Cyan Teal</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">High-Tech Cyan & Teal</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #0891b2;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #06b6d4;"></span>
+                </div>
+            </div>
+
+            <!-- 10. Deep Purple / Violet -->
+            <div class="color-preset-card" onclick="selectPreset('violet')" id="preset-violet" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #7c3aed; box-shadow: 0 2px 6px rgba(124, 58, 237, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Deep Violet</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">Royal Purple / Violet</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #7c3aed;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #8b5cf6;"></span>
+                </div>
+            </div>
+
+            <!-- 11. Bronze Coffee -->
+            <div class="color-preset-card" onclick="selectPreset('bronze')" id="preset-bronze" style="border: 2px solid var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #78350f; box-shadow: 0 2px 6px rgba(120, 53, 15, 0.4);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">Bronze Coffee</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);">Industrial Bronze / Brown</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #78350f;"></span>
+                    <span style="flex:1; height: 8px; border-radius: 3px; background: #92400e;"></span>
+                </div>
+            </div>
+
+            <!-- 13. My Custom Theme Card -->
+            <div class="color-preset-card" onclick="selectPreset('custom')" id="preset-custom" style="border: 2px dashed var(--dj-border); border-radius: 8px; padding: 16px; cursor: pointer; background: var(--dj-bg); transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div id="customBadgeCircle" style="width: 32px; height: 32px; border-radius: 50%; background: #4f46e5; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);"></div>
+                    <div>
+                        <strong style="display: block; font-size: 0.95rem; color: var(--dj-text);">My Custom Theme</strong>
+                        <span style="font-size: 0.75rem; color: var(--dj-text-sub);" id="customBadgeSubtitle">User-defined colors</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <span id="customBadgePrimary" style="flex:1; height: 8px; border-radius: 3px; background: #4f46e5;"></span>
+                    <span id="customBadgeSub" style="flex:1; height: 8px; border-radius: 3px; background: #6366f1;"></span>
+                </div>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="submit-btn" style="padding: 10px 24px; background: var(--dj-header-bg);" onclick="saveColorTheme()">Save Selected Preset Theme</button>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Color Builder Panel -->
+<div class="admin-panel" style="margin-bottom: 30px;">
+    <div class="admin-panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>🎨 Create Your Custom Color Theme</h3>
+        <span class="admin-badge" style="background: var(--dj-bg); color: var(--dj-link); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">Color Builder</span>
+    </div>
+    <div class="admin-panel-body" style="padding: 24px;">
+        <p style="margin: 0 0 16px 0; color: var(--dj-text-sub); font-size: 0.85rem;">Use the color pickers or type any custom HEX color code to build your own personal theme:</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; align-items: flex-end;">
+            <div>
+                <label style="display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: var(--dj-text);">Header & Link Color</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="color" id="customPrimaryPicker" value="#4f46e5" style="width: 48px; height: 38px; border: 1px solid var(--dj-border); border-radius: 6px; cursor: pointer; padding: 2px; background: var(--dj-bg);" oninput="syncPickerToHex('customPrimaryPicker', 'customPrimaryHex'); updateLiveCustomPreview();">
+                    <input type="text" id="customPrimaryHex" value="#4f46e5" style="flex: 1; padding: 8px 12px; border: 1px solid var(--dj-border); border-radius: 6px; font-family: monospace; font-size: 0.9rem; background: var(--dj-bg); color: var(--dj-text);" oninput="syncHexToPicker('customPrimaryHex', 'customPrimaryPicker'); updateLiveCustomPreview();">
+                </div>
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: var(--dj-text);">Subheader Banner Color</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="color" id="customSubPicker" value="#6366f1" style="width: 48px; height: 38px; border: 1px solid var(--dj-border); border-radius: 6px; cursor: pointer; padding: 2px; background: var(--dj-bg);" oninput="syncPickerToHex('customSubPicker', 'customSubHex'); updateLiveCustomPreview();">
+                    <input type="text" id="customSubHex" value="#6366f1" style="flex: 1; padding: 8px 12px; border: 1px solid var(--dj-border); border-radius: 6px; font-family: monospace; font-size: 0.9rem; background: var(--dj-bg); color: var(--dj-text);" oninput="syncHexToPicker('customSubHex', 'customSubPicker'); updateLiveCustomPreview();">
+                </div>
+            </div>
+            <div>
+                <button type="button" class="submit-btn" style="width: 100%; padding: 10px 18px; background: var(--dj-header-bg);" onclick="applyAndSaveCustomTheme()">Save & Apply Custom Color Card</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Live Preview Card -->
+<div class="admin-panel">
+    <div class="admin-panel-header">
+        <h3>Live Theme Preview</h3>
+    </div>
+    <div class="admin-panel-body" style="padding: 20px;">
+        <div style="border: 1px solid var(--dj-border); border-radius: 6px; overflow: hidden; background: var(--dj-bg);">
+            <div style="background: var(--dj-header-bg); color: var(--dj-header-text); padding: 10px 16px; font-weight: bold; font-size: 0.9rem;">
+                Sample Header Bar Navigation
+            </div>
+            <div style="padding: 16px;">
+                <p style="margin: 0 0 12px 0; color: var(--dj-text);">Sample active link: <a href="#" style="color: var(--dj-link); font-weight: bold;">View Details &rarr;</a></p>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="submit-btn" style="background: var(--dj-header-bg); padding: 6px 16px;">Primary Action</button>
+                    <button type="button" class="action-btn" style="padding: 6px 16px;">Secondary Button</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Toast Notification -->
+<div id="themeSuccessToast" style="display: none; position: fixed; bottom: 24px; right: 24px; background: #16a34a; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); font-weight: bold; z-index: 3000; align-items: center; gap: 8px;">
+    <span style="font-size: 1.2rem;">✓</span> <span id="themeSuccessToastText">Theme updated successfully!</span>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+let selectedColorKey = 'blue';
+
+function showThemeToast(msg) {
+    const toast = document.getElementById("themeSuccessToast");
+    const text = document.getElementById("themeSuccessToastText");
+    if (toast && text) {
+        text.textContent = msg;
+        toast.style.display = "flex";
+        setTimeout(() => {
+            toast.style.display = "none";
+        }, 2500);
+    }
+}
+
+function highlightCard(colorKey) {
+    document.querySelectorAll('.color-preset-card').forEach(card => {
+        card.style.borderColor = 'var(--dj-border)';
+        card.style.boxShadow = 'none';
+    });
+    const card = document.getElementById(`preset-${colorKey}`);
+    if (card) {
+        card.style.borderColor = 'var(--dj-header-bg)';
+        card.style.boxShadow = '0 0 0 3px rgba(120, 120, 120, 0.25)';
+    }
+}
+
+function selectPreset(colorKey) {
+    selectedColorKey = colorKey;
+    setColorTheme(colorKey);
+    highlightCard(colorKey);
+}
+
+function saveColorTheme() {
+    setColorTheme(selectedColorKey);
+    showThemeToast("Preset theme color saved successfully!");
+}
+
+function syncPickerToHex(pickerId, hexId) {
+    const val = document.getElementById(pickerId).value;
+    document.getElementById(hexId).value = val;
+}
+
+function syncHexToPicker(hexId, pickerId) {
+    const val = document.getElementById(hexId).value;
+    if (/^#[0-9A-F]{6}$/i.test(val)) {
+        document.getElementById(pickerId).value = val;
+    }
+}
+
+function updateLiveCustomPreview() {
+    const primary = document.getElementById('customPrimaryHex').value;
+    const sub = document.getElementById('customSubHex').value;
+    
+    // Update custom card badge colors
+    document.getElementById('customBadgeCircle').style.background = primary;
+    document.getElementById('customBadgePrimary').style.background = primary;
+    document.getElementById('customBadgeSub').style.background = sub;
+    document.getElementById('customBadgeSubtitle').textContent = `${primary} / ${sub}`;
+
+    // Apply custom preview
+    localStorage.setItem("ems_custom_primary", primary);
+    localStorage.setItem("ems_custom_sub", sub);
+    selectPreset('custom');
+}
+
+function applyAndSaveCustomTheme() {
+    updateLiveCustomPreview();
+    showThemeToast("Custom theme saved & applied successfully!");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const savedPrimary = localStorage.getItem("ems_custom_primary") || "#4f46e5";
+    const savedSub = localStorage.getItem("ems_custom_sub") || "#6366f1";
+    
+    document.getElementById('customPrimaryPicker').value = savedPrimary;
+    document.getElementById('customPrimaryHex').value = savedPrimary;
+    document.getElementById('customSubPicker').value = savedSub;
+    document.getElementById('customSubHex').value = savedSub;
+    
+    document.getElementById('customBadgeCircle').style.background = savedPrimary;
+    document.getElementById('customBadgePrimary').style.background = savedPrimary;
+    document.getElementById('customBadgeSub').style.background = savedSub;
+    document.getElementById('customBadgeSubtitle').textContent = `${savedPrimary} / ${savedSub}`;
+
+    selectedColorKey = localStorage.getItem("ems_admin_color_theme") || 'blue';
+    highlightCard(selectedColorKey);
+});
+</script>
+{% endblock %}

@@ -9,21 +9,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='css/font.css') }}?v=3">
     <link rel="stylesheet" href="{{ url_for('static', path='css/ems-core.css') }}?v=4">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}?v=11">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}?v=12">
     {% block head_extra %}{% endblock %}
 </head>
 
 <body>
-    {% block content %}{% endblock %}
+    <!-- Sleek Non-Blocking Top Progress Bar (YouTube/GitHub Style) -->
+    <div id="globalTopProgressBar" class="global-top-progress"></div>
 
-    <!-- Global Page Loader Overlay -->
-    <div id="globalLoader" class="global-loader">
-        <div class="loader-spinner"></div>
-    </div>
+    {% block content %}
+    {% endblock %}
 
-    <!-- Global Loader Script moved to ems-shell.js -->
-
-    <script src="{{ url_for('static', path='js/ems-shell.js') }}?v=4"></script>
+    <script src="{{ url_for('static', path='js/ems-shell.js') }}?v=6"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

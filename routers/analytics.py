@@ -453,7 +453,7 @@ def group_energy_summary(
         b["start_kwh"] = round(b["start_kwh"], 2)
         b["end_kwh"] = round(b["end_kwh"], 2)
 
-    selected_total_kwh = round(sum(b["consumption"] for b in bars), 2)
+    selected_total_kwh = round(sum(b["consumption"] for b in bars), 2) if bars else round(total_group_consumption, 2)
     selected_start_kwh = round(sum(b["start_kwh"] for b in bars if "start_kwh" in b), 2)
     selected_end_kwh = round(sum(b["end_kwh"] for b in bars if "end_kwh" in b), 2)
     members_breakdown = get_member_breakdown(cur, members, from_dt, to_dt)

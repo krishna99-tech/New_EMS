@@ -1950,21 +1950,18 @@ table td {
 
 /* ================= GLOBAL PAGE LOADER ================= */
 .global-loader {
+    display: none !important;
+    pointer-events: none !important;
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(15, 23, 42, 0.7);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background: transparent;
+    z-index: -1;
     opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
 }
 
 .global-loader.active {
-    opacity: 1;
-    pointer-events: all;
+    display: none !important;
+    pointer-events: none !important;
 }
 
 .light-mode .global-loader {
@@ -2012,4 +2009,32 @@ table td {
     max-width: 400px;
     margin: 0;
     line-height: 1.5;
+}
+
+/* ================= SLEEK NON-BLOCKING TOP PROGRESS BAR ================= */
+#globalTopProgressBar,
+.global-top-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #10b981, #38bdf8, #6366f1);
+    z-index: 99999;
+    width: 0%;
+    opacity: 0;
+    pointer-events: none !important;
+    transition: width 0.25s ease, opacity 0.25s ease;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+}
+
+#globalTopProgressBar.animating,
+.global-top-progress.animating {
+    opacity: 1;
+    animation: topProgressPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes topProgressPulse {
+    0% { width: 15%; opacity: 1; }
+    50% { width: 70%; opacity: 0.85; }
+    100% { width: 95%; opacity: 1; }
 }

@@ -210,8 +210,18 @@ function renderEnergySummaryCard(summary) {
         }));
     }
 
-    if (dataPoints.length === 0) {
-        cardsContainer.innerHTML = `<div class="dashboard-empty-state"><p>No consumption data for the selected range.</p></div>`;
+    if (dataPoints.length === 0 || (summary.selected_total_kwh === 0 && (!summary.bars || summary.bars.length === 0))) {
+        cardsContainer.innerHTML = `
+            <div class="dashboard-empty-state" style="padding: 40px 20px; text-align: center; background: var(--card-bg); border: 1px dashed var(--border-color); border-radius: 12px; margin: 16px 0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; color: var(--text-sub); opacity: 0.7;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <h4 style="margin: 0 0 6px 0; font-size: 1.05rem; font-weight: 600; color: var(--text-main);">No Data Available</h4>
+                <p style="margin: 0; font-size: 0.88rem; color: var(--text-sub); max-width: 420px; margin: 0 auto;">No energy meter readings were recorded for the selected date and time range.</p>
+            </div>
+        `;
         return;
     }
 

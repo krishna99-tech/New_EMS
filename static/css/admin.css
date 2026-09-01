@@ -9,30 +9,30 @@
 :root, :root[data-theme="light"] {
     --dj-bg: #ffffff;
     --dj-bg-sub: #f8f9fa;
-    --dj-text: #333333;
-    --dj-text-sub: #666666;
-    --dj-border: #cccccc;
+    --dj-text: #1e293b;
+    --dj-text-sub: #64748b;
+    --dj-border: #cbd5e1;
     --dj-header-bg: #417690;
     --dj-header-bg-sub: #79aec8;
     --dj-header-text: #ffffff;
-    --dj-row-hover: #f4f4f4;
-    --dj-success: #28a745;
-    --dj-danger: #dc3545;
+    --dj-row-hover: #f1f5f9;
+    --dj-success: #16a34a;
+    --dj-danger: #dc2626;
     --dj-link: #417690;
     --dj-calendar-filter: none;
 }
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-        --dj-bg: #1e1e1e;
-        --dj-bg-sub: #252526;
-        --dj-text: #e0e0e0;
-        --dj-text-sub: #aaaaaa;
-        --dj-border: #444444;
+        --dj-bg: #18181b;
+        --dj-bg-sub: #27272a;
+        --dj-text: #f4f4f5;
+        --dj-text-sub: #a1a1aa;
+        --dj-border: #3f3f46;
         --dj-header-bg: #2b4e60;
         --dj-header-bg-sub: #3d6a80;
         --dj-header-text: #ffffff;
-        --dj-row-hover: #2a2a2a;
+        --dj-row-hover: #27272a;
         --dj-success: #4ade80;
         --dj-danger: #f87171;
         --dj-link: #6db6db;
@@ -41,19 +41,189 @@
 }
 
 :root[data-theme="dark"] {
-    --dj-bg: #1e1e1e;
-    --dj-bg-sub: #252526;
-    --dj-text: #e0e0e0;
-    --dj-text-sub: #aaaaaa;
-    --dj-border: #444444;
+    --dj-bg: #18181b;
+    --dj-bg-sub: #27272a;
+    --dj-text: #f4f4f5;
+    --dj-text-sub: #a1a1aa;
+    --dj-border: #3f3f46;
     --dj-header-bg: #2b4e60;
     --dj-header-bg-sub: #3d6a80;
     --dj-header-text: #ffffff;
-    --dj-row-hover: #2a2a2a;
+    --dj-row-hover: #27272a;
     --dj-success: #4ade80;
     --dj-danger: #f87171;
     --dj-link: #6db6db;
     --dj-calendar-filter: invert(1);
+}
+
+/* ── Color Theme Presets (Higher Specificity) ────────────────────────────── */
+
+/* 1. Classic Blue (Default) */
+:root[data-color-theme="blue"], html[data-color-theme="blue"] {
+    --dj-header-bg: #417690;
+    --dj-header-bg-sub: #79aec8;
+    --dj-link: #417690;
+    --dj-row-hover: #f1f5f9;
+}
+:root[data-theme="dark"][data-color-theme="blue"], html[data-theme="dark"][data-color-theme="blue"] {
+    --dj-header-bg: #2b4e60;
+    --dj-header-bg-sub: #3d6a80;
+    --dj-link: #6db6db;
+    --dj-row-hover: #27272a;
+}
+
+/* 2. Industrial Orange */
+:root[data-color-theme="orange"], html[data-color-theme="orange"] {
+    --dj-header-bg: #ea580c;
+    --dj-header-bg-sub: #f97316;
+    --dj-link: #ea580c;
+    --dj-row-hover: #fff7ed;
+}
+:root[data-theme="dark"][data-color-theme="orange"], html[data-theme="dark"][data-color-theme="orange"] {
+    --dj-header-bg: #9a3412;
+    --dj-header-bg-sub: #c2410c;
+    --dj-link: #fb923c;
+    --dj-row-hover: #332014;
+}
+
+/* 3. Emerald Green */
+:root[data-color-theme="green"], html[data-color-theme="green"] {
+    --dj-header-bg: #059669;
+    --dj-header-bg-sub: #10b981;
+    --dj-link: #059669;
+    --dj-row-hover: #ecfdf5;
+}
+:root[data-theme="dark"][data-color-theme="green"], html[data-theme="dark"][data-color-theme="green"] {
+    --dj-header-bg: #065f46;
+    --dj-header-bg-sub: #047857;
+    --dj-link: #34d399;
+    --dj-row-hover: #064e3b;
+}
+
+/* 4. Royal Indigo */
+:root[data-color-theme="indigo"], html[data-color-theme="indigo"] {
+    --dj-header-bg: #4f46e5;
+    --dj-header-bg-sub: #6366f1;
+    --dj-link: #4f46e5;
+    --dj-row-hover: #eef2ff;
+}
+:root[data-theme="dark"][data-color-theme="indigo"], html[data-theme="dark"][data-color-theme="indigo"] {
+    --dj-header-bg: #3730a3;
+    --dj-header-bg-sub: #4338ca;
+    --dj-link: #818cf8;
+    --dj-row-hover: #1e1b4b;
+}
+
+/* 5. Crimson Red */
+:root[data-color-theme="red"], html[data-color-theme="red"] {
+    --dj-header-bg: #dc2626;
+    --dj-header-bg-sub: #ef4444;
+    --dj-link: #dc2626;
+    --dj-row-hover: #fef2f2;
+}
+:root[data-theme="dark"][data-color-theme="red"], html[data-theme="dark"][data-color-theme="red"] {
+    --dj-header-bg: #991b1b;
+    --dj-header-bg-sub: #b91c1c;
+    --dj-link: #fca5a5;
+    --dj-row-hover: #450a0a;
+}
+
+/* 6. Charcoal Slate */
+:root[data-color-theme="slate"], html[data-color-theme="slate"] {
+    --dj-header-bg: #334155;
+    --dj-header-bg-sub: #475569;
+    --dj-link: #334155;
+    --dj-row-hover: #f1f5f9;
+}
+:root[data-theme="dark"][data-color-theme="slate"], html[data-theme="dark"][data-color-theme="slate"] {
+    --dj-header-bg: #1e293b;
+    --dj-header-bg-sub: #334155;
+    --dj-link: #94a3b8;
+    --dj-row-hover: #0f172a;
+}
+
+/* 7. Rose Pink */
+:root[data-color-theme="pink"], html[data-color-theme="pink"] {
+    --dj-header-bg: #db2777;
+    --dj-header-bg-sub: #f43f5e;
+    --dj-link: #db2777;
+    --dj-row-hover: #fdf2f8;
+}
+:root[data-theme="dark"][data-color-theme="pink"], html[data-theme="dark"][data-color-theme="pink"] {
+    --dj-header-bg: #9d174d;
+    --dj-header-bg-sub: #be123c;
+    --dj-link: #f472b6;
+    --dj-row-hover: #3b071e;
+}
+
+/* 8. Warm Amber Gold */
+:root[data-color-theme="amber"], html[data-color-theme="amber"] {
+    --dj-header-bg: #d97706;
+    --dj-header-bg-sub: #f59e0b;
+    --dj-link: #d97706;
+    --dj-row-hover: #fffbeb;
+}
+:root[data-theme="dark"][data-color-theme="amber"], html[data-theme="dark"][data-color-theme="amber"] {
+    --dj-header-bg: #b45309;
+    --dj-header-bg-sub: #d97706;
+    --dj-link: #fbbf24;
+    --dj-row-hover: #361904;
+}
+
+/* 9. Cyan Teal */
+:root[data-color-theme="teal"], html[data-color-theme="teal"] {
+    --dj-header-bg: #0891b2;
+    --dj-header-bg-sub: #06b6d4;
+    --dj-link: #0891b2;
+    --dj-row-hover: #ecfeff;
+}
+:root[data-theme="dark"][data-color-theme="teal"], html[data-theme="dark"][data-color-theme="teal"] {
+    --dj-header-bg: #155e75;
+    --dj-header-bg-sub: #0e7490;
+    --dj-link: #22d3ee;
+    --dj-row-hover: #083344;
+}
+
+/* 10. Deep Purple / Violet */
+:root[data-color-theme="violet"], html[data-color-theme="violet"] {
+    --dj-header-bg: #7c3aed;
+    --dj-header-bg-sub: #8b5cf6;
+    --dj-link: #7c3aed;
+    --dj-row-hover: #f5f3ff;
+}
+:root[data-theme="dark"][data-color-theme="violet"], html[data-theme="dark"][data-color-theme="violet"] {
+    --dj-header-bg: #5b21b6;
+    --dj-header-bg-sub: #6d28d9;
+    --dj-link: #a78bfa;
+    --dj-row-hover: #2e1065;
+}
+
+/* 11. Bronze Coffee */
+:root[data-color-theme="bronze"], html[data-color-theme="bronze"] {
+    --dj-header-bg: #78350f;
+    --dj-header-bg-sub: #92400e;
+    --dj-link: #78350f;
+    --dj-row-hover: #fef3c7;
+}
+:root[data-theme="dark"][data-color-theme="bronze"], html[data-theme="dark"][data-color-theme="bronze"] {
+    --dj-header-bg: #451a03;
+    --dj-header-bg-sub: #78350f;
+    --dj-link: #d97706;
+    --dj-row-hover: #270e02;
+}
+
+/* 12. Midnight Dark Noir */
+:root[data-color-theme="midnight"], html[data-color-theme="midnight"] {
+    --dj-header-bg: #0f172a;
+    --dj-header-bg-sub: #1e293b;
+    --dj-link: #0f172a;
+    --dj-row-hover: #f8fafc;
+}
+:root[data-theme="dark"][data-color-theme="midnight"], html[data-theme="dark"][data-color-theme="midnight"] {
+    --dj-header-bg: #020617;
+    --dj-header-bg-sub: #0f172a;
+    --dj-link: #94a3b8;
+    --dj-row-hover: #090d16;
 }
 
 /* ── Page layout ─────────────────────────────────────── */
@@ -1529,4 +1699,178 @@
 /* User 3-dots Dropdown Menu */
 .user-dropdown-menu.open {
     display: block !important;
+}
+
+/* ── Universal Scrollable Container Rules for Admin & Reporting Pages ─────── */
+.django-admin-main {
+    flex: 1;
+    min-width: 0; /* Prevents flex children from pushing container beyond screen width */
+    max-width: 100%;
+    overflow-y: auto; /* Enables vertical scrolling when content exceeds page height */
+    overflow-x: auto; /* Enables horizontal scrolling when tables exceed page width */
+    -webkit-overflow-scrolling: touch;
+}
+
+body {
+    background-color: var(--dj-bg) !important;
+    color: var(--dj-text) !important;
+}
+
+/* ── Sticky Top Header & Left Sidebar ───────────────────────────────────── */
+.django-top-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.django-admin-sidebar {
+    position: sticky;
+    top: 62px;
+    height: calc(100vh - 62px);
+    max-height: calc(100vh - 62px);
+    background: var(--dj-bg-sub) !important;
+    overflow-y: auto;
+    flex-shrink: 0;
+    align-self: flex-start;
+    transition: all 0.2s ease;
+}
+
+.django-admin-sidebar.collapsed {
+    display: none !important;
+}
+
+/* Table & Grid Container Scroll Behavior */
+.admin-table-wrapper,
+.table-responsive,
+.admin-panel,
+.model-view,
+.cards,
+.group-dashboard-wrapper {
+    max-width: 100%;
+    overflow-x: auto; /* Scroll horizontally if data table/cards cross screen width */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Custom Sleek Scrollbar Styling */
+.django-admin-main::-webkit-scrollbar,
+.django-admin-sidebar::-webkit-scrollbar,
+.admin-table-wrapper::-webkit-scrollbar,
+.admin-panel::-webkit-scrollbar,
+.cards::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.django-admin-main::-webkit-scrollbar-thumb,
+.django-admin-sidebar::-webkit-scrollbar-thumb,
+.admin-table-wrapper::-webkit-scrollbar-thumb,
+.admin-panel::-webkit-scrollbar-thumb,
+.cards::-webkit-scrollbar-thumb {
+    background: var(--dj-header-bg-sub, #79aec8);
+    border-radius: 4px;
+}
+
+.django-admin-main::-webkit-scrollbar-track,
+.django-admin-sidebar::-webkit-scrollbar-track,
+.admin-table-wrapper::-webkit-scrollbar-track,
+.admin-panel::-webkit-scrollbar-track,
+.cards::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* ── Global Admin Loader & Top Progress Bar ───────────────────────────────── */
+#globalAdminProgress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4f46e5, #818cf8, #38bdf8);
+    z-index: 9999;
+    width: 0%;
+    transition: width 0.3s ease, opacity 0.3s ease;
+    box-shadow: 0 0 8px rgba(79, 70, 229, 0.6);
+}
+
+#globalAdminProgress.animating {
+    animation: adminProgressPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes adminProgressPulse {
+    0% { width: 10%; opacity: 1; }
+    50% { width: 70%; opacity: 0.8; }
+    100% { width: 95%; opacity: 1; }
+}
+
+#globalAdminLoader {
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 8px 16px;
+    border-radius: 30px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none !important;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#globalAdminLoader.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: none !important;
+}
+
+.admin-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255, 255, 255, 0.25);
+    border-top-color: #818cf8;
+    border-radius: 50%;
+    animation: adminSpin 0.65s linear infinite;
+}
+
+@keyframes adminSpin {
+    to { transform: rotate(360deg); }
+}
+
+.admin-loader-text {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.02em;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+}
+
+/* ── Universal Button Loading Animation State ────────────────────────────── */
+.btn-loading {
+    position: relative !important;
+    pointer-events: none !important;
+    opacity: 0.8 !important;
+}
+
+.btn-loading::after {
+    content: "";
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    margin-left: 8px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: btnSpin 0.6s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes btnSpin {
+    to { transform: rotate(360deg); }
 }

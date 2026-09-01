@@ -46,15 +46,15 @@
             </div>
             
             <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                <label for="groupFilterSelect" style="font-weight: bold; color: #666; font-size: 0.85rem;">Filter:</label>
-                <select id="groupFilterSelect" class="form-control" style="width: 250px; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" onchange="filterMeterGroups()">
+                <label for="groupFilterSelect" style="font-weight: bold; color: var(--dj-text-sub); font-size: 0.85rem;">Filter:</label>
+                <select id="groupFilterSelect" class="form-control" style="width: 250px; padding: 6px; border: 1px solid var(--dj-border); background: var(--dj-bg); color: var(--dj-text); border-radius: 4px;" onchange="filterMeterGroups()">
                     <option value="all">All Groups</option>
                 </select>
             </div>
             
             <!-- Quick Presets -->
-            <div style="margin-bottom: 20px; border: 1px solid #ddd; padding: 10px 15px; background: #f9f9f9; border-radius: 4px;">
-                <h3 style="margin: 0 0 10px 0; font-size: 0.95rem; color: #666; font-weight: bold; text-transform: uppercase;">Quick Presets</h3>
+            <div style="margin-bottom: 20px; border: 1px solid var(--dj-border); padding: 10px 15px; background: var(--dj-bg-sub); border-radius: 4px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--dj-text-sub); font-weight: bold; text-transform: uppercase;">Quick Presets</h3>
                 <div id="groupPresetsList">Loading presets...</div>
             </div>
             
@@ -66,10 +66,10 @@
         <!-- Devices View -->
         <div id="view_devices" class="model-view">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h1 style="margin: 0; font-size: 1.5rem; font-weight: normal; color: #333;">Discovered Devices</h1>
+                <h1 style="margin: 0; font-size: 1.5rem; font-weight: normal; color: var(--dj-text);">Discovered Devices</h1>
                 <div>
-                    <span style="margin-right: 15px; color: #666; font-size: 0.9rem;">Inbox: <span id="deviceCountBadgeTop" style="font-weight: bold;">0</span></span>
-                    <button type="button" class="btn-refresh" onclick="loadDiscoveredDevices()" style="background: #417690; color: white; padding: 5px 15px; border: none; border-radius: 15px; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; cursor: pointer;">Refresh <span class="admin-badge live" id="deviceCountBadge" style="background: white; color: black; border-radius: 10px; padding: 1px 6px; margin-left: 5px;">0</span></button>
+                    <span style="margin-right: 15px; color: var(--dj-text-sub); font-size: 0.9rem;">Inbox: <span id="deviceCountBadgeTop" style="font-weight: bold;">0</span></span>
+                    <button type="button" class="btn-refresh" onclick="loadDiscoveredDevices()" style="background: var(--dj-header-bg); color: white; padding: 5px 15px; border: none; border-radius: 15px; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; cursor: pointer;">Refresh <span class="admin-badge live" id="deviceCountBadge" style="background: white; color: black; border-radius: 10px; padding: 1px 6px; margin-left: 5px;">0</span></button>
                 </div>
             </div>
             
@@ -77,8 +77,8 @@
                 <div class="admin-empty-state">Loading devices...</div>
             </div>
             
-            <h2 style="font-size: 1.2rem; font-weight: normal; color: #333; margin: 30px 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px;">Device Inbox Log</h2>
-            <div id="inboxDevicesList" class="admin-empty-state" style="padding: 15px; border: 1px solid #ddd; background: #fafafa; text-align: left; font-family: monospace; font-size: 0.85rem; border-radius: 4px;">
+            <h2 style="font-size: 1.2rem; font-weight: normal; color: var(--dj-text); margin: 30px 0 10px 0; border-bottom: 1px solid var(--dj-border); padding-bottom: 5px;">Device Inbox Log</h2>
+            <div id="inboxDevicesList" class="admin-empty-state" style="padding: 15px; border: 1px solid var(--dj-border); background: var(--dj-bg-sub); text-align: left; font-family: monospace; font-size: 0.85rem; border-radius: 4px;">
                 Loading inbox...
             </div>
         </div>
@@ -122,5 +122,5 @@
         }
     }
 </script>
-<script src="{{ url_for('static', path='js/admin_v2.js') }}"></script>
+<script src="{{ url_for('static', path='js/admin_v2.js') }}?v=10"></script>
 {% endblock %}

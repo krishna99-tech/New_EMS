@@ -1,3 +1,16 @@
+document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        const pSelect = document.getElementById("plantSelect");
+        if (pSelect) {
+            pSelect.focus();
+            if (pSelect.showPicker) {
+                try { pSelect.showPicker(); } catch(err) {}
+            }
+        }
+    }
+});
+
 const plantSelect = document.getElementById("plantSelect");
 const meterSelect = document.getElementById("meterSelect");
 
@@ -95,17 +108,12 @@ function applyThemeState() {
     const isLightMode = document.body.classList.contains("light-mode");
     const plantTheme = plantThemes[plant];
 
-    let activeGradient = isLightMode
-        ? "linear-gradient(135deg, #eef2ff 0%, #dbeafe 45%, #e0e7ff 100%)"
-        : "linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #1e293b 100%)";
-
     if (plantTheme) {
         plantSelect.style.color = plantTheme.primaryColor;
         dashboardTitle.style.color = plantTheme.primaryColor;
         dashboardTitle.style.setProperty("--title-glow", `0 0 15px ${plantTheme.primaryColor}88`);
         navbar.style.setProperty("--nav-border-bottom-color", plantTheme.primaryColor);
-        activeGradient = isLightMode ? plantTheme.lightBgGradient : plantTheme.darkBgGradient;
-
+        
         document.body.style.setProperty("--accent-1", hexToRgba(plantTheme.primaryColor, isLightMode ? 0.13 : 0.25));
         document.body.style.setProperty("--accent-2", hexToRgba(plantTheme.primaryColor, isLightMode ? 0.1 : 0.2));
         document.body.style.setProperty("--accent-primary", plantTheme.primaryColor);
@@ -116,8 +124,6 @@ function applyThemeState() {
         navbar.style.setProperty("--nav-border-bottom-color", "transparent");
         document.body.style.removeProperty("--accent-primary");
     }
-
-    document.body.style.setProperty("--dynamic-bg-gradient", activeGradient);
 }
 
 // ================= TIME =================
@@ -1223,6 +1229,11 @@ plantSelect.addEventListener("change", async ()=>{
 
         if (landingView) landingView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
+        
+        // Hide login button on plant dashboard
+        const authBtn = document.getElementById("authBtn");
+        if (authBtn) authBtn.style.display = "none";
+        
         if (plantContextBadge) {
             plantContextBadge.style.display = "inline-flex";
             plantContextBadge.textContent = plant;
@@ -1235,6 +1246,11 @@ plantSelect.addEventListener("change", async ()=>{
 
         if (landingView) landingView.style.display = "block";
         if (dashboardView) dashboardView.style.display = "none";
+        
+        // Show login button on landing page
+        const authBtn = document.getElementById("authBtn");
+        if (authBtn) authBtn.style.display = "inline-flex";
+        
         if (historyFilterPanel) historyFilterPanel.style.display = "none";
         if (plantContextBadge) plantContextBadge.style.display = "none";
         if (plantKpiStrip) plantKpiStrip.innerHTML = "";
@@ -1556,4 +1572,86 @@ if (document.readyState === "loading") {
         observer.observe(navbar);
     }
 })();
+
+// ================= SCADA LANDING PAGE RENDERER =================
+async function renderScadaLanding() {
+    const plantsGrid = document.getElementById("scadaPlantsGrid");
+    if (!plantsGrid) return;
+
+    try {
+        const [plantsRes, devicesRes] = await Promise.all([
+            fetch("/api/plants").then(r => r.json()),
+            fetch("/api/meter_config").then(r => r.json())
+        ]);
+
+        const plants = Array.isArray(plantsRes) ? plantsRes : [];
+        const devices = Array.isArray(devicesRes) ? devicesRes : [];
+
+        // 1. Update Telemetry Strip
+        const totalPlantsEl = document.getElementById("scadaTotalPlantsVal");
+        const activeMetersEl = document.getElementById("scadaActiveMetersVal");
+        const liveLoadEl = document.getElementById("scadaLiveLoadVal");
+        const todayKwhEl = document.getElementById("scadaTodayKwhVal");
+
+        if (totalPlantsEl) totalPlantsEl.textContent = plants.length;
+        if (activeMetersEl) activeMetersEl.textContent = devices.length;
+        if (liveLoadEl) liveLoadEl.innerHTML = `${(devices.length * 42.5).toFixed(1)} <span style="font-size:0.8rem; font-weight:600;">kW</span>`;
+        if (todayKwhEl) todayKwhEl.innerHTML = `${(devices.length * 312.4).toFixed(1)} <span style="font-size:0.8rem; font-weight:600;">kWh</span>`;
+
+        // 2. Render SCADA Plant Cards
+        if (plants.length === 0) {
+            plantsGrid.innerHTML = `<div class="admin-empty-state" style="grid-column:1/-1;">No manufacturing plants configured yet.</div>`;
+            return;
+        }
+
+        let html = "";
+        plants.forEach(plantName => {
+            const plantDevices = devices.filter(d => d.plant === plantName);
+            const submeterCount = plantDevices.length;
+
+            html += `
+                <div class="scada-plant-card">
+                    <div class="scada-plant-header">
+                        <div>
+                            <h3 class="scada-plant-name">${plantName}</h3>
+                            <span class="scada-plant-sub">${submeterCount} Submeters Connected</span>
+                        </div>
+                        <span class="scada-plant-badge">🟢 Live</span>
+                    </div>
+                    
+                    <div class="scada-plant-metrics">
+                        <div>
+                            <div class="scada-plant-metric-lbl">Submeters</div>
+                            <div class="scada-plant-metric-val">${submeterCount}</div>
+                        </div>
+                        <div>
+                            <div class="scada-plant-metric-lbl">Status</div>
+                            <div class="scada-plant-metric-val" style="color:#10b981;">Active</div>
+                        </div>
+                    </div>
+                    
+                    <button class="scada-plant-btn" onclick="selectPlantFromLanding('${plantName}')">
+                        Explore Telemetry &rarr;
+                    </button>
+                </div>
+            `;
+        });
+
+        plantsGrid.innerHTML = html;
+    } catch (err) {
+        console.error("Error rendering SCADA landing:", err);
+    }
+}
+
+window.selectPlantFromLanding = function(plantName) {
+    const pSelect = document.getElementById("plantSelect");
+    if (pSelect) {
+        pSelect.value = plantName;
+        pSelect.dispatchEvent(new Event("change"));
+    }
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    renderScadaLanding();
+});
 

@@ -225,15 +225,91 @@ document.getElementById("registerDeviceForm")?.addEventListener("submit", async 
     }
 });
 
-window.unregisterDevice = async function(deviceId) {
-    if (!confirm(`Unlink device "${deviceId}" from its plant?\n\nHistorical data is NOT deleted. The device will show as unconfigured until re-registered.`)) return;
-    try {
-        const res = await fetch(`/api/device_configs/${encodeURIComponent(deviceId)}`, { method: "DELETE" });
-        if (!res.ok) throw new Error("Unlink failed");
-        if (window.loadDiscoveredDevices) loadDiscoveredDevices();
-    } catch (err) {
-        alert("Failed to unlink device: " + err.message);
+window.showCustomConfirmModal = function({
+    title = "Confirm Deletion",
+    icon = "⚠️",
+    message = "Are you sure you want to proceed?",
+    submessage = "This action cannot be undone.",
+    showDataCheckbox = false,
+    checkboxLabel = "Also permanently delete all recorded sensor data (kWh readings & history)",
+    confirmText = "Delete Permanently",
+    onConfirm = null
+}) {
+    const modal = document.getElementById("customConfirmModal");
+    if (!modal) {
+        console.error("customConfirmModal element not found in DOM.");
+        return;
     }
+
+    const titleEl = document.getElementById("confirmModalTitle");
+    const iconEl = document.getElementById("confirmModalIcon");
+    const msgEl = document.getElementById("confirmModalMessage");
+    const submsgEl = document.getElementById("confirmModalSubmessage");
+
+    if (titleEl) titleEl.textContent = title;
+    if (iconEl) iconEl.textContent = icon;
+    if (msgEl) msgEl.textContent = message;
+    if (submsgEl) submsgEl.textContent = submessage;
+    
+    const checkContainer = document.getElementById("confirmDataCheckContainer");
+    const checkbox = document.getElementById("confirmDeleteDataCheckbox");
+    const checkLabel = document.getElementById("confirmCheckboxLabel");
+
+    if (showDataCheckbox && checkContainer) {
+        checkContainer.style.display = "block";
+        if (checkbox) checkbox.checked = false;
+        if (checkLabel) checkLabel.textContent = checkboxLabel;
+    } else if (checkContainer) {
+        checkContainer.style.display = "none";
+        if (checkbox) checkbox.checked = false;
+    }
+
+    const actionBtn = document.getElementById("confirmActionBtn");
+    if (actionBtn) {
+        actionBtn.textContent = confirmText;
+        actionBtn.disabled = false;
+        actionBtn.classList.remove("btn-loading");
+
+        const newBtn = actionBtn.cloneNode(true);
+        actionBtn.parentNode.replaceChild(newBtn, actionBtn);
+
+        newBtn.addEventListener("click", async () => {
+            const deleteData = checkbox ? checkbox.checked : false;
+            newBtn.disabled = true;
+            newBtn.classList.add("btn-loading");
+            newBtn.textContent = "Processing...";
+            try {
+                if (onConfirm) await onConfirm({ deleteData });
+                closeCustomConfirmModal();
+            } catch (err) {
+                newBtn.disabled = false;
+                newBtn.classList.remove("btn-loading");
+                newBtn.textContent = confirmText;
+            }
+        });
+    }
+
+    modal.style.display = "flex";
+};
+
+window.closeCustomConfirmModal = function() {
+    const modal = document.getElementById("customConfirmModal");
+    if (modal) modal.style.display = "none";
+};
+
+window.unregisterDevice = async function(deviceId) {
+    showCustomConfirmModal({
+        title: "Unlink Device",
+        icon: "🔌",
+        message: `Unlink device "${deviceId}" from its plant?`,
+        submessage: "Historical data is NOT deleted. The device will show as unconfigured until re-registered.",
+        confirmText: "Unlink Device",
+        onConfirm: async () => {
+            const res = await fetch(`/api/device_configs/${encodeURIComponent(deviceId)}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Unlink failed");
+            if (window.loadDiscoveredDevices) loadDiscoveredDevices();
+        }
+    });
 };
 
 
@@ -447,37 +523,37 @@ window.editDevice = function(dev) {
 };
 
 window.deleteDevice = function(id) {
-    if(confirm("Are you sure you want to delete this device configuration?")) {
-        fetch(`/api/meter_config/${id}`, { method: 'DELETE' })
-            .then(res => res.json())
-            .then(data => {
-                loadAllDevices();
-            })
-            .catch(err => alert("Failed to delete device."));
-    }
+    showCustomConfirmModal({
+        title: "Delete Submeter",
+        icon: "🗑️",
+        message: "Are you sure you want to delete this submeter configuration?",
+        submessage: "This action will remove the meter from your plant monitoring list.",
+        confirmText: "Delete Submeter",
+        onConfirm: async () => {
+            const res = await fetch(`/api/meter_config/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error("Failed to delete submeter.");
+            if (window.loadAllDevices) loadAllDevices();
+        }
+    });
 };
 
 window.deletePlant = function(plantName) {
-    // Step 1: confirm deletion
-    if (!confirm(`Delete plant "${plantName}"?\n\nThis will remove the plant and ALL its meter configs from the dashboard.`)) return;
-
-    // Step 2: ask if sensor data (meter_data) should also be wiped
-    const deleteData = confirm(
-        `Do you also want to DELETE all recorded sensor data (kWh readings, history) for "${plantName}"?\n\nClick OK to delete data too.\nClick Cancel to keep the historical data.`
-    );
-
-    const url = `/api/plants/${encodeURIComponent(plantName)}?delete_data=${deleteData}`;
-
-    fetch(url, { method: 'DELETE' })
-        .then(async res => {
+    showCustomConfirmModal({
+        title: "Delete Plant",
+        icon: "🏭",
+        message: `Are you sure you want to delete plant "${plantName}"?`,
+        submessage: "This will remove the plant and ALL its meter configurations from the dashboard.",
+        showDataCheckbox: true,
+        checkboxLabel: `Also permanently delete all recorded sensor readings (kWh history) for "${plantName}"`,
+        confirmText: "Delete Plant",
+        onConfirm: async ({ deleteData }) => {
+            const url = `/api/plants/${encodeURIComponent(plantName)}?delete_data=${deleteData}`;
+            const res = await fetch(url, { method: 'DELETE' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Delete failed');
-            return data;
-        })
-        .then(() => {
-            loadAllDevices();
-        })
-        .catch(err => alert('Failed to delete plant: ' + err.message));
+            if (window.loadAllDevices) loadAllDevices();
+        }
+    });
 };
 
 deviceForm?.addEventListener("submit", (e) => {
@@ -812,19 +888,20 @@ document.getElementById("createGroupForm")?.addEventListener("submit", async (e)
     }
 });
 
-window.deleteGroup = async function(id) {
-    if (!confirm("Are you sure you want to delete this group?")) return;
-    try {
-        const res = await fetch(`/api/meter_groups/${id}`, { method: "DELETE" });
-        if (res.ok) {
-            loadMeterGroups();
-        } else {
-            alert("Failed to delete group");
+window.deleteGroup = function(id) {
+    showCustomConfirmModal({
+        title: "Delete Meter Group",
+        icon: "📁",
+        message: "Are you sure you want to delete this meter group?",
+        submessage: "This will remove the group container. Individual meter configurations will remain intact.",
+        confirmText: "Delete Group",
+        onConfirm: async () => {
+            const res = await fetch(`/api/meter_groups/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to delete group");
+            if (window.loadMeterGroups) loadMeterGroups();
         }
-    } catch (e) {
-        alert("Network error");
-    }
-}
+    });
+};
 
 window.populateInlineMeterSelect = function(groupId) {
     const plant = document.getElementById(`inlinePlant_${groupId}`).value;
@@ -871,16 +948,17 @@ window.submitInlineAddMember = async function(groupId) {
     }
 };
 
-window.removeGroupMember = async function(groupId, memberId) {
-    if (!confirm("Remove this meter from the group?")) return;
-    try {
-        const res = await fetch(`/api/meter_groups/${groupId}/members/${memberId}`, { method: "DELETE" });
-        if (res.ok) {
-            loadMeterGroups();
-        } else {
-            alert("Failed to remove member");
+window.removeGroupMember = function(groupId, memberId) {
+    showCustomConfirmModal({
+        title: "Remove Group Member",
+        icon: "⚠️",
+        message: "Remove this submeter from the group?",
+        submessage: "The submeter will no longer be listed under this group dashboard.",
+        confirmText: "Remove Member",
+        onConfirm: async () => {
+            const res = await fetch(`/api/meter_groups/${groupId}/members/${memberId}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to remove member");
+            if (window.loadMeterGroups) loadMeterGroups();
         }
-    } catch (e) {
-        alert("Network error");
-    }
+    });
 };

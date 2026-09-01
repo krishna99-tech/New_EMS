@@ -7,14 +7,14 @@
 
 
 
-        <div class="django-breadcrumbs" style="padding: 10px; background: #f8f9fa; border: 1px solid var(--border-color); font-size: 0.85rem; margin-bottom: 20px; border-radius: 4px;">
-            <a href="/admin" style="color: #417690; text-decoration: none;">Home</a> &rsaquo; 
-            <span id="breadcrumb-current">Energy Reports</span>
+        <div class="django-breadcrumbs" style="padding: 10px; background: var(--dj-bg-sub); border: 1px solid var(--dj-border); font-size: 0.85rem; margin-bottom: 20px; border-radius: 4px; color: var(--dj-text-sub);">
+            <a href="/admin" style="color: var(--dj-link); text-decoration: none;">Home</a> &rsaquo; 
+            <span id="breadcrumb-current" style="color: var(--dj-text);">Energy Reports</span>
         </div>
 
-        <h1 style="margin: 0 0 15px 0; font-size: 1.5rem; font-weight: normal; color: #333;">Energy Reports</h1>
+        <h1 style="margin: 0 0 15px 0; font-size: 1.5rem; font-weight: normal; color: var(--dj-text);">Energy Reports</h1>
         
-        <p style="color: #666; margin-bottom: 20px;">Generate PDF consumption reports by plant and date range.</p>
+        <p style="color: var(--dj-text-sub); margin-bottom: 20px;">Generate PDF consumption reports by plant and date range.</p>
 
         <div class="admin-panel" style="max-width: 560px;">
             <div class="admin-panel-header">
@@ -60,8 +60,10 @@ document.addEventListener("DOMContentLoaded", () => {
         .catch(err => console.error("Error fetching plants:", err));
 
     document.getElementById("reportForm").addEventListener("submit", () => {
-        skipLoader = true;
-        setTimeout(() => skipLoader = false, 2000);
+        showGlobalLoader("Generating PDF Report...");
+        setTimeout(() => {
+            hideGlobalLoader();
+        }, 1500);
     });
 });
 </script>

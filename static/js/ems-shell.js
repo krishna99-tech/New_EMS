@@ -187,24 +187,78 @@
     window.EMS.getShiftName = getShiftName;
 
 
-    // Global Loader Script
-    let skipLoader = false;
-    document.addEventListener('click', function(e) {
-        let a = e.target.closest('a');
-        if (a && a.hasAttribute('download')) {
-            skipLoader = true;
-            setTimeout(() => skipLoader = false, 1000);
+    // ── Universal Non-Blocking Top Progress Bar ──────────────────────────────
+    let activeFetchCount = 0;
+    let progressSafetyTimer = null;
+
+    window.showTopProgress = function() {
+        const bar = document.getElementById("globalTopProgressBar");
+        if (!bar) return;
+        bar.style.opacity = "1";
+        bar.classList.add("animating");
+
+        if (progressSafetyTimer) clearTimeout(progressSafetyTimer);
+        progressSafetyTimer = setTimeout(() => {
+            window.hideTopProgress();
+        }, 3500);
+    };
+
+    window.hideTopProgress = function() {
+        if (progressSafetyTimer) {
+            clearTimeout(progressSafetyTimer);
+            progressSafetyTimer = null;
+        }
+        const bar = document.getElementById("globalTopProgressBar");
+        if (!bar) return;
+        bar.style.width = "100%";
+        setTimeout(() => {
+            bar.style.opacity = "0";
+            bar.classList.remove("animating");
+            bar.style.width = "0%";
+        }, 200);
+    };
+
+    // Intercept window.fetch for automatic data request progress bar
+    if (typeof window.fetch === "function") {
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            const options = args[1] || {};
+            const urlStr = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+            const isSilent = options.silent === true || urlStr.includes("auth_status");
+
+            if (!isSilent) {
+                activeFetchCount++;
+                window.showTopProgress();
+            }
+
+            try {
+                const response = await originalFetch.apply(this, args);
+                return response;
+            } finally {
+                if (!isSilent) {
+                    activeFetchCount = Math.max(0, activeFetchCount - 1);
+                    if (activeFetchCount === 0) {
+                        setTimeout(() => {
+                            if (activeFetchCount === 0) window.hideTopProgress();
+                        }, 100);
+                    }
+                }
+            }
+        };
+    }
+
+    // Trigger top progress bar on page navigation links click
+    document.addEventListener("click", (e) => {
+        const link = e.target.closest("a");
+        if (link && link.href && !link.target && !link.hasAttribute("download") && link.href.startsWith(window.location.origin)) {
+            const targetUrl = new URL(link.href);
+            if (targetUrl.pathname !== window.location.pathname) {
+                window.showTopProgress();
+            }
         }
     });
 
-    window.addEventListener('beforeunload', function() {
-        if (!skipLoader) {
-            document.getElementById('globalLoader')?.classList.add('active');
-        }
-    });
-    window.addEventListener('pageshow', function(event) {
-        if (event.persisted) {
-            document.getElementById('globalLoader')?.classList.remove('active');
-        }
-    });
+    // Auto-dismiss progress bar when page finishes loading
+    document.addEventListener("DOMContentLoaded", () => window.hideTopProgress());
+    window.addEventListener("load", () => window.hideTopProgress());
 })();

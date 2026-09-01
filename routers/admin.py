@@ -40,6 +40,14 @@ def admin(request: Request):
     return templates.TemplateResponse("admin.html", template_context(request))
 
 
+@router.get("/admin/theme_settings", response_class=HTMLResponse)
+def theme_settings(request: Request):
+    redirect = require_login_page(request)
+    if redirect:
+        return redirect
+    return templates.TemplateResponse("theme_settings.html", template_context(request))
+
+
 # ── Plants CRUD ────────────────────────────────────────────────────────────────
 
 @router.post("/api/plants")

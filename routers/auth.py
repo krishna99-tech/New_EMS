@@ -72,8 +72,10 @@ async def login(request: Request):
 
 @router.post("/api/logout")
 def logout(request: Request):
-    request.session.pop("logged_in", None)
-    return {"success": True}
+    request.session.clear()
+    response = JSONResponse({"success": True, "message": "Logged out successfully"})
+    response.delete_cookie("session")
+    return response
 
 
 @router.get("/api/auth_status")
@@ -83,7 +85,9 @@ def auth_status(request: Request):
 
 @router.post("/api/change_password")
 async def change_password(request: Request):
-    require_login(request)
+    if not is_logged_in(request):
+        return JSONResponse({"error": "Session expired. Please log in again."}, status_code=401)
+    
     data = await request.json()
     old_pw = data.get("old_password")
     new_pw = data.get("new_password")
