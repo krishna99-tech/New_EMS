@@ -912,9 +912,21 @@ table td {
 
 /* Error state styling with pulse animation */
 .card-container.error-status {
-    background: linear-gradient(135deg, #450a0a 0%, #b91c1c 100%);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: linear-gradient(135deg, #7f1d1d 0%, #ef4444 100%);
+    border: 1px solid rgba(239, 68, 68, 0.4);
     animation: pulse-error 2s infinite;
+}
+
+.card-container.error-status .card-content {
+    background: rgba(30, 10, 10, 0.75);
+    color: #fca5a5;
+}
+
+.card-container.error-status .card-content .title,
+.card-container.error-status .card-content .plain :nth-child(1),
+.card-container.error-status .card-content .plain :nth-child(2),
+.card-container.error-status .card-content .description {
+    color: #fef0ca;
 }
 
 @keyframes pulse-error {
@@ -950,7 +962,7 @@ table td {
     height: 100%;
     box-sizing: border-box;
     overflow: hidden;
-    background: rgba(226, 232, 240, 0.6);
+    background: var(--card-bg);
     border-radius: 23px;
     color: var(--text-sub);
     font-size: 12px;
@@ -964,6 +976,19 @@ table td {
 .light-mode .card-container .card-content {
     background: rgba(248, 250, 252, 0.85);
     border: none;
+}
+
+/* Light mode: make error card text readable with deep red instead of pale pink */
+.light-mode .card-container.error-status .card-content {
+    background: rgba(255, 240, 240, 0.92);
+    color: #991b1b;
+}
+
+.light-mode .card-container.error-status .card-content .title,
+.light-mode .card-container.error-status .card-content .plain :nth-child(1),
+.light-mode .card-container.error-status .card-content .plain :nth-child(2),
+.light-mode .card-container.error-status .card-content .description {
+    color: #7f1d1d;
 }
 
 .card-container .card-content .title {

@@ -1420,8 +1420,6 @@
     transition: background 0.2s;
 }
 
-}
-
 /* ── Structured Group Cards (Redesign) ──────────────── */
 .group-container-card {
     background: var(--card-bg);

@@ -1,5 +1,6 @@
 window.gaugeViewMode = false;
 window.echartsInstances = window.echartsInstances || {};
+window.lastLiveData = null; // Cache last fetched live data for instant gauge toggle
 document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -246,6 +247,9 @@ function setPlantViewMode(mode) {
     btnPlantHistory?.classList.toggle("active-view-btn", mode === "history");
     if (historyFilterPanel) {
         historyFilterPanel.style.display = mode === "history" ? "block" : "none";
+    }
+    if (gaugeToggleContainer) {
+        gaugeToggleContainer.style.display = mode === "live" ? "flex" : "none";
     }
     if (!plantSelect?.value || !meterSelect?.value) return;
     lastVisualSignature = "";
@@ -910,6 +914,10 @@ function createCards(data){
             params.forEach(p => {
                 cardsContainer.insertAdjacentHTML('beforeend', getBarChartHTML(p[0], [{label: "Current", value: p[1] ?? 0, unit: p[2]}]));
             });
+        } else if (window.gaugeViewMode) {
+            params.forEach(p => {
+                cardsContainer.insertAdjacentHTML('beforeend', getGaugeHTML(p[0], p[1] ?? 0, p[2], selectedMeterName));
+            });
         } else {
             params.forEach(p=>{
                 cardsContainer.insertAdjacentHTML('beforeend', getCardHTML(p[0], p[1], p[2], data.status, false, selectedMeterName));
@@ -922,10 +930,14 @@ function createCards(data){
         if (barGraphToggle.checked) {
             const dataPoints = [{label: "Current Energy", value: data.kwh ?? 0, unit: "kWh"}];
             cardsContainer.insertAdjacentHTML('beforeend', getBarChartHTML("Energy Consumption", dataPoints));
+        } else if (window.gaugeViewMode) {
+            cardsContainer.insertAdjacentHTML('beforeend', getGaugeHTML("Energy", data.kwh ?? 0, "kWh", selectedMeterName));
         } else {
             cardsContainer.insertAdjacentHTML('beforeend', getCardHTML("Energy", data.kwh, "kWh", data.status, true, selectedMeterName));
         }
     }
+    
+    if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
 }
 
 function renderEnergySummaryCard(summary) {
@@ -1087,6 +1099,10 @@ function createCardsForAll(dataArray){
                 params.forEach(p => {
                     cardGrid.insertAdjacentHTML('beforeend', getBarChartHTML(p[0], [{label: "Current", value: p[1] ?? 0, unit: p[2]}]));
                 });
+            } else if (window.gaugeViewMode) {
+                params.forEach(p => {
+                    cardGrid.insertAdjacentHTML('beforeend', getGaugeHTML(p[0], p[1] ?? 0, p[2], d.meter_name));
+                });
             } else {
                 params.forEach(p => {
                     cardGrid.insertAdjacentHTML('beforeend', getCardHTML(p[0], p[1], p[2], d.status, false, d.meter_name, {
@@ -1102,6 +1118,8 @@ function createCardsForAll(dataArray){
             if (barGraphToggle.checked) {
                 const dataPoints = [{label: "Current Energy", value: d.kwh ?? 0, unit: "kWh"}];
                 cardGrid.insertAdjacentHTML('beforeend', getBarChartHTML("Energy Consumption", dataPoints));
+            } else if (window.gaugeViewMode) {
+                cardGrid.insertAdjacentHTML('beforeend', getGaugeHTML("Energy", d.kwh ?? 0, "kWh", d.meter_name));
             } else {
                 cardGrid.insertAdjacentHTML('beforeend', getCardHTML("Energy", d.kwh, "kWh", d.status, true, d.meter_name, {
                     btnText: d.status === "OK" ? "Device Online" : "Check Device",
@@ -1113,6 +1131,8 @@ function createCardsForAll(dataArray){
         meterDiv.appendChild(cardGrid);
         cardsContainer.appendChild(meterDiv);
     });
+    
+    if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
 }
 
 // ================= LOAD DATA =================
@@ -1238,6 +1258,7 @@ async function loadBaseCardsOnMeterSelection() {
         const visualSig = buildVisualSignature(filteredData);
         if (visualSig === lastVisualSignature) return;
         lastVisualSignature = visualSig;
+        window.lastLiveData = { type: 'all', data: filteredData };
         createCardsForAll(filteredData);
         return;
     }
@@ -1303,6 +1324,7 @@ async function loadBaseCardsOnMeterSelection() {
         const visualSig = buildVisualSignature(data[0]);
         if (visualSig === lastVisualSignature) return;
         lastVisualSignature = visualSig;
+        window.lastLiveData = { type: 'single', data: data[0] };
         createCards(data[0]);
     } else {
         lastVisualSignature = "";
@@ -1798,7 +1820,17 @@ const gaugeToggleContainer = document.getElementById('gaugeToggleContainer');
 if (gaugeViewToggle) {
     gaugeViewToggle.addEventListener('change', () => {
         window.gaugeViewMode = gaugeViewToggle.checked;
-        if (plantSelect.value && meterSelect.value) {
+        // Re-render instantly from cached data — no API fetch needed
+        if (window.lastLiveData && plantSelect.value && meterSelect.value) {
+            lastVisualSignature = ""; // force re-render
+            if (window.lastLiveData.type === 'all') {
+                createCardsForAll(window.lastLiveData.data);
+            } else if (window.lastLiveData.type === 'single') {
+                createCards(window.lastLiveData.data);
+            } else {
+                loadBaseCardsOnMeterSelection();
+            }
+        } else if (plantSelect.value && meterSelect.value) {
             loadBaseCardsOnMeterSelection();
         }
     });

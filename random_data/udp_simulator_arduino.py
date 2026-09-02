@@ -4,11 +4,11 @@ import time
 import random
 
 # Configure target IP and Port (User changed this in udp_simulator.py)
-UDP_IP = "127.0.0.1" 
+UDP_IP = "100.77.110.74" 
 UDP_PORT = 10011
 
 # The ID of the Gateway/Device sending data (Matches PLANT_ID in Arduino)
-DEVICE_ID = "202330"
+DEVICE_ID = "202603"
 
 # Define the meters 1 through 32 as the Arduino does
 MIN_SLAVE_ID = 1
