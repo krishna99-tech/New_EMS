@@ -11,7 +11,7 @@ def get_all_meter_configs():
     conn.close()
     return [dict(r) for r in rows]
 
-def save_meter_config(plant: str, meter_id: int, name: str, m_type: str = "submeter"):
+def save_meter_config(config_id: int, plant: str, meter_id: int, name: str, m_type: str = "submeter"):
     if not plant or not meter_id or not name:
         raise HTTPException(status_code=400, detail="Missing fields")
 
@@ -27,13 +27,17 @@ def save_meter_config(plant: str, meter_id: int, name: str, m_type: str = "subme
             conn.close()
             raise HTTPException(status_code=400, detail="Only one incomer is allowed per plant")
 
-    cur.execute("SELECT id FROM meter_config WHERE plant=%s AND meter_id=%s", (plant, meter_id))
-    existing = cur.fetchone()
+    if config_id:
+        cur.execute("SELECT id FROM meter_config WHERE id=%s", (config_id,))
+        existing = cur.fetchone()
+    else:
+        cur.execute("SELECT id FROM meter_config WHERE plant=%s AND meter_id=%s", (plant, meter_id))
+        existing = cur.fetchone()
 
     if existing:
         cur.execute(
-            "UPDATE meter_config SET name=%s, type=%s WHERE id=%s",
-            (name, m_type, existing[0]),
+            "UPDATE meter_config SET plant=%s, meter_id=%s, name=%s, type=%s WHERE id=%s",
+            (plant, meter_id, name, m_type, existing[0]),
         )
     else:
         cur.execute(

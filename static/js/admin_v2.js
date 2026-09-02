@@ -48,7 +48,10 @@ window.loadDiscoveredDevices = async function() {
     if (!list) return; // Prevent execution on pages without this element
     try {
         const res = await fetch("/api/device_heartbeats");
-        if (!res.ok) throw new Error("Not logged in");
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Server Error (${res.status}): ${errorText}`);
+        }
         const devices = await res.json();
         window.globalHeartbeats = devices;
 
@@ -68,7 +71,8 @@ window.loadDiscoveredDevices = async function() {
             updateAdminStats(globalPlants, globalDevices, devices);
         }
     } catch (e) {
-        list.innerHTML = `<div style="grid-column:1/-1; color:#ef4444; font-size:0.83rem; padding:12px;">Failed to load devices. Make sure you are logged in.</div>`;
+        console.error("fetchDevices error:", e);
+        list.innerHTML = `<div style="grid-column:1/-1; color:#ef4444; font-size:0.83rem; padding:12px;">Failed to load devices: ${e.message}</div>`;
     }
 };
 
@@ -148,9 +152,8 @@ function updateAdminStats(plants, devices, heartbeats) {
 function updateGroupStats() {
     const elGroups = document.getElementById("statGroupCount");
     const elMembers = document.getElementById("statMemberCount");
-    if (!elGroups) return;
-    elGroups.textContent = globalMeterGroups.length;
-    elMembers.textContent = globalMeterGroups.reduce((s, g) => s + (g.members?.length || 0), 0);
+    if (elGroups) elGroups.textContent = globalMeterGroups.length;
+    if (elMembers) elMembers.textContent = globalMeterGroups.reduce((s, g) => s + (g.members?.length || 0), 0);
 }
 
 // ── Register Device Modal ──────────────────────────────────────────────────────
@@ -442,6 +445,7 @@ window.filterPlants = function() {
 window.openDeviceModal = function(plantName = "") {
     deviceModalTitle.innerText = "Add New Device";
     deviceForm.reset();
+    currentConfigId = null;
     
     populatePlantSelect(plantName);
     const devPlantSelect = document.getElementById("devPlant");
@@ -566,6 +570,9 @@ deviceForm?.addEventListener("submit", (e) => {
         name: document.getElementById("devName").value,
         type: document.getElementById("devType").value
     };
+    if (currentConfigId) {
+        payload.id = currentConfigId;
+    }
     
     // In our backend, saving handles both insert and update based on plant+meter_id.
     // However, if we edit and change meter_id, it might create a new one instead of updating.

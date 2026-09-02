@@ -77,6 +77,7 @@ def get_meter_configs(request: Request):
 async def save_meter_config(request: Request):
     require_login(request)
     data = await request.json()
+    config_id = data.get("id")
     plant    = data.get("plant")
     meter_id = data.get("meter_id")
     name     = data.get("name")
@@ -88,7 +89,7 @@ async def save_meter_config(request: Request):
     except ValueError:
         raise HTTPException(status_code=400, detail="Meter ID must be an integer")
 
-    return meter_config_service.save_meter_config(plant, meter_id, name, m_type)
+    return meter_config_service.save_meter_config(config_id, plant, meter_id, name, m_type)
 
 
 @router.delete("/api/meter_config/{config_id}")

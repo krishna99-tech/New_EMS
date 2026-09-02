@@ -59,12 +59,45 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .catch(err => console.error("Error fetching plants:", err));
 
-    document.getElementById("reportForm").addEventListener("submit", () => {
-        showGlobalLoader("Generating PDF Report...");
-        setTimeout(() => {
-            hideGlobalLoader();
-        }, 1500);
-    });
+    const form = document.getElementById("reportForm");
+    if (form) {
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = form.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            btn.textContent = "Generating PDF...";
+            btn.disabled = true;
+
+            try {
+                const plant = document.getElementById("plantSelect").value;
+                const start = document.getElementById("startDate").value;
+                const end = document.getElementById("endDate").value;
+                
+                const res = await fetch(`/api/reports/download?plant=${encodeURIComponent(plant)}&start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`);
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(errText || `Server returned ${res.status}`);
+                }
+                
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = `EMS_Report_${plant}_${start}_to_${end}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+            } catch (err) {
+                console.error("Download failed:", err);
+                alert("Failed to download PDF: " + err.message);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

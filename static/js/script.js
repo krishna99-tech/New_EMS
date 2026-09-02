@@ -1,3 +1,5 @@
+window.gaugeViewMode = false;
+window.echartsInstances = window.echartsInstances || {};
 document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -248,6 +250,7 @@ function setPlantViewMode(mode) {
     if (!plantSelect?.value || !meterSelect?.value) return;
     lastVisualSignature = "";
     if (mode === "history") {
+        closeLiveStream();
         syncShiftUiForMeter();
         if (!shiftAnalysisToggle.checked && !customTimeToggle.checked && !barGraphToggle.checked) {
             shiftAnalysisToggle.checked = true;
@@ -654,6 +657,8 @@ async function loadMeters(plant){
 
 // ================= BAR CHART HELPER =================
 
+let globalEChartIdCounter = 0;
+
 function getBarChartHTML(title, dataPoints, isFullWidth = false) {
     if (!dataPoints || dataPoints.length === 0) {
         const containerStyle = isFullWidth ? 'style="grid-column: 1 / -1; width: 100%;"' : '';
@@ -689,11 +694,26 @@ function getBarChartHTML(title, dataPoints, isFullWidth = false) {
     }).join("");
 
     const containerStyle = isFullWidth ? 'style="grid-column: 1 / -1; width: 100%;"' : '';
+    const chartId = `echart-history-${++globalEChartIdCounter}`;
+    const dataStr = JSON.stringify(safePoints).replace(/"/g, '&quot;');
+    const isLine = window.lineChartMode === true;
 
     return `
-    <div class="graph-container" ${containerStyle}>
-        <h4 class="graph-title">${title}</h4>
-        <div class="industrial-chart-shell">
+    <div class="graph-container echart-wrapper" ${containerStyle}>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 4px;">
+            <h4 class="graph-title" style="margin: 0;">${title}</h4>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; color: var(--text-sub);">Bar</span>
+                <label class="ios-switch">
+                    <input type="checkbox" class="echart-type-toggle" ${isLine ? 'checked' : ''}>
+                    <span class="ios-slider"></span>
+                </label>
+                <span style="font-size: 12px; color: var(--text-sub);">Line</span>
+            </div>
+        </div>
+        
+        <!-- Old CSS Bar Chart (hidden if line mode) -->
+        <div class="industrial-chart-shell css-bar-chart" style="${isLine ? 'display: none;' : ''}">
             <div class="industrial-y-axis">
                 ${yAxisHtml}
             </div>
@@ -704,8 +724,111 @@ function getBarChartHTML(title, dataPoints, isFullWidth = false) {
                 </div>
             </div>
         </div>
+        
+        <!-- New ECharts Line Chart (hidden if bar mode) -->
+        <div class="industrial-chart-shell echart-line-chart" style="padding: 10px; ${isLine ? '' : 'display: none;'}">
+            <div id="${chartId}" class="echart-container" data-points="${dataStr}" style="width: 100%; height: 300px;"></div>
+        </div>
     </div>`;
 }
+
+function initEChartsInDOM() {
+    const containers = document.querySelectorAll('.echart-container:not(.initialized)');
+    containers.forEach(container => {
+        container.classList.add('initialized');
+        const rawData = container.getAttribute('data-points');
+        if (!rawData) return;
+        
+        const dataPoints = JSON.parse(rawData);
+        const xAxisData = dataPoints.map(p => p.label);
+        const seriesData = dataPoints.map(p => ({
+            value: p.value,
+            unit: p.unit
+        }));
+        
+        const chart = echarts.init(container);
+        
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    const p = params[0];
+                    const unit = p.data.unit || '';
+                    return `<strong>${p.name}</strong><br/>${p.marker} ${p.value} ${unit}`;
+                }
+            },
+            grid: { left: '3%', right: '4%', bottom: '3%', top: '8%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: xAxisData,
+                axisLabel: { color: 'var(--text-sub)' }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: { color: 'var(--text-sub)' },
+                splitLine: { lineStyle: { color: 'var(--border-color)', type: 'dashed', opacity: 0.5 } }
+            },
+            series: [
+                {
+                    data: seriesData,
+                    type: 'line',
+                    itemStyle: { color: '#10b981' },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(16, 185, 129, 0.4)' },
+                            { offset: 1, color: 'rgba(16, 185, 129, 0)' }
+                        ])
+                    },
+                    smooth: true,
+                    label: {
+                        show: true,
+                        position: 'top',
+                        formatter: function(p) { return p.value + (p.data.unit ? ' ' + p.data.unit : ''); },
+                        color: 'var(--text-main)',
+                        fontSize: 11
+                    }
+                }
+            ]
+        };
+        chart.setOption(option);
+        
+        // Handle window resize
+        window.addEventListener('resize', () => chart.resize());
+    });
+}
+
+// Global Event Delegation for the toggles
+document.addEventListener('change', (e) => {
+    if (e.target && e.target.classList.contains('echart-type-toggle')) {
+        window.lineChartMode = e.target.checked;
+        
+        // Update all initialized charts on the page dynamically
+        document.querySelectorAll('.echart-wrapper').forEach(wrapper => {
+            const cssChart = wrapper.querySelector('.css-bar-chart');
+            const echartShell = wrapper.querySelector('.echart-line-chart');
+            if (cssChart && echartShell) {
+                if (window.lineChartMode) {
+                    cssChart.style.display = 'none';
+                    echartShell.style.display = 'block';
+                    // Trigger resize to fix EChart rendering in previously hidden div
+                    const chartContainer = echartShell.querySelector('.echart-container');
+                    if (chartContainer) {
+                        const chartInstance = echarts.getInstanceByDom(chartContainer);
+                        if (chartInstance) chartInstance.resize();
+                    }
+                } else {
+                    cssChart.style.display = 'flex'; // Or whatever default display is
+                    echartShell.style.display = 'none';
+                }
+            }
+        });
+        
+        // Sync all toggles to the same state
+        document.querySelectorAll('.echart-type-toggle').forEach(t => {
+            if (t !== e.target) t.checked = window.lineChartMode;
+        });
+    }
+});
 
 function getTableHTML(title, dataPoints, isFullWidth, isCustom = false, isAllShifts = false) {
     if (!dataPoints || dataPoints.length === 0) {
@@ -850,6 +973,9 @@ function renderEnergySummaryCard(summary) {
             : `${metricName} Data - ${summary.selected_shift === 'all' ? 'All Shifts' : summary.selected_shift}`;
         cardsContainer.insertAdjacentHTML('beforeend', getTableHTML(title, dataPoints, true, summary.mode === "custom", summary.selected_shift === "all"));
     }
+    updateInsightCardsMeta({ barCount: (summary.bars || []).length });
+    if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
+    if (typeof initEChartsInDOM === 'function') initEChartsInDOM();
 }
 
 async function loadEnergySummary(plant, meter) {
@@ -904,6 +1030,8 @@ function renderIncomerShiftGraphs(summary) {
         }));
         cardsContainer.insertAdjacentHTML("beforeend", getBarChartHTML(s.label, points));
     });
+    if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
+    if (typeof initEChartsInDOM === 'function') initEChartsInDOM();
 }
 
 // ================= CREATE CARDS FOR ALL =================
@@ -994,6 +1122,9 @@ async function loadData(){
     // shiftSelect.disabled is true in custom time mode (shift dropdown not needed).
     // Only block if NEITHER shift analysis NOR custom time is active.
     if (shiftSelect.disabled && !customTimeToggle.checked) return;
+    
+    const fromValue = fromDateTime.value;
+    const toValue = toDateTime.value;
 
     const plant = plantSelect.value;
     const meter = meterSelect.value;
@@ -1160,6 +1291,10 @@ async function loadBaseCardsOnMeterSelection() {
             if (barGraphToggle.checked) {
                 const dataPoints = [{label: "Yesterday Total", value: yVal, unit: "kWh"}];
                 cardsContainer.insertAdjacentHTML("beforeend", getBarChartHTML("Energy Consumption", dataPoints, true));
+                if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
+    if (typeof initEChartsInDOM === 'function') initEChartsInDOM();
+            } else if (window.gaugeViewMode) {
+                cardsContainer.insertAdjacentHTML("beforeend", getGaugeHTML("Yesterday Total Consumption", yVal, "kWh", meterName));
             } else {
                 cardsContainer.insertAdjacentHTML("beforeend", getCardHTML("Yesterday Total Consumption", yVal, "kWh", data[0].status || "OK", true, meterName));
             }
@@ -1210,6 +1345,8 @@ function createSummaryCardsForAll(summaries) {
         } else {
             cardGrid.insertAdjacentHTML("beforeend", getTableHTML("Energy Consumption", dataPoints, true, summary.mode === "custom"));
         }
+        if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
+    if (typeof initEChartsInDOM === 'function') initEChartsInDOM();
         meterDiv.appendChild(cardGrid);
         cardsContainer.appendChild(meterDiv);
     });
@@ -1271,7 +1408,7 @@ plantSelect.addEventListener("change", async ()=>{
     }
     
     syncFloatingHomeBtn();
-    updateAuthUI();
+    
 });
 
 meterSelect.addEventListener("change", () => {
@@ -1370,7 +1507,6 @@ floatingHomeBtn?.addEventListener("click", () => {
     barGraphToggle.checked = false;
     syncShiftUiForMeter();
     syncFloatingHomeBtn();
-    updateAuthUI();
 });
 
 // ================= THEME TOGGLE =================
@@ -1655,3 +1791,94 @@ document.addEventListener("DOMContentLoaded", () => {
     renderScadaLanding();
 });
 
+
+
+const gaugeViewToggle = document.getElementById('gaugeViewToggle');
+const gaugeToggleContainer = document.getElementById('gaugeToggleContainer');
+if (gaugeViewToggle) {
+    gaugeViewToggle.addEventListener('change', () => {
+        window.gaugeViewMode = gaugeViewToggle.checked;
+        if (plantSelect.value && meterSelect.value) {
+            loadBaseCardsOnMeterSelection();
+        }
+    });
+}
+
+
+// ================= ECHARTS GAUGES =================
+function getGaugeConfig(title, value, unit) {
+    let max = 100;
+    if (unit === 'V') max = 500;
+    else if (unit === 'A') max = value > 100 ? value * 1.5 : 100;
+    else if (unit === 'kWh') max = value > 1000 ? value * 1.2 : (value > 100 ? value * 1.5 : 100);
+    else if (unit === 'kW') max = value > 100 ? value * 1.5 : 100;
+    else if (unit === 'Hz') max = 60;
+    else if (unit === 'PF') max = 1.0;
+    
+    return {
+        series: [{
+            type: 'gauge',
+            center: ['50%', '60%'],
+            startAngle: 200,
+            endAngle: -20,
+            min: 0,
+            max: max,
+            splitNumber: 5,
+            itemStyle: { color: '#3b82f6' },
+            progress: { show: true, width: 12 },
+            pointer: { show: true, length: '60%', width: 4 },
+            axisLine: { lineStyle: { width: 12, color: [[1, 'var(--border-color)']] } },
+            axisTick: { distance: -20, length: 6, lineStyle: { color: 'var(--text-sub)', width: 1 } },
+            splitLine: { distance: -25, length: 10, lineStyle: { color: 'var(--text-sub)', width: 2 } },
+            axisLabel: {
+                distance: 15,
+                color: 'var(--text-sub)',
+                fontSize: 10,
+                formatter: function (val) {
+                    if (val >= 1000) return (val/1000).toFixed(1) + 'k';
+                    return Math.round(val);
+                }
+            },
+            anchor: { show: true, showAbove: true, size: 16, itemStyle: { color: '#3b82f6' } },
+            title: { show: false },
+            detail: { show: false },
+            data: [{ value: value }]
+        }]
+    };
+}
+
+function getGaugeHTML(title, value, unit, meterId) {
+    const safeMeterId = String(meterId).replace(/[^a-zA-Z0-9]/g, '_');
+    const safeTitle = String(title).replace(/[^a-zA-Z0-9]/g, '_');
+    const gaugeId = `gauge_${safeMeterId}_${safeTitle}`;
+    
+    return `
+    <div class="card" style="display:flex; flex-direction:column; align-items:center; position:relative; overflow:hidden;">
+        <h3 class="title" style="margin-bottom: 5px;">${title}</h3>
+        <div id="${gaugeId}" class="echarts-gauge" data-title="${title}" data-value="${value}" data-unit="${unit}" style="width: 100%; height: 180px;"></div>
+        <div style="text-align:center; position:absolute; bottom:15px; width:100%;">
+            <span id="${gaugeId}_val" style="font-size: 20px; font-weight: 700; color: var(--text-main);">${Number(value).toFixed(2)} ${unit}</span>
+        </div>
+    </div>`;
+}
+
+function initGaugesInDOM() {
+    const containers = document.querySelectorAll('.echarts-gauge:not(.initialized)');
+    containers.forEach(container => {
+        container.classList.add('initialized');
+        const id = container.id;
+        const title = container.getAttribute('data-title');
+        const value = Number(container.getAttribute('data-value')) || 0;
+        const unit = container.getAttribute('data-unit');
+        
+        if (window.echartsInstances[id]) {
+            window.echartsInstances[id].dispose();
+        }
+        
+        const chart = echarts.init(container);
+        chart.setOption(getGaugeConfig(title, value, unit));
+        window.echartsInstances[id] = chart;
+        
+        window.addEventListener('resize', () => chart.resize());
+    });
+}

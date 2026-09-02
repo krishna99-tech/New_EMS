@@ -1,4 +1,5 @@
-{% macro render_filter_bar(panel_id="historyFilterPanel", panel_class="filter-panel", has_title=false, submit_text="Apply Filters", extra_buttons="") %}
+{% macro render_filter_bar(panel_id="historyFilterPanel", panel_class="filter-panel", has_title=false,
+submit_text="Apply Filters", extra_buttons="") %}
 <div id="{{ panel_id }}" class="{{ panel_class }}" style="display: none;">
     {% if has_title %}
     <p class="filter-panel-title">Historical filters</p>
@@ -17,7 +18,7 @@
         <label class="tick-card" for="barGraphToggle">
             <input id="barGraphToggle" type="checkbox" />
             <span class="tick-dot"></span>
-            <span>Show Bar Graphs</span>
+            <span>Show Charts</span>
         </label>
         <div class="select-card">
             <label>Shift</label>

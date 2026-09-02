@@ -108,6 +108,7 @@
             <div class="select-wrapper">
                 <select id="meterSelect" class="landing-select" aria-label="Select Meter">
                     <option value="all">All Meters</option>
+                    <!-- Filled dynamically -->
                 </select>
             </div>
         </div>
@@ -116,6 +117,15 @@
     <!-- Live View -->
     <div id="liveViewContainer" class="plant-live-panel">
         <div id="liveKpiStrip" class="kpi-grid" style="margin-bottom: 24px;"></div>
+        
+        <div class="gauge-switch-wrapper" id="gaugeToggleContainer" style="display: none; align-items: center; justify-content: flex-end; margin-bottom: 12px; padding-right: 15px;">
+            <span style="margin-right: 10px; font-weight: 500; color: var(--text-sub); font-size: 0.9rem;">Show Gauges</span>
+            <label class="ios-switch">
+                <input type="checkbox" id="gaugeViewToggle">
+                <span class="ios-slider"></span>
+            </label>
+        </div>
+        
         <p id="liveLastUpdated" class="last-updated-info"></p>
         <div class="cards" id="cardsContainer"></div>
     </div>
