@@ -109,13 +109,30 @@ def init_db():
         )
     """)
 
-    # ── plants table ───────────────────────────────────────────────────────────
+    # ── locations table ────────────────────────────────────────────────────────
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS plants (
+        CREATE TABLE IF NOT EXISTS locations (
             id   SERIAL PRIMARY KEY,
             name TEXT UNIQUE
         )
     """)
+
+    # ── plants table ───────────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS plants (
+            id   SERIAL PRIMARY KEY,
+            name TEXT UNIQUE,
+            location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL
+        )
+    """)
+    
+    # ── Add any columns that may be missing in plants (migration safety) ───────
+    cur.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_name='plants'"
+    )
+    existing_plants_columns = {row[0] for row in cur.fetchall()}
+    if "location_id" not in existing_plants_columns:
+        cur.execute("ALTER TABLE plants ADD COLUMN location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL")
 
     # ── device_heartbeats table ────────────────────────────────────────────────
     # Logs every UDP packet received — even from unconfigured devices.
@@ -146,9 +163,18 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS meter_groups (
             id   SERIAL PRIMARY KEY,
-            name TEXT UNIQUE
+            name TEXT UNIQUE,
+            location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL
         )
     """)
+    
+    # ── Add any columns that may be missing in meter_groups (migration safety) ─
+    cur.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_name='meter_groups'"
+    )
+    existing_groups_columns = {row[0] for row in cur.fetchall()}
+    if "location_id" not in existing_groups_columns:
+        cur.execute("ALTER TABLE meter_groups ADD COLUMN location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL")
 
     # ── meter_group_members table ──────────────────────────────────────────────
     cur.execute("""

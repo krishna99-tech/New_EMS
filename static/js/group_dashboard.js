@@ -29,6 +29,14 @@ let livePollingInterval = null;
 let currentGroupMeta = null;
 let groupChartInstance = null;
 let lastHistorySummary = null;
+let currentChartType = 'bar';
+
+window.toggleGroupChartType = function() {
+    currentChartType = currentChartType === 'bar' ? 'line' : 'bar';
+    if (lastHistorySummary) {
+        renderHistoryCards(lastHistorySummary);
+    }
+};
 
 // Initial state and event listeners
 if (btnGroupLive) btnGroupLive.addEventListener("click", () => setViewMode("live"));
@@ -176,6 +184,16 @@ async function loadGroupMeta() {
         currentGroupMeta = groups.find(g => g.id == groupId);
         if (currentGroupMeta && groupTitle) {
             groupTitle.textContent = `Group: ${currentGroupMeta.name}`;
+            
+            const locEl = document.getElementById("groupLocation");
+            const locText = document.getElementById("groupLocationText");
+            const subTitle = document.getElementById("groupSubtitle");
+            
+            if (locEl && locText) {
+                locText.textContent = currentGroupMeta.location_name || 'Unassigned';
+                locEl.style.display = "flex";
+            }
+            if (subTitle) subTitle.style.display = "none";
         }
     } catch (e) {
         console.error("Failed to load group meta", e);
@@ -197,69 +215,93 @@ function renderLiveView(data) {
     if (!liveKpiStrip || !cardsContainer) return;
     liveKpiStrip.innerHTML = "";
     cardsContainer.innerHTML = "";
-    
+
     if (!data || !data.meters) {
         cardsContainer.innerHTML = `<div class="dashboard-empty-state"><p>No live data available for this group.</p></div>`;
         return;
     }
 
-    // Render KPI Strip for the group
-    const stripHtml = `
-        <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 200px; border: 1px solid var(--dj-border); background: var(--dj-bg-sub); border-radius: 4px; padding: 15px; text-align: center;">
-                <h4 style="margin: 0 0 10px 0; font-size: 13px; color: var(--dj-text-sub); text-transform: uppercase;">Today's Consumption</h4>
-                <div style="font-size: 24px; font-weight: bold; color: var(--dj-header-bg);">${(data.today_consumption_kwh || 0).toFixed(2)} <span style="font-size:14px; color:var(--dj-text-sub);">kWh</span></div>
+    const todayKwh  = (data.today_consumption_kwh || 0).toFixed(2);
+    const shiftKwh  = (data.current_shift_consumption_kwh || 0).toFixed(2);
+    const onlineCnt = data.online_count || 0;
+    const totalCnt  = data.member_count || 0;
+    const offlineCnt = totalCnt - onlineCnt;
+
+    liveKpiStrip.innerHTML = `
+        <div class="gdash-kpi-card">
+            <div class="gdash-kpi-icon blue">⚡</div>
+            <div class="gdash-kpi-body">
+                <div class="gdash-kpi-label">Today's Consumption</div>
+                <div class="gdash-kpi-value">${todayKwh}</div>
+                <div class="gdash-kpi-unit">kWh total</div>
             </div>
-            <div style="flex: 1; min-width: 200px; border: 1px solid var(--dj-border); background: var(--dj-bg-sub); border-radius: 4px; padding: 15px; text-align: center;">
-                <h4 style="margin: 0 0 10px 0; font-size: 13px; color: var(--dj-text-sub); text-transform: uppercase;">Members Online</h4>
-                <div style="font-size: 24px; font-weight: bold; color: var(--dj-header-bg);">${data.online_count} <span style="font-size:14px; color:var(--dj-text-sub);">/ ${data.member_count}</span></div>
+        </div>
+        <div class="gdash-kpi-card">
+            <div class="gdash-kpi-icon orange">🔄</div>
+            <div class="gdash-kpi-body">
+                <div class="gdash-kpi-label">Shift Consumption</div>
+                <div class="gdash-kpi-value">${shiftKwh}</div>
+                <div class="gdash-kpi-unit">kWh this shift</div>
             </div>
-            <div style="flex: 1; min-width: 200px; border: 1px solid var(--dj-border); background: var(--dj-bg-sub); border-radius: 4px; padding: 15px; text-align: center;">
-                <h4 style="margin: 0 0 10px 0; font-size: 13px; color: var(--dj-text-sub); text-transform: uppercase;">Shift Consumption</h4>
-                <div style="font-size: 24px; font-weight: bold; color: var(--dj-header-bg);">${(data.current_shift_consumption_kwh || 0).toFixed(2)} <span style="font-size:14px; color:var(--dj-text-sub);">kWh</span></div>
+        </div>
+        <div class="gdash-kpi-card">
+            <div class="gdash-kpi-icon green">✅</div>
+            <div class="gdash-kpi-body">
+                <div class="gdash-kpi-label">Members Online</div>
+                <div class="gdash-kpi-value">${onlineCnt}<span style="font-size:0.75rem; font-weight:500; color:var(--dj-text-sub); font-family:sans-serif;"> / ${totalCnt}</span></div>
+                <div class="gdash-kpi-unit">${offlineCnt > 0 ? offlineCnt + ' offline' : 'all online'}</div>
+            </div>
+        </div>
+        <div class="gdash-kpi-card">
+            <div class="gdash-kpi-icon purple">📊</div>
+            <div class="gdash-kpi-body">
+                <div class="gdash-kpi-label">Avg per Meter</div>
+                <div class="gdash-kpi-value">${totalCnt > 0 ? (parseFloat(todayKwh)/totalCnt).toFixed(2) : '—'}</div>
+                <div class="gdash-kpi-unit">kWh / meter</div>
             </div>
         </div>
     `;
-    liveKpiStrip.innerHTML = stripHtml;
-    
+
     const lastUpdatedEl = document.getElementById("liveLastUpdated");
     if (lastUpdatedEl) {
-        lastUpdatedEl.innerText = `Last Updated: ${data.last_updated || new Date().toLocaleTimeString()}`;
+        lastUpdatedEl.innerText = `🕐 Last updated: ${data.last_updated || new Date().toLocaleTimeString()}`;
     }
 
-    // Render a card for each member
+    // Render a premium card for each member meter
     data.meters.forEach(member => {
-        const statusColor = member.status === 'OK' ? 'var(--dj-success, #10b981)' : 'var(--dj-danger, #ef4444)';
-        const kwhDisplay = member.kwh !== null && member.kwh !== undefined ? Number(member.kwh).toFixed(2) : '—';
-        
-        const cardHtml = `
-            <div style="border: 1px solid var(--dj-border, #e5e7eb); border-radius: 6px; background: var(--dj-bg, #ffffff); color: var(--dj-text, #1f2937); overflow: hidden; height: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                <div style="background: var(--dj-header-bg, #4f46e5); color: #ffffff; padding: 10px 14px; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-                    <span>${member.meter_name}</span>
-                    <span style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-weight: normal;">#${member.meter_id}</span>
+        const isOnline   = member.status === 'OK';
+        const statusClass = isOnline ? 'online' : 'offline';
+        const statusText  = isOnline ? '● Online' : '● Offline';
+        const kwhDisplay  = member.kwh !== null && member.kwh !== undefined ? Number(member.kwh).toFixed(2) : '—';
+        const timeStr     = member.timestamp ? (member.timestamp.split(" ")[1] || member.timestamp) : '—';
+        const pulseDot    = isOnline ? '<span class="gdash-pulse"></span>' : '';
+
+        const card = document.createElement("div");
+        card.className = "gdash-meter-card";
+        card.innerHTML = `
+            <div class="gdash-meter-card-head ${statusClass}">
+                <span>${member.meter_name}</span>
+                <span class="gdash-meter-id-badge">#${member.meter_id}</span>
+            </div>
+            <div class="gdash-meter-body">
+                <div class="gdash-kwh-big">
+                    <div class="gdash-kwh-num">${kwhDisplay}</div>
+                    <div class="gdash-kwh-sub">kWh Register</div>
                 </div>
-                <div style="padding: 15px;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                        <tr>
-                            <td style="padding: 6px 0; border-bottom: 1px solid var(--dj-border, #e5e7eb); color: var(--dj-text-sub, #6b7280);">Status</td>
-                            <td style="padding: 6px 0; border-bottom: 1px solid var(--dj-border, #e5e7eb); text-align: right; font-weight: bold; color: ${statusColor};">${member.status}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 6px 0; border-bottom: 1px solid var(--dj-border, #e5e7eb); color: var(--dj-text-sub, #6b7280);">Total Register</td>
-                            <td style="padding: 6px 0; border-bottom: 1px solid var(--dj-border, #e5e7eb); text-align: right; font-weight: bold;">${kwhDisplay} kWh</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 6px 0; color: var(--dj-text-sub, #6b7280);">Last Reading</td>
-                            <td style="padding: 6px 0; text-align: right; font-weight: bold;">${member.timestamp ? member.timestamp.split(" ")[1] || member.timestamp : '—'}</td>
-                        </tr>
-                    </table>
+                <div style="margin-top:10px;">
+                    <div class="gdash-meter-row">
+                        <span class="gdash-meter-row-label">Status</span>
+                        <span class="gdash-meter-row-val" style="color:${isOnline ? 'var(--dj-success,#16a34a)' : 'var(--dj-danger,#dc2626);'}">${pulseDot}${statusText}</span>
+                    </div>
+                    <div class="gdash-meter-row">
+                        <span class="gdash-meter-row-label">Last Reading</span>
+                        <span class="gdash-meter-row-val">${timeStr}</span>
+                    </div>
+                    ${member.plant ? `<div class="gdash-meter-row"><span class="gdash-meter-row-label">Plant</span><span class="gdash-meter-row-val">${member.plant}</span></div>` : ''}
                 </div>
             </div>
         `;
-        
-        const cardContainer = document.createElement("div");
-        cardContainer.innerHTML = cardHtml;
-        cardsContainer.appendChild(cardContainer.firstElementChild);
+        cardsContainer.appendChild(card);
     });
 }
 
@@ -320,47 +362,56 @@ function renderHistorySummary(data) {
     historySummaryStrip.innerHTML = "";
 
     const totalKwh = data.selected_total_kwh || 0;
-    const bars = data.bars || [];
+    const bars     = data.bars || [];
     const barCount = bars.length;
-    const avgKwh = barCount > 0 ? (totalKwh / barCount) : totalKwh;
+    const avgKwh   = barCount > 0 ? (totalKwh / barCount) : totalKwh;
 
     let peakLabel = "—";
     let peakVal = 0;
     if (bars.length > 0) {
         const peak = bars.reduce((max, b) => (b.consumption > max.consumption ? b : max), bars[0]);
         peakLabel = peak.label || peak.shift_name || "Peak";
-        peakVal = peak.consumption || 0;
+        peakVal   = peak.consumption || 0;
     } else {
         peakVal = totalKwh;
     }
 
-    const modeLabel = data.mode === "custom" ? "Custom Time" : (data.selected_shift === "all" ? "All Shifts" : data.selected_shift);
+    const modeLabel = data.mode === "custom" ? "Custom Range" : (data.selected_shift === "all" ? "All Shifts" : data.selected_shift);
 
-    const stripHtml = `
-        <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 200px; border: 1px solid var(--dj-border, #e5e7eb); background: var(--dj-bg-sub, #f9fafb); border-radius: 6px; padding: 15px; text-align: center;">
-                <h4 style="margin: 0 0 8px 0; font-size: 12px; color: var(--dj-text-sub, #6b7280); text-transform: uppercase; letter-spacing: 0.05em;">Total Consumption</h4>
-                <div style="font-size: 24px; font-weight: bold; color: var(--dj-header-bg, #4f46e5);">${totalKwh.toFixed(2)} <span style="font-size:14px; color:var(--dj-text-sub, #6b7280);">kWh</span></div>
-                <div style="font-size:11px; color:var(--dj-text-sub, #6b7280); margin-top:4px;">Period Total</div>
+    historySummaryStrip.innerHTML = `
+        <div class="gdash-kpi-card">
+            <div class="gdash-kpi-icon blue">⚡</div>
+            <div class="gdash-kpi-body">
+                <div class="gdash-kpi-label">Total Consumption</div>
+                <div class="gdash-kpi-value">${totalKwh.toFixed(2)}</div>
+                <div class="gdash-kpi-unit">kWh for period</div>
             </div>
-            <div style="flex: 1; min-width: 200px; border: 1px solid var(--dj-border, #e5e7eb); background: var(--dj-bg-sub, #f9fafb); border-radius: 6px; padding: 15px; text-align: center;">
-                <h4 style="margin: 0 0 8px 0; font-size: 12px; color: var(--dj-text-sub, #6b7280); text-transform: uppercase; letter-spacing: 0.05em;">Periods / Filter</h4>
-                <div style="font-size: 24px; font-weight: bold; color: var(--dj-header-bg, #4f46e5);">${barCount || 1} <span style="font-size:14px; color:var(--dj-text-sub, #6b7280);">${barCount === 1 ? 'bucket' : 'buckets'}</span></div>
-                <div style="font-size:11px; color:var(--dj-text-sub, #6b7280); margin-top:4px;">${modeLabel}</div>
+        </div>
+        <div class="gdash-kpi-card">
+            <div class="gdash-kpi-icon orange">📅</div>
+            <div class="gdash-kpi-body">
+                <div class="gdash-kpi-label">Periods</div>
+                <div class="gdash-kpi-value">${barCount || 1}</div>
+                <div class="gdash-kpi-unit">${modeLabel}</div>
             </div>
-            <div style="flex: 1; min-width: 200px; border: 1px solid var(--dj-border, #e5e7eb); background: var(--dj-bg-sub, #f9fafb); border-radius: 6px; padding: 15px; text-align: center;">
-                <h4 style="margin: 0 0 8px 0; font-size: 12px; color: var(--dj-text-sub, #6b7280); text-transform: uppercase; letter-spacing: 0.05em;">Avg per Period</h4>
-                <div style="font-size: 24px; font-weight: bold; color: var(--dj-header-bg, #4f46e5);">${avgKwh.toFixed(2)} <span style="font-size:14px; color:var(--dj-text-sub, #6b7280);">kWh</span></div>
-                <div style="font-size:11px; color:var(--dj-text-sub, #6b7280); margin-top:4px;">Average Consumption</div>
+        </div>
+        <div class="gdash-kpi-card">
+            <div class="gdash-kpi-icon green">📈</div>
+            <div class="gdash-kpi-body">
+                <div class="gdash-kpi-label">Avg per Period</div>
+                <div class="gdash-kpi-value">${avgKwh.toFixed(2)}</div>
+                <div class="gdash-kpi-unit">kWh average</div>
             </div>
-            <div style="flex: 1; min-width: 200px; border: 1px solid var(--dj-border, #e5e7eb); background: var(--dj-bg-sub, #f9fafb); border-radius: 6px; padding: 15px; text-align: center;">
-                <h4 style="margin: 0 0 8px 0; font-size: 12px; color: var(--dj-text-sub, #6b7280); text-transform: uppercase; letter-spacing: 0.05em;">Peak Period</h4>
-                <div style="font-size: 24px; font-weight: bold; color: var(--dj-header-bg, #4f46e5);">${peakVal.toFixed(2)} <span style="font-size:14px; color:var(--dj-text-sub, #6b7280);">kWh</span></div>
-                <div style="font-size:11px; color:var(--dj-text-sub, #6b7280); margin-top:4px;">${peakLabel}</div>
+        </div>
+        <div class="gdash-kpi-card">
+            <div class="gdash-kpi-icon purple">🏆</div>
+            <div class="gdash-kpi-body">
+                <div class="gdash-kpi-label">Peak Period</div>
+                <div class="gdash-kpi-value">${peakVal.toFixed(2)}</div>
+                <div class="gdash-kpi-unit">${peakLabel}</div>
             </div>
         </div>
     `;
-    historySummaryStrip.innerHTML = stripHtml;
 }
 
 function renderHistoryCards(data) {
@@ -393,7 +444,9 @@ function renderHistoryCards(data) {
         chartWrapper.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h3 style="margin: 0; font-size: 1.1rem; color: var(--dj-header-bg, #1f2937); font-weight: 600;">Aggregated Energy Consumption (kWh)</h3>
-                <span style="font-size: 0.8rem; color: var(--dj-text-sub, #6b7280); font-weight: 500;">Bar Chart View</span>
+                <button onclick="toggleGroupChartType()" style="background:var(--dj-bg-sub); border:1px solid var(--dj-border); border-radius:6px; padding:6px 10px; cursor:pointer; color:var(--dj-text); display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; transition:all 0.2s;">
+                    ${currentChartType === 'bar' ? '📈 Switch to Line' : '📊 Switch to Bar'}
+                </button>
             </div>
             <div style="position: relative; height: 320px; width: 100%;">
                 <canvas id="groupHistoryChart"></canvas>
@@ -418,17 +471,24 @@ function renderHistoryCards(data) {
             }
 
             groupChartInstance = new Chart(ctx, {
-                type: 'bar',
+                type: currentChartType,
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'Consumption (kWh)',
                         data: datasetsData,
-                        backgroundColor: 'rgba(79, 70, 229, 0.75)',
+                        backgroundColor: currentChartType === 'line' ? 'rgba(79, 70, 229, 0.15)' : 'rgba(79, 70, 229, 0.75)',
                         borderColor: '#4f46e5',
-                        borderWidth: 1.5,
-                        borderRadius: 4,
-                        maxBarThickness: 45
+                        borderWidth: currentChartType === 'line' ? 2.5 : 1.5,
+                        borderRadius: currentChartType === 'bar' ? 4 : 0,
+                        maxBarThickness: 45,
+                        fill: currentChartType === 'line',
+                        tension: 0.3,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#4f46e5',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
                     }]
                 },
                 options: {
@@ -520,56 +580,64 @@ function renderMemberBreakdown(data) {
 
     if (!hasMemberData) {
         memberBreakdownContainer.innerHTML = `
-            <div class="dashboard-empty-state" style="padding: 30px 20px; text-align: center; background: var(--dj-bg-sub, #f9fafb); border: 1px dashed var(--dj-border, #cccccc); border-radius: 8px; margin: 16px 0;">
-                <h4 style="margin: 0 0 4px 0; font-size: 0.95rem; font-weight: 600; color: var(--dj-text, #333333);">No Member Energy Share Data</h4>
-                <p style="margin: 0; font-size: 0.82rem; color: var(--dj-text-sub, #666666);">No energy consumption logged for individual meters in this window.</p>
+            <div class="dashboard-empty-state" style="padding: 30px 20px; text-align: center; background: var(--dj-bg-sub); border: 1px dashed var(--dj-border); border-radius: 8px; margin: 16px 0;">
+                <h4 style="margin: 0 0 4px 0; font-size: 0.95rem; font-weight: 600;">No Member Energy Share Data</h4>
+                <p style="margin: 0; font-size: 0.82rem; color: var(--dj-text-sub);">No energy consumption logged for individual meters in this window.</p>
             </div>
         `;
         return;
     }
 
+    // Find max for progress bar scaling
+    const maxKwh = Math.max(...members.map(m => parseFloat(m.kwh) || 0), 1);
+
     let memberRows = '';
     members.forEach(m => {
-        const kwh = m.kwh !== null && m.kwh !== undefined ? Number(m.kwh).toFixed(2) : '0.00';
-        const pct = m.pct !== null && m.pct !== undefined ? Number(m.pct).toFixed(1) : '0.0';
+        const kwh    = m.kwh  !== null && m.kwh  !== undefined ? Number(m.kwh).toFixed(2)  : '0.00';
+        const pct    = m.pct  !== null && m.pct  !== undefined ? Number(m.pct).toFixed(1)   : '0.0';
+        const barPct = Math.min(100, ((parseFloat(m.kwh) || 0) / maxKwh * 100)).toFixed(1);
+        const typeBadge = m.type === 'incomer'
+            ? `<span style="background:rgba(234,88,12,0.12); color:#ea580c; padding:1px 7px; border-radius:4px; font-size:0.7rem; font-weight:700; text-transform:uppercase;">Incomer</span>`
+            : `<span style="background:var(--dj-bg-sub); color:var(--dj-text-sub); padding:1px 7px; border-radius:4px; font-size:0.7rem; font-weight:700; text-transform:uppercase;">Sub</span>`;
 
         memberRows += `
-            <tr style="border-bottom: 1px solid var(--dj-border, #e5e7eb);">
-                <td style="padding: 12px 16px; font-weight: 500;">${m.meter_name}</td>
-                <td style="padding: 12px 16px; color: var(--dj-text-sub, #6b7280);">
-                    <span style="background: var(--dj-bg-sub, #eef2ff); color: var(--dj-header-bg, #4f46e5); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">${m.type || 'meter'}</span>
+            <tr class="admin-table-row">
+                <td style="padding:12px 16px; font-weight:600; color:var(--dj-text);">${m.meter_name}</td>
+                <td style="padding:12px 16px;">${typeBadge}</td>
+                <td style="padding:12px 16px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="flex:1; height:6px; background:var(--dj-bg-sub); border-radius:3px; min-width:60px;">
+                            <div style="height:100%; width:${barPct}%; background:var(--dj-header-bg,#417690); border-radius:3px; transition:width 0.6s ease;"></div>
+                        </div>
+                        <span style="font-family:monospace; font-weight:700; font-size:0.88rem; min-width:70px; text-align:right;">${kwh} kWh</span>
+                    </div>
                 </td>
-                <td style="padding: 12px 16px; text-align: right; font-weight: bold; font-family: monospace;">${kwh} kWh</td>
-                <td style="padding: 12px 16px; text-align: right; font-family: monospace;">${pct}%</td>
+                <td style="padding:12px 16px; text-align:right; font-family:monospace; font-weight:600; color:var(--dj-header-bg,#417690);">${pct}%</td>
             </tr>
         `;
     });
 
-    const breakdownHtml = `
-        <div style="border: 1px solid var(--dj-border, #e5e7eb); border-radius: 8px; background: var(--dj-bg, #ffffff); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div style="padding: 16px 20px; background: var(--dj-bg-sub, #f9fafb); border-bottom: 1px solid var(--dj-border, #e5e7eb); display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; font-size: 1rem; color: var(--dj-header-bg, #1f2937); font-weight: 600;">Meter Register & Energy Share</h3>
-                <span style="font-size: 0.8rem; color: var(--dj-text-sub, #6b7280);">${members.length} Member Meters</span>
+    memberBreakdownContainer.innerHTML = `
+        <div class="gdash-history-table">
+            <div class="gdash-history-table-head">
+                <span class="gdash-history-table-title">📊 Meter Register &amp; Energy Share</span>
+                <span style="font-size:0.78rem; color:var(--dj-text-sub);">${members.length} member meters</span>
             </div>
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.88rem;">
                     <thead>
-                        <tr style="background: var(--dj-bg-sub, #f9fafb); text-align: left; color: var(--dj-text-sub, #6b7280); font-weight: 600;">
-                            <th style="padding: 12px 16px; border-bottom: 1px solid var(--dj-border, #e5e7eb);">Meter Name</th>
-                            <th style="padding: 12px 16px; border-bottom: 1px solid var(--dj-border, #e5e7eb);">Type</th>
-                            <th style="padding: 12px 16px; text-align: right; border-bottom: 1px solid var(--dj-border, #e5e7eb);">Consumption (kWh)</th>
-                            <th style="padding: 12px 16px; text-align: right; border-bottom: 1px solid var(--dj-border, #e5e7eb);">Share (%)</th>
+                        <tr class="admin-table-header">
+                            <th>Meter Name</th>
+                            <th>Type</th>
+                            <th>Consumption</th>
+                            <th style="text-align:right;">Share</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${memberRows}
-                    </tbody>
+                    <tbody>${memberRows}</tbody>
                 </table>
             </div>
         </div>
     `;
-
-    memberBreakdownContainer.innerHTML = breakdownHtml;
 }
 
 function startLivePolling() {

@@ -4,86 +4,433 @@
 {% block admin_head %}
 <link rel="stylesheet" href="{{ url_for('static', path='css/plant-dashboard.css') }}?v=6">
 <style>
-    .group-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--dj-border);
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-    .group-header h2 {
-        margin: 0;
-        font-size: 1.3rem;
-        color: var(--dj-header-bg);
-        white-space: nowrap;
-    }
-    .group-header-controls {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-    @media (max-width: 768px) {
-        .group-header h2 {
-            font-size: 1.1rem;
-        }
-        .group-header {
-            gap: 8px;
-            padding-bottom: 8px;
-        }
-    }
+/* ── Group Dashboard Premium Styles ─────────────────────────── */
+
+/* Page header banner */
+.gdash-header {
+    background: linear-gradient(135deg, var(--dj-header-bg, #417690) 0%, var(--dj-header-bg-sub, #79aec8) 100%);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+}
+
+.gdash-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+}
+
+.gdash-header-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.gdash-header-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gdash-header-sub {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.7);
+    margin-top: 2px;
+}
+
+.gdash-group-select {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,0.5);
+    background: rgba(0,0,0,0.25);
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    min-width: 200px;
+    max-width: 260px;
+    cursor: pointer;
+    outline: none;
+    appearance: auto;
+    -webkit-appearance: auto;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.gdash-group-select:hover,
+.gdash-group-select:focus {
+    background: rgba(0,0,0,0.35);
+    border-color: rgba(255,255,255,0.85);
+}
+
+.gdash-group-select option {
+    background: var(--dj-bg, #fff);
+    color: var(--dj-text, #1e293b);
+    font-weight: 600;
+}
+
+.gdash-manage-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1.5px solid rgba(255,255,255,0.4);
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+.gdash-manage-btn:hover {
+    background: rgba(255,255,255,0.3);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Tab bar */
+.gdash-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--dj-bg-sub, #f1f5f9);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 1px solid var(--dj-border, #e2e8f0);
+    width: fit-content;
+}
+
+.gdash-tab {
+    padding: 8px 22px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--dj-text-sub, #64748b);
+    font-size: 0.86rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.gdash-tab.active {
+    background: var(--dj-bg, #fff);
+    color: var(--dj-header-bg, #417690);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+}
+
+.gdash-tab:hover:not(.active) {
+    background: rgba(255,255,255,0.6);
+    color: var(--dj-text, #1e293b);
+}
+
+/* KPI strip */
+.gdash-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.gdash-kpi-card {
+    background: var(--dj-bg, #fff);
+    border: 1px solid var(--dj-border, #e2e8f0);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.gdash-kpi-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.gdash-kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.gdash-kpi-icon.blue   { background: rgba(65,118,144,0.12); }
+.gdash-kpi-icon.green  { background: rgba(22,163,74,0.12); }
+.gdash-kpi-icon.orange { background: rgba(234,88,12,0.12); }
+.gdash-kpi-icon.purple { background: rgba(124,58,237,0.12); }
+
+.gdash-kpi-body { flex: 1; min-width: 0; }
+
+.gdash-kpi-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--dj-text-sub, #64748b);
+    margin-bottom: 4px;
+}
+
+.gdash-kpi-value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--dj-text, #1e293b);
+    line-height: 1.1;
+    font-family: monospace;
+}
+
+.gdash-kpi-unit {
+    font-size: 0.72rem;
+    color: var(--dj-text-sub, #94a3b8);
+    margin-top: 2px;
+}
+
+/* Live meter cards grid */
+.gdash-meter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.gdash-meter-card {
+    border: 1px solid var(--dj-border, #e2e8f0);
+    border-radius: 10px;
+    background: var(--dj-bg, #fff);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.gdash-meter-card:hover {
+    box-shadow: 0 6px 18px rgba(0,0,0,0.11);
+    transform: translateY(-2px);
+}
+
+.gdash-meter-card-head {
+    padding: 11px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: #fff;
+}
+
+.gdash-meter-card-head.online  { background: var(--dj-success, #16a34a); }
+.gdash-meter-card-head.offline { background: var(--dj-danger,  #dc2626); }
+
+.gdash-meter-id-badge {
+    font-size: 0.7rem;
+    background: rgba(255,255,255,0.25);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.gdash-meter-body {
+    padding: 14px 16px;
+}
+
+.gdash-meter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--dj-border, #f1f5f9);
+    font-size: 0.83rem;
+}
+
+.gdash-meter-row:last-child { border-bottom: none; }
+
+.gdash-meter-row-label { color: var(--dj-text-sub, #64748b); }
+
+.gdash-meter-row-val {
+    font-weight: 700;
+    font-family: monospace;
+    color: var(--dj-text, #1e293b);
+}
+
+.gdash-kwh-big {
+    margin-top: 12px;
+    padding: 10px;
+    background: var(--dj-bg-sub, #f8f9fa);
+    border-radius: 7px;
+    text-align: center;
+    border: 1px solid var(--dj-border, #e2e8f0);
+}
+
+.gdash-kwh-num {
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-family: monospace;
+    color: var(--dj-header-bg, #417690);
+}
+
+.gdash-kwh-sub {
+    font-size: 0.7rem;
+    color: var(--dj-text-sub, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+
+/* Pulse dot for online */
+.gdash-pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    margin-right: 5px;
+    animation: gdash-pulse-anim 1.8s infinite;
+}
+@keyframes gdash-pulse-anim {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Section titles */
+.gdash-section-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--dj-text-sub, #64748b);
+    margin: 0 0 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gdash-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--dj-border, #e2e8f0);
+}
+
+/* Last updated bar */
+.gdash-last-updated {
+    font-size: 0.75rem;
+    color: var(--dj-text-sub, #94a3b8);
+    text-align: right;
+    margin-bottom: 16px;
+    font-style: italic;
+}
+
+/* History table */
+.gdash-history-table {
+    border: 1px solid var(--dj-border, #e2e8f0);
+    border-radius: 10px;
+    background: var(--dj-bg, #fff);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+}
+
+.gdash-history-table-head {
+    padding: 14px 20px;
+    background: var(--dj-bg-sub, #f8f9fa);
+    border-bottom: 1px solid var(--dj-border, #e2e8f0);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gdash-history-table-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--dj-text, #1e293b);
+}
+
+@media (max-width: 768px) {
+    .gdash-header { flex-direction: column; align-items: flex-start; }
+    .gdash-kpi-strip { grid-template-columns: 1fr 1fr; }
+    .gdash-meter-grid { grid-template-columns: 1fr; }
+}
 </style>
 {% endblock %}
 
 {% block admin_content %}
 <div class="group-dashboard-wrapper">
-    <div class="group-header">
-        <div class="group-header-controls">
-            <h2 id="groupTitle">Meter Group Dashboard</h2>
-            <select id="groupSelect" class="form-select" style="padding: 6px 12px; border-radius: 4px; border: 1px solid var(--dj-border); background: var(--dj-bg); color: var(--dj-text); font-size: 0.9rem;">
+
+    <!-- ── Premium Header Banner ── -->
+    <div class="gdash-header">
+        <div class="gdash-header-left">
+            <div class="gdash-header-icon">📂</div>
+            <div>
+                <div class="gdash-header-title" id="groupTitle">Meter Group Dashboard</div>
+                <div class="gdash-header-sub" id="groupSubtitle">Select a group to view live monitoring and historical analysis</div>
+                <div class="gdash-header-sub" id="groupLocation" style="display:none; align-items:center; gap:4px; margin-top:4px; color:#10b981; font-weight:600; font-size:0.85rem;">
+                    📍 <span id="groupLocationText"></span>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <select id="groupSelect" class="gdash-group-select">
                 <option value="" disabled selected>Loading groups...</option>
             </select>
-        </div>
-        <div>
-            <a href="/admin#groups" class="submit-btn" style="text-decoration: none; display: inline-block; font-size: 0.85rem; padding: 6px 12px;">Manage Groups</a>
+            <a href="/admin?view=groups" class="gdash-manage-btn">⚙ Meter Groups</a>
         </div>
     </div>
 
     <input type="hidden" id="groupIdInput" value="{{ initial_group_id or '' }}">
 
-    <div class="dashboard-toolbar" style="margin-bottom: 20px;">
-        <div class="dashboard-tabs">
-            <button class="dash-tab active" id="btnGroupLive" type="button">Live Monitoring</button>
-            <button class="dash-tab" id="btnGroupHistory" type="button">Historical Analysis</button>
-        </div>
+    <!-- ── Tab Bar ── -->
+    <div class="gdash-tabs">
+        <button class="gdash-tab active" id="btnGroupLive" type="button">📡 Live Monitoring</button>
+        <button class="gdash-tab" id="btnGroupHistory" type="button">📊 Historical Analysis</button>
     </div>
 
     <!-- Filter Bar for Historical Analysis -->
     {{ render_filter_bar(panel_id="groupHistoryFilterPanel", panel_class="filter-panel", submit_text="Apply Filters") }}
 
-    <!-- Live View -->
+    <!-- ── Live View ── -->
     <div id="liveViewContainer" class="plant-live-panel">
-        <div id="liveKpiStrip" class="kpi-grid" style="margin-bottom: 24px;"></div>
-        <p id="liveLastUpdated" class="last-updated-info"></p>
-        <div class="cards" id="cardsContainer"></div>
+        <div id="liveKpiStrip" class="gdash-kpi-strip"></div>
+        <p id="liveLastUpdated" class="gdash-last-updated"></p>
+        <p class="gdash-section-title">Live Meter Readings</p>
+        <div class="gdash-meter-grid" id="cardsContainer"></div>
     </div>
-    
-    <!-- History View -->
+
+    <!-- ── History View ── -->
     <div id="historyViewContainer" class="plant-history-panel" style="display: none;">
-        <div id="historySummaryStrip" class="kpi-grid" style="margin-bottom: 24px;"></div>
-        <div class="cards" id="historyCardsContainer"></div>
+        <div id="historySummaryStrip" class="gdash-kpi-strip" style="margin-bottom: 24px;"></div>
+        <div id="historyCardsContainer"></div>
         <div id="memberBreakdownContainer" style="margin-top: 24px;"></div>
     </div>
+
 </div>
 {% endblock %}
 
 {% block admin_scripts %}
-<!-- We include Chart.js and standard dashboard scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 <script src="{{ url_for('static', path='js/ems-shell.js') }}?v=11"></script>
-<script src="{{ url_for('static', path='js/group_dashboard.js') }}?v=2"></script>
+<script src="{{ url_for('static', path='js/group_dashboard.js') }}?v=3"></script>
 {% endblock %}

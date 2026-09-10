@@ -22,7 +22,7 @@ from fastapi.templating import Jinja2Templates
 
 from config import BASE_DIR
 from routers.auth import require_login, require_login_page, template_context
-from services import group_service, plant_service, device_service, meter_config_service
+from services import group_service, plant_service, device_service, meter_config_service, location_service
 
 import os
 
@@ -55,7 +55,18 @@ async def add_plant(request: Request):
     require_login(request)
     data = await request.json()
     plant_name = data.get("name")
-    return plant_service.create_plant(plant_name)
+    location_id = data.get("location_id")
+    if location_id:
+        try:
+            location_id = int(location_id)
+        except ValueError:
+            location_id = None
+    return plant_service.create_plant(plant_name, location_id)
+
+@router.get("/api/plants_detailed")
+def get_plants_detailed(request: Request):
+    require_login(request)
+    return plant_service.get_all_plants_detailed()
 
 
 @router.delete("/api/plants/{plant_name}")
@@ -63,6 +74,38 @@ def delete_plant(plant_name: str, request: Request, delete_data: str = "false"):
     require_login(request)
     do_delete = delete_data.lower() == "true"
     return plant_service.delete_plant(plant_name, do_delete)
+
+@router.put("/api/plants/{plant_name}/location")
+async def update_plant_location_route(plant_name: str, request: Request):
+    require_login(request)
+    data = await request.json()
+    location_id = data.get("location_id")
+    if location_id:
+        try:
+            location_id = int(location_id)
+        except ValueError:
+            location_id = None
+    return plant_service.update_plant_location(plant_name, location_id)
+
+
+# ── Locations CRUD ─────────────────────────────────────────────────────────────
+
+@router.get("/api/locations")
+def get_locations(request: Request):
+    require_login(request)
+    return location_service.get_locations()
+
+@router.post("/api/locations")
+async def add_location(request: Request):
+    require_login(request)
+    data = await request.json()
+    name = data.get("name")
+    return location_service.create_location(name)
+
+@router.delete("/api/locations/{location_id}")
+def delete_location(location_id: int, request: Request):
+    require_login(request)
+    return location_service.delete_location(location_id)
 
 
 # ── Meter config CRUD ──────────────────────────────────────────────────────────
@@ -112,7 +155,13 @@ async def create_meter_group(request: Request):
     require_login(request)
     data = await request.json()
     name = data.get("name", "").strip()
-    return group_service.create_group(name)
+    location_id = data.get("location_id")
+    if location_id:
+        try:
+            location_id = int(location_id)
+        except ValueError:
+            location_id = None
+    return group_service.create_group(name, location_id)
 
 
 @router.delete("/api/meter_groups/{group_id}")
@@ -120,6 +169,18 @@ def delete_meter_group(group_id: int, request: Request):
     require_login(request)
     group_service.delete_group(group_id)
     return {"success": True}
+
+@router.put("/api/meter_groups/{group_id}/location")
+async def update_meter_group_location_route(group_id: int, request: Request):
+    require_login(request)
+    data = await request.json()
+    location_id = data.get("location_id")
+    if location_id:
+        try:
+            location_id = int(location_id)
+        except ValueError:
+            location_id = None
+    return group_service.update_group_location(group_id, location_id)
 
 
 @router.post("/api/meter_groups/{group_id}/members")
@@ -174,8 +235,9 @@ async def register_device_config(request: Request):
     device_id = (data.get("device_id") or "").strip()
     plant     = (data.get("plant") or "").strip()
     label     = (data.get("label") or "").strip()
+    location_id = data.get("location_id")
     
-    return device_service.register_device(device_id, plant, label)
+    return device_service.register_device(device_id, plant, label, location_id)
 
 
 @router.delete("/api/device_configs/{device_id}")

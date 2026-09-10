@@ -1,4 +1,4 @@
-﻿import psycopg2.extras
+import psycopg2.extras
 from database import get_db_connection
 from fastapi import HTTPException
 
@@ -6,7 +6,12 @@ def get_all_groups():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     
-    cur.execute("SELECT id, name FROM meter_groups ORDER BY name")
+    cur.execute("""
+        SELECT g.id, g.name, g.location_id, l.name as location_name 
+        FROM meter_groups g
+        LEFT JOIN locations l ON g.location_id = l.id
+        ORDER BY g.name
+    """)
     groups = cur.fetchall()
     
     cur.execute("""
@@ -18,21 +23,30 @@ def get_all_groups():
     members = cur.fetchall()
     conn.close()
     
-    groups_dict = {g["id"]: {"id": g["id"], "name": g["name"], "members": []} for g in groups}
+    groups_dict = {
+        g["id"]: {
+            "id": g["id"], 
+            "name": g["name"], 
+            "location_id": g["location_id"], 
+            "location_name": g["location_name"],
+            "members": []
+        } 
+        for g in groups
+    }
     for m in members:
         if m["group_id"] in groups_dict:
             groups_dict[m["group_id"]]["members"].append(dict(m))
             
     return list(groups_dict.values())
 
-def create_group(name: str):
+def create_group(name: str, location_id: int = None):
     if not name:
         raise HTTPException(status_code=400, detail="Group name is required")
         
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO meter_groups (name) VALUES (%s) RETURNING id", (name,))
+        cur.execute("INSERT INTO meter_groups (name, location_id) VALUES (%s, %s) RETURNING id", (name, location_id))
         group_id = cur.fetchone()[0]
         conn.commit()
     except psycopg2.IntegrityError:
@@ -45,7 +59,20 @@ def create_group(name: str):
         raise HTTPException(status_code=500, detail=str(e))
         
     conn.close()
-    return {"id": group_id, "name": name, "members": []}
+    return {"id": group_id, "name": name, "location_id": location_id, "members": []}
+
+def update_group_location(group_id: int, location_id: int = None):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("UPDATE meter_groups SET location_id = %s WHERE id = %s", (location_id, group_id))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+    conn.close()
+    return {"success": True}
 
 def delete_group(group_id: int):
     conn = get_db_connection()

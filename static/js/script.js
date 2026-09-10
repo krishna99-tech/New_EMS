@@ -1840,38 +1840,65 @@ if (gaugeViewToggle) {
 // ================= ECHARTS GAUGES =================
 function getGaugeConfig(title, value, unit) {
     let max = 100;
-    if (unit === 'V') max = 500;
-    else if (unit === 'A') max = value > 100 ? value * 1.5 : 100;
-    else if (unit === 'kWh') max = value > 1000 ? value * 1.2 : (value > 100 ? value * 1.5 : 100);
-    else if (unit === 'kW') max = value > 100 ? value * 1.5 : 100;
-    else if (unit === 'Hz') max = 60;
-    else if (unit === 'PF') max = 1.0;
-    
+    let splitNumber = 5;
+
+    if (unit === 'V') {
+        max = 500;
+        splitNumber = 5;
+    } else if (unit === 'A') {
+        // Round up to nearest clean number
+        const rawMax = value > 100 ? value * 1.3 : 100;
+        max = Math.ceil(rawMax / 50) * 50;
+        splitNumber = 4;
+    } else if (unit === 'kWh') {
+        // Round up to a clean scale so needle isn't pegged at max
+        if (value <= 100) { max = 100; splitNumber = 4; }
+        else if (value <= 500) { max = Math.ceil(value / 100) * 100 + 100; splitNumber = 4; }
+        else if (value <= 2000) { max = Math.ceil(value / 500) * 500 + 500; splitNumber = 4; }
+        else if (value <= 5000) { max = Math.ceil(value / 1000) * 1000 + 1000; splitNumber = 4; }
+        else { max = Math.ceil(value / 5000) * 5000 + 5000; splitNumber = 4; }
+    } else if (unit === 'kW') {
+        const rawMax = value > 100 ? value * 1.3 : 100;
+        max = Math.ceil(rawMax / 50) * 50;
+        splitNumber = 4;
+    } else if (unit === 'Hz') {
+        max = 60;
+        splitNumber = 4;
+    } else if (unit === 'PF') {
+        max = 1.0;
+        splitNumber = 5;
+    }
+
     return {
         series: [{
             type: 'gauge',
             center: ['50%', '60%'],
+            radius: '75%',
             startAngle: 200,
             endAngle: -20,
             min: 0,
             max: max,
-            splitNumber: 5,
+            splitNumber: splitNumber,
             itemStyle: { color: '#3b82f6' },
             progress: { show: true, width: 12 },
-            pointer: { show: true, length: '60%', width: 4 },
-            axisLine: { lineStyle: { width: 12, color: [[1, 'var(--border-color)']] } },
-            axisTick: { distance: -20, length: 6, lineStyle: { color: 'var(--text-sub)', width: 1 } },
-            splitLine: { distance: -25, length: 10, lineStyle: { color: 'var(--text-sub)', width: 2 } },
+            pointer: { show: true, length: '60%', width: 5 },
+            axisLine: { lineStyle: { width: 12, color: [[1, 'var(--border-color, #e5e7eb)']] } },
+            axisTick: { distance: -10, length: 5, lineStyle: { color: 'var(--text-sub, #6b7280)', width: 1 } },
+            splitLine: { distance: -12, length: 9, lineStyle: { color: 'var(--text-sub, #6b7280)', width: 2 } },
             axisLabel: {
-                distance: 15,
-                color: 'var(--text-sub)',
+                distance: 18,
+                color: 'var(--text-sub, #6b7280)',
                 fontSize: 10,
                 formatter: function (val) {
-                    if (val >= 1000) return (val/1000).toFixed(1) + 'k';
-                    return Math.round(val);
+                    // Only show min and max label to avoid clutter
+                    if (val === 0 || val === max) {
+                        if (val >= 1000) return (val / 1000).toFixed(1) + 'k';
+                        return Math.round(val);
+                    }
+                    return '';
                 }
             },
-            anchor: { show: true, showAbove: true, size: 16, itemStyle: { color: '#3b82f6' } },
+            anchor: { show: true, showAbove: true, size: 18, itemStyle: { color: '#3b82f6' } },
             title: { show: false },
             detail: { show: false },
             data: [{ value: value }]
@@ -1883,12 +1910,12 @@ function getGaugeHTML(title, value, unit, meterId) {
     const safeMeterId = String(meterId).replace(/[^a-zA-Z0-9]/g, '_');
     const safeTitle = String(title).replace(/[^a-zA-Z0-9]/g, '_');
     const gaugeId = `gauge_${safeMeterId}_${safeTitle}`;
-    
+
     return `
-    <div class="card" style="display:flex; flex-direction:column; align-items:center; position:relative; overflow:hidden;">
-        <h3 class="title" style="margin-bottom: 5px;">${title}</h3>
-        <div id="${gaugeId}" class="echarts-gauge" data-title="${title}" data-value="${value}" data-unit="${unit}" style="width: 100%; height: 180px;"></div>
-        <div style="text-align:center; position:absolute; bottom:15px; width:100%;">
+    <div class="card" style="display:flex; flex-direction:column; align-items:center; padding-bottom: 16px;">
+        <h3 class="title" style="margin-bottom: 4px;">${title}</h3>
+        <div id="${gaugeId}" class="echarts-gauge" data-title="${title}" data-value="${value}" data-unit="${unit}" style="width: 100%; height: 200px;"></div>
+        <div style="text-align:center; margin-top: -8px;">
             <span id="${gaugeId}_val" style="font-size: 20px; font-weight: 700; color: var(--text-main);">${Number(value).toFixed(2)} ${unit}</span>
         </div>
     </div>`;

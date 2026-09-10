@@ -11,7 +11,7 @@ def get_all_device_configs():
     conn.close()
     return [dict(r) for r in rows]
 
-def register_device(device_id: str, plant: str, label: str):
+def register_device(device_id: str, plant: str, label: str, location_id: int = None):
     if not device_id or not plant:
         raise HTTPException(status_code=400, detail="device_id and plant are required")
 
@@ -19,10 +19,14 @@ def register_device(device_id: str, plant: str, label: str):
     cur = conn.cursor()
     
     # Verify plant exists
-    cur.execute("SELECT 1 FROM plants WHERE name=%s", (plant,))
-    if not cur.fetchone():
+    cur.execute("SELECT id FROM plants WHERE name=%s", (plant,))
+    plant_row = cur.fetchone()
+    if not plant_row:
         conn.close()
         raise HTTPException(status_code=400, detail=f"Plant '{plant}' does not exist. Create it first.")
+
+    if location_id is not None:
+        cur.execute("UPDATE plants SET location_id=%s WHERE id=%s", (location_id, plant_row[0]))
 
     cur.execute(
         """

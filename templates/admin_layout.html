@@ -3,7 +3,7 @@
 {% block title %}Admin | EMS Dashboard{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}?v=15">
+<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}?v=18">
 {% block admin_head %}{% endblock %}
 {% endblock %}
 
@@ -60,6 +60,7 @@
                 <div style="padding: 10px 16px; font-weight: bold; font-size: 0.85rem; text-transform: uppercase; color: var(--dj-text-sub); border-bottom: 1px solid var(--dj-border);">Network Configuration</div>
 
                 <ul style="list-style: none; margin: 0; padding: 0;">
+                    <li><a href="/admin#locations" class="django-nav-link" onclick="if(typeof switchModel !== 'undefined') switchModel('locations', 'Locations')">Locations</a></li>
                     <li><a href="/admin#plants" class="django-nav-link {% if active_page == 'devices' %}active{% endif %}" onclick="if(typeof switchModel !== 'undefined') switchModel('plants', 'Plants')">Plants</a></li>
                     <li><a href="/admin#groups" class="django-nav-link" onclick="if(typeof switchModel !== 'undefined') switchModel('groups', 'Meter Groups')">Meter Groups</a></li>
                     <li><a href="/admin#devices" class="django-nav-link" onclick="if(typeof switchModel !== 'undefined') switchModel('devices', 'Discovered Devices')">Discovered Devices</a></li>

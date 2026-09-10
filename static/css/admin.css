@@ -5,6 +5,12 @@
             sidebar layout, profile dropdown
    Loaded after style.css on all /admin/* pages (admin_layout.html)
    ============================================================ */
+/* ── Animations ───────────────────────────────────────────────────────────── */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── CSS Variables for Django Admin Theme (Light & Dark) ─────────────────── */
 :root, :root[data-theme="light"] {
     --dj-bg: #ffffff;
@@ -805,6 +811,333 @@
 .admin-panel-body {
     padding: 20px;
 }
+
+/* ── Plant Stack Cards (PSC) ─────────────────────────────────────────────── */
+
+/* Grid container — compact cards in columns */
+.plants-stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    align-items: start;
+}
+
+/* Each card sits in the grid normally, but when expanded spans all columns */
+.psc-card {
+    border: 1px solid var(--dj-border, #e2e8f0);
+    border-radius: 4px;
+    background: var(--dj-bg, #ffffff);
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.psc-card:hover {
+    border-color: var(--dj-header-bg, #4f46e5);
+    background: var(--dj-bg-sub, #f8f9fa);
+}
+
+/* When expanded: span all grid columns and show management panel */
+.psc-card.expanded {
+    grid-column: 1 / -1;
+    cursor: default;
+    background: var(--dj-bg, #ffffff);
+    border-color: var(--dj-header-bg, #4f46e5);
+    overflow: visible;
+}
+
+/* ── Compact face (always visible) ── */
+.psc-face {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    user-select: none;
+}
+
+.psc-card.expanded .psc-face {
+    border-bottom: 1px solid var(--dj-border, #e2e8f0);
+    background: var(--dj-bg-sub, #f8f9fa);
+    cursor: default;
+    pointer-events: none;   /* card is open; clicking face does nothing */
+}
+
+.psc-face-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;           /* critical for text truncation */
+}
+
+.psc-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 4px;
+    background: var(--dj-bg-sub, #f8f9fa);
+    border: 1px solid var(--dj-border, #e2e8f0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--dj-header-bg, #417690);
+    flex-shrink: 0;
+}
+
+.psc-face-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.psc-plant-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--dj-text, #1e293b);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.psc-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.psc-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.psc-pill.count   { background: var(--dj-bg-sub, #f1f5f9); color: var(--dj-text-sub, #64748b); border: 1px solid var(--dj-border, #e2e8f0); }
+.psc-pill.online  { background: rgba(22,163,74,0.1);  color: var(--dj-success, #16a34a); }
+.psc-pill.offline { background: rgba(220,38,38,0.1);  color: var(--dj-danger,  #dc2626); }
+.psc-pill.none    { background: var(--dj-bg-sub, #f1f5f9); color: var(--dj-text-sub, #94a3b8); }
+
+.psc-face-right { flex-shrink: 0; }
+
+.psc-chevron {
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    border: 1px solid var(--dj-border, #e2e8f0);
+    background: var(--dj-bg-sub, #f8f9fa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--dj-text-sub, #64748b);
+    transition: transform 0.25s ease, background 0.15s;
+}
+
+.psc-card:hover .psc-chevron {
+    background: var(--dj-header-bg, #417690);
+    color: #fff;
+    border-color: var(--dj-header-bg, #417690);
+}
+
+/* ── Management panel (hidden until expanded) ── */
+.psc-panel {
+    display: none;          /* no animation needed; show/hide is instant */
+    background: var(--dj-bg, #fff);
+}
+
+.psc-panel.open {
+    display: block;
+}
+
+.psc-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--dj-header-bg, #417690);
+}
+
+.psc-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.psc-panel-count {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border-radius: 20px;
+    padding: 1px 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.psc-panel-btns {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* ── Actions Dropdown ── */
+.action-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.action-dropdown-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.action-dropdown-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.action-dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background-color: var(--dj-bg, #fff);
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    border: 1px solid var(--dj-border, #e2e8f0);
+    border-radius: 6px;
+    z-index: 100;
+    overflow: hidden;
+}
+
+/* Dropdown opens via JS by toggling .open class — NOT :hover */
+.action-dropdown.open .action-dropdown-content {
+    display: block;
+}
+
+.action-dropdown-content button,
+.action-dropdown-content a {
+    color: var(--dj-text, #1e293b);
+    padding: 10px 14px;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--dj-border, #e2e8f0);
+}
+
+.action-dropdown-content button:last-child,
+.action-dropdown-content a:last-child {
+    border-bottom: none;
+}
+
+.action-dropdown-content button:hover,
+.action-dropdown-content a:hover {
+    background-color: var(--dj-bg-sub, #f8f9fa);
+}
+
+.action-dropdown-content .delete-action {
+    color: var(--dj-danger, #ef4444);
+}
+.action-dropdown-content .delete-action:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.psc-close-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    padding: 0;
+}
+
+.psc-close-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.psc-panel-body {
+    padding: 0;
+    overflow-x: auto;
+}
+
+/* Table inside the management panel */
+.psc-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.psc-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Shared status / type / badge styles */
+.psc-status        { font-size: 0.78rem; font-weight: 600; }
+.psc-status.online { color: var(--dj-success, #16a34a); }
+.psc-status.offline{ color: var(--dj-danger,  #dc2626); }
+
+.psc-type-badge {
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.psc-type-badge.incomer { background: rgba(234,88,12,0.12); color: #ea580c; }
+.psc-type-badge.sub     { background: var(--dj-bg-sub, #f1f5f9); color: var(--dj-text-sub, #64748b); }
+
+.psc-meter-id {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--dj-text, #1e293b);
+}
+
+.psc-empty-row {
+    text-align: center;
+    color: var(--dj-text-sub, #64748b);
+    padding: 24px 0;
+    font-size: 0.85rem;
+}
+
+.psc-action {
+    padding: 4px 10px !important;
+    font-size: 0.75rem !important;
+}
+
+@media (max-width: 640px) {
+    .plants-stack-grid { grid-template-columns: 1fr; }
+    .psc-panel-btns { gap: 4px; }
+}
+
 
 .admin-search-wrap {
     position: relative;
@@ -1634,14 +1967,47 @@
     border: none !important;
     font-size: 0.85rem !important;
     color-scheme: light dark;
+    /* Fill the card so the calendar icon isn't cut off */
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
+/* Date cards — enforce enough width for the icon */
+.filter-panel .select-card:has(input[type="date"]),
+.filter-panel .select-card:has(input[type="datetime-local"]) {
+    min-width: 155px !important;
+}
+
+/* The inputs themselves must be wide enough to show the icon */
+.filter-panel input[type="date"],
+.filter-panel input[type="datetime-local"] {
+    color-scheme: light dark;
+    min-width: 140px !important;
+    width: 100% !important;
+    padding-right: 4px !important;
+    appearance: auto !important;
+    -webkit-appearance: auto !important;
+}
+
+/* Calendar / clock picker icon - Explicitly inject SVG to bypass any browser overrides */
+.filter-panel input[type="date"]::-webkit-calendar-picker-indicator,
 .filter-panel input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    display: inline-block !important;
+    display: block !important;
     cursor: pointer !important;
-    opacity: 0.85 !important;
+    opacity: 0.65 !important;
+    flex-shrink: 0;
+    margin-right: 2px !important;
+    width: 16px !important;
+    height: 16px !important;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%231e293b" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"/></svg>') !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: contain !important;
+    /* In dark mode, invert the icon to white */
     filter: var(--dj-calendar-filter, none) !important;
 }
+
+.filter-panel input[type="date"]::-webkit-calendar-picker-indicator:hover,
 .filter-panel input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
     opacity: 1 !important;
 }@media (max-width: 768px) {
