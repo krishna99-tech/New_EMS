@@ -121,14 +121,10 @@ function renderDeviceCard(d) {
     const plantInfo = d.is_configured && d.plant
         ? `<tr><td style="padding:4px 0; color:var(--dj-text-sub);">Plant</td><td style="padding:4px 0; text-align:right; font-weight:bold;">${d.plant || "—"}</td></tr>`
         : "";
-        
-    const plantDetail = d.is_configured && d.plant && window.globalPlantsDetailed ? window.globalPlantsDetailed.find(p => p.name === d.plant) : null;
-    const locBadge = plantDetail ? `<tr><td style="padding:4px 0; color:var(--dj-text-sub);">Location</td><td style="padding:4px 0; text-align:right;">📍 ${plantDetail.location_name || "Unassigned"}</td></tr>` : "";
-    const editLocBtn = plantDetail ? `<button type="button" class="action-btn" style="padding:4px 12px; font-size:0.75rem;" onclick="openUpdateLocationModal('plant', '${d.plant}', ${plantDetail.location_id || 'null'})">Edit Location</button>` : "";
+    const locBadge = d.is_configured && d.plant ? `<tr><td style="padding:4px 0; color:var(--dj-text-sub);">Location</td><td style="padding:4px 0; text-align:right;">📍 ${d.location_name || "Unassigned"}</td></tr>` : "";
 
     const actionBtn = d.is_configured
         ? `<button type="button" class="action-btn edit-btn" style="padding:4px 12px; font-size:0.75rem;" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, true)">Edit</button>
-           ${editLocBtn}
            <button type="button" class="action-btn delete-btn" style="padding:4px 12px; font-size:0.75rem;" onclick="unregisterDevice('${d.device_id}')">Unlink</button>`
         : `<button type="button" class="submit-btn" style="padding:5px 12px; font-size:0.75rem;" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, false)">Configure</button>`;
 
@@ -222,7 +218,7 @@ window.openRegisterDeviceModal = async function(deviceId, ipAddr, meterCount, is
 
     // Auto-select location when plant changes
     sel.onchange = () => {
-        const selectedPlant = window.globalPlantsDetailed?.find(p => p.name === sel.value);
+        const selectedPlant = globalPlantsDetailed?.find(p => p.name === sel.value);
         if (selectedPlant && selectedPlant.location_id) {
             locSel.value = selectedPlant.location_id;
         } else {

@@ -6,7 +6,13 @@ from database import get_db_connection
 def get_all_device_configs():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT device_id, plant, label FROM device_configs ORDER BY device_id")
+    cur.execute("""
+        SELECT dc.device_id, dc.plant, dc.label, p.location_id, l.name AS location_name
+        FROM device_configs dc
+        LEFT JOIN plants p ON dc.plant = p.name
+        LEFT JOIN locations l ON p.location_id = l.id
+        ORDER BY dc.device_id
+    """)
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -70,9 +76,13 @@ def get_all_device_heartbeats():
             dh.meter_ids,
             dh.is_configured,
             dc.plant,
+            p.location_id,
+            l.name AS location_name,
             EXTRACT(EPOCH FROM (NOW() - dh.last_seen)) AS seconds_ago
         FROM device_heartbeats dh
         LEFT JOIN device_configs dc ON dh.device_id = dc.device_id
+        LEFT JOIN plants p ON dc.plant = p.name
+        LEFT JOIN locations l ON p.location_id = l.id
         ORDER BY dh.last_seen DESC
     """)
     rows = cur.fetchall()
@@ -92,6 +102,8 @@ def get_all_device_heartbeats():
             "meter_ids":     row["meter_ids"].split(",") if row["meter_ids"] else [],
             "is_configured": row["is_configured"],
             "plant":         row["plant"],
+            "location_id":   row.get("location_id"),
+            "location_name": row.get("location_name"),
             "online":        seconds_ago <= ONLINE_THRESHOLD,
         })
     return result

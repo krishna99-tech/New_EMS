@@ -80,6 +80,7 @@ let streamRefreshInProgress = false;
 let lastVisualSignature = "";
 let loadDataReqSeq = 0;
 let loadBaseReqSeq = 0;
+let plantLocations = {};
 
 function buildVisualSignature(payload) {
     if (!payload) return "";
@@ -594,7 +595,15 @@ function syncFloatingHomeBtn() {
 
 async function loadPlants(){
 
-    const res = await fetch("/api/plants");    const plants = await res.json();
+    const res = await fetch("/api/plants_detailed");    
+    const detailedPlants = await res.json();
+    
+    const plants = [];
+    detailedPlants.forEach(dp => {
+        plantLocations[dp.name] = dp.location_name;
+        plants.push(dp.name);
+    });
+    
     const landingPlantSelect = document.getElementById("landingPlantSelect");
 
     plants.forEach(p=>{
@@ -1397,11 +1406,23 @@ plantSelect.addEventListener("change", async ()=>{
             plantContextBadge.style.display = "inline-flex";
             plantContextBadge.textContent = plant;
         }
+        
+        const locName = plantLocations[plant] || "Unassigned";
+        const pageSubtitle = document.getElementById("pageSubtitle");
+        if (pageSubtitle) {
+            pageSubtitle.innerHTML = `📍 ${locName} &nbsp;&bull;&nbsp; Live monitoring &amp; shift analysis`;
+        }
+        
         setPlantViewMode("live");
         updatePlantKpis(plant);
     } else {
         plantSelect.style.color = "inherit";
-        dashboardTitle.innerText = "Plant Dashboard";
+        dashboardTitle.innerText = "Energy Monitoring System";
+        
+        const pageSubtitle = document.getElementById("pageSubtitle");
+        if (pageSubtitle) {
+            pageSubtitle.innerHTML = `Live monitoring &amp; shift analysis`;
+        }
 
         if (landingView) landingView.style.display = "block";
         if (dashboardView) dashboardView.style.display = "none";
@@ -1514,7 +1535,7 @@ floatingHomeBtn?.addEventListener("click", () => {
     cardsContainer.innerHTML = "";
     lastVisualSignature = "";
 
-    dashboardTitle.innerText = "Plant Dashboard";
+    dashboardTitle.innerText = "Energy Monitoring System";
     plantSelect.style.color = "inherit";
     applyThemeState();
 

@@ -65,7 +65,6 @@ async def add_plant(request: Request):
 
 @router.get("/api/plants_detailed")
 def get_plants_detailed(request: Request):
-    require_login(request)
     return plant_service.get_all_plants_detailed()
 
 
