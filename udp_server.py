@@ -1,4 +1,4 @@
-﻿"""
+"""
 udp_server.py — background UDP listener (Event-Driven).
 
 Receives JSON payloads from energy meters, drops them into an in-memory queue,
@@ -12,8 +12,11 @@ import threading
 import queue
 
 from config import UDP_IP, UDP_PORT
-from services import meter_service
-from routers.ws import manager
+try:
+    from ems_core.ws import manager
+except ImportError:
+    from routers.ws import manager
+
 
 # In-memory queue for decoupling network I/O from DB I/O
 udp_queue = queue.Queue()

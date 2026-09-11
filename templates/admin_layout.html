@@ -65,7 +65,7 @@
         <div class="django-user-nav" style="display: flex; align-items: center; gap: 10px;">
             <!-- Desktop user links -->
             <div class="django-user-links desktop-only" style="font-size: 0.85rem; color: var(--dj-header-text); display: flex; align-items: center; gap: 6px;">
-                <strong>Welcome, Admin.</strong>
+                <strong>Welcome, {{ username|default('Admin') }}.</strong>
                 <span class="nav-sep">/</span>
                 <a href="/" style="color: var(--dj-header-text); text-decoration: none;">View site</a>
                 <span class="nav-sep">/</span>
@@ -80,7 +80,7 @@
             <div class="mobile-user-menu mobile-only" style="position: relative; display: none;">
                 <button id="userMenuBtn" aria-label="User Options Menu" onclick="event.stopPropagation(); document.getElementById('userMenuDropdown').classList.toggle('open')" style="background: transparent; border: none; color: var(--dj-header-text); font-size: 1.5rem; cursor: pointer; padding: 2px 8px; line-height: 1;">⋮</button>
                 <div id="userMenuDropdown" class="user-dropdown-menu" style="display: none; position: absolute; right: 0; top: 120%; background: var(--dj-bg); border: 1px solid var(--dj-border); box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-radius: 4px; padding: 4px 0; z-index: 1000; min-width: 170px;">
-                    <div style="padding: 8px 12px; font-size: 0.8rem; font-weight: bold; border-bottom: 1px solid var(--dj-border); color: var(--dj-text);">Welcome, Admin</div>
+                    <div style="padding: 8px 12px; font-size: 0.8rem; font-weight: bold; border-bottom: 1px solid var(--dj-border); color: var(--dj-text);">Welcome, {{ username|default('Admin') }}</div>
                     <a href="/" style="display: block; padding: 8px 12px; color: var(--dj-text); text-decoration: none; font-size: 0.85rem;">View site</a>
                     <a href="#" onclick="event.preventDefault(); openChangePasswordModal();" style="display: block; padding: 8px 12px; color: var(--dj-text); text-decoration: none; font-size: 0.85rem;">Change password</a>
                     <a href="#" onclick="toggleTheme()" id="mobileThemeToggleBtn" style="display: block; padding: 8px 12px; color: var(--dj-text); text-decoration: none; font-size: 0.85rem; border-top: 1px solid var(--dj-border);">🌙 Dark Mode</a>
