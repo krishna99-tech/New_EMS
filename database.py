@@ -14,6 +14,7 @@ def get_db_connection():
 def init_db():
     """Create tables, add missing columns, create indexes, and seed from meter_map.json."""
     conn = get_db_connection()
+    conn.autocommit = True
     cur = conn.cursor()
 
     # ── users table ────────────────────────────────────────────────────────────
@@ -170,6 +171,11 @@ def init_db():
     """)
     
     # ── Add any columns that may be missing in plants (migration safety) ───────
+    try:
+        cur.execute("ALTER TABLE plants ADD CONSTRAINT plants_name_key UNIQUE (name)")
+    except Exception as e:
+        pass # May already exist or have duplicates
+
     cur.execute(
         "SELECT column_name FROM information_schema.columns WHERE table_name='plants'"
     )
@@ -212,6 +218,11 @@ def init_db():
     """)
     
     # ── Add any columns that may be missing in meter_groups (migration safety) ─
+    try:
+        cur.execute("ALTER TABLE meter_groups ADD CONSTRAINT meter_groups_name_key UNIQUE (name)")
+    except Exception as e:
+        pass
+
     cur.execute(
         "SELECT column_name FROM information_schema.columns WHERE table_name='meter_groups'"
     )
@@ -252,10 +263,13 @@ def init_db():
                 except Exception as e:
                     print("Error migrating meter_map.json:", e)
 
-    cur.execute(
-        "INSERT INTO plants (name) "
-        "SELECT DISTINCT plant FROM meter_config ON CONFLICT DO NOTHING"
-    )
+    try:
+        cur.execute(
+            "INSERT INTO plants (name) "
+            "SELECT DISTINCT plant FROM meter_config ON CONFLICT DO NOTHING"
+        )
+    except Exception as e:
+        print("Warning: Could not seed plants from meter_config:", e)
 
     # ── group_daily_summary table ──────────────────────────────────────────────
     cur.execute("""
@@ -287,5 +301,4 @@ def init_db():
         GROUP BY g.id, g.name;
     """)
 
-    conn.commit()
     conn.close()
