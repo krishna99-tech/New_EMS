@@ -12,11 +12,8 @@ import threading
 import queue
 
 from config import UDP_IP, UDP_PORT
-try:
-    from ems_core.ws import manager
-except ImportError:
-    from routers.ws import manager
-
+from services import meter_service
+from routers.ws import manager
 
 # In-memory queue for decoupling network I/O from DB I/O
 udp_queue = queue.Queue()
