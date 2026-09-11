@@ -300,8 +300,8 @@ window.showCustomConfirmModal = function({
 
     if (titleEl) titleEl.textContent = title;
     if (iconEl) iconEl.textContent = icon;
-    if (msgEl) msgEl.textContent = message;
-    if (submsgEl) submsgEl.textContent = submessage;
+    if (msgEl) msgEl.innerHTML = message;
+    if (submsgEl) submsgEl.innerHTML = submessage;
     
     const checkContainer = document.getElementById("confirmDataCheckContainer");
     const checkbox = document.getElementById("confirmDeleteDataCheckbox");
@@ -838,20 +838,145 @@ window.closeCreateLocationModal = function() {
 };
 
 
-window.deleteLocation = async function(id) {
-    if(!confirm("Are you sure you want to delete this location? Plants in this location will be unassigned.")) return;
-    try {
-        const res = await fetch(`/api/locations/${id}`, { method: "DELETE" });
-        if(res.ok) {
-            showToast("Location deleted successfully");
-            loadAllDevices(); // Reload everything to update plants and locations
-        } else {
-            showToast("Failed to delete location", "error");
-        }
-    } catch(err) {
-        console.error(err);
-        showToast("Network error", "error");
+window.closeDeleteLocationModal = function() {
+    const modal = document.getElementById("deleteLocationModal");
+    if (modal) modal.remove();
+};
+
+window.deleteLocation = function(id, name) {
+    window.closeDeleteLocationModal();
+
+    // Look up name if not provided
+    if (!name && window.globalLocations) {
+        const found = window.globalLocations.find(l => String(l.id) === String(id));
+        if (found) name = found.name;
     }
+    const locDisplayName = name ? `“${name}”` : "this location";
+    const locText = name || "this location";
+
+    const overlay = document.createElement("div");
+    overlay.id = "deleteLocationModal";
+    overlay.className = "modal-overlay";
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(3px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: fadeIn 0.15s ease;
+    `;
+
+    overlay.innerHTML = `
+        <div class="django-confirm-card" style="
+            background: var(--dj-bg, #ffffff);
+            color: var(--dj-text, #1e293b);
+            border: 1px solid var(--dj-border, #cbd5e1);
+            border-radius: 6px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+            overflow: hidden;
+            animation: slideDown 0.2s ease;
+        ">
+            <!-- Django Header Bar -->
+            <div style="background: var(--dj-header-bg, #417690); color: #ffffff; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 500; letter-spacing: 0.02em;">Are you sure?</h3>
+                </div>
+                <button type="button" onclick="closeDeleteLocationModal()" style="background: transparent; border: none; color: #ffffff; font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px;" title="Close">&times;</button>
+            </div>
+
+            <!-- Django Body Content -->
+            <div style="padding: 20px 22px;">
+                <p style="margin: 0 0 14px 0; font-size: 0.95rem; line-height: 1.5; color: var(--dj-text, #1e293b);">
+                    Are you sure you want to delete the location <strong style="color: var(--dj-text, #1e293b);">${locDisplayName}</strong>? All of the following changes will take place:
+                </p>
+
+                <!-- Django Object Tree List -->
+                <div style="background: var(--dj-bg-sub, #f8f9fa); border: 1px solid var(--dj-border, #cbd5e1); border-left: 4px solid #ba2121; border-radius: 4px; padding: 12px 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dj-text-sub, #64748b); margin-bottom: 6px;">Summary of changes:</div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 0.88rem; color: var(--dj-text-sub, #64748b); line-height: 1.6;">
+                        <li>Location record: <strong style="color: var(--dj-text, #1e293b);">${locText}</strong> will be permanently deleted.</li>
+                        <li>Plants in this location will be <strong style="color: var(--dj-text, #1e293b);">unassigned</strong>.</li>
+                    </ul>
+                </div>
+
+                <!-- Django Warning Callout -->
+                <div class="django-errornote" style="display: flex; align-items: center; gap: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 9px 12px; border-radius: 4px; font-size: 0.84rem; margin-bottom: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <span>This action cannot be undone.</span>
+                </div>
+
+                <div id="deleteLocationError" class="inline-note" style="display: none; color: #ba2121; margin-top: 12px; font-size: 0.85rem; padding: 8px 12px; background: rgba(186, 33, 33, 0.1); border: 1px solid rgba(186, 33, 33, 0.3); border-radius: 4px;"></div>
+            </div>
+
+            <!-- Django Submit Row Footer -->
+            <div style="background: var(--dj-bg-sub, #f8f9fa); border-top: 1px solid var(--dj-border, #cbd5e1); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" onclick="closeDeleteLocationModal()" style="background: transparent; border: 1px solid var(--dj-border, #cbd5e1); color: var(--dj-text, #1e293b); padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.88rem; font-weight: 500; transition: background 0.15s;">
+                    No, take me back
+                </button>
+                <button type="button" id="confirmDeleteLocBtn" style="background: #ba2121; color: #ffffff; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 0.88rem; font-weight: 600; transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">
+                    Yes, I’m sure
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Close on outside click
+    overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeDeleteLocationModal();
+    });
+
+    // Close on Escape key
+    const onKeydown = (e) => {
+        if (e.key === "Escape") {
+            closeDeleteLocationModal();
+            document.removeEventListener("keydown", onKeydown);
+        }
+    };
+    document.addEventListener("keydown", onKeydown);
+
+    document.body.appendChild(overlay);
+
+    // Confirm button action
+    const confirmBtn = document.getElementById("confirmDeleteLocBtn");
+    const errEl = document.getElementById("deleteLocationError");
+
+    confirmBtn.addEventListener("click", async () => {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = "Deleting...";
+        errEl.style.display = "none";
+
+        try {
+            const res = await fetch(`/api/locations/${id}`, { method: "DELETE" });
+            if (res.ok) {
+                closeDeleteLocationModal();
+                showToast("Location deleted successfully");
+                loadAllDevices();
+            } else {
+                const data = await res.json().catch(() => ({}));
+                errEl.textContent = data.detail || "Failed to delete location";
+                errEl.style.display = "block";
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = "Yes, I’m sure";
+            }
+        } catch (err) {
+            console.error(err);
+            errEl.textContent = "Network error. Please try again.";
+            errEl.style.display = "block";
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = "Yes, I’m sure";
+        }
+    });
 };
 
 window.openUpdateLocationModal = function(type, id, currentLocationId) {
@@ -989,7 +1114,7 @@ function renderLocationsGrid(locations) {
                         <div class="action-dropdown">
                             <button class="action-dropdown-btn">Actions ▾</button>
                             <div class="action-dropdown-content">
-                                <button class="delete-action" onclick="deleteLocation(${loc.id})">Delete Location</button>
+                                <button class="delete-action" onclick="deleteLocation(${loc.id}, ${JSON.stringify(loc.name).replace(/"/g, '&quot;')})">Delete Location</button>
                             </div>
                         </div>
                         ` : ''}
@@ -1451,7 +1576,7 @@ function renderMeterGroups() {
                                 ${window.userRole === 'admin' ? `
                                 <button onclick="document.getElementById('inlineAddForm_${g.id}').style.display='block'">+ Add Meter</button>
                                 <button onclick="openUpdateLocationModal('group', ${g.id}, ${g.location_id || 'null'})">Edit Location</button>
-                                <button class="delete-action" onclick="deleteGroup(${g.id})">Delete Group</button>
+                                <button class="delete-action" onclick="deleteGroup(${g.id}, ${JSON.stringify(g.name).replace(/"/g, '&quot;')})">Delete Group</button>
                                 ` : ''}
                             </div>
                         </div>
@@ -1558,16 +1683,29 @@ document.getElementById("createGroupForm")?.addEventListener("submit", async (e)
     }
 });
 
-window.deleteGroup = function(id) {
+window.deleteGroup = function(id, name) {
+    if (!name && window.globalMeterGroups) {
+        const found = window.globalMeterGroups.find(g => String(g.id) === String(id));
+        if (found) name = found.name;
+    }
+    const groupDisplayName = name ? `“${name}”` : "this meter group";
+    const groupText = name || "this meter group";
+
     showCustomConfirmModal({
-        title: "Delete Meter Group",
+        title: "Are you sure?",
         icon: "📁",
-        message: "Are you sure you want to delete this meter group?",
-        submessage: "This will remove the group container. Individual meter configurations will remain intact.",
-        confirmText: "Delete Group",
+        message: `Are you sure you want to delete the meter group <strong style="color: var(--dj-text, #1e293b);">${groupDisplayName}</strong>? All of the following changes will take place:`,
+        submessage: `
+            <ul style="margin: 0; padding-left: 20px; line-height: 1.6;">
+                <li>Meter group container <strong style="color: var(--dj-text, #1e293b);">${groupText}</strong> will be permanently removed.</li>
+                <li>Individual meter configurations and recorded data will remain intact.</li>
+            </ul>
+        `,
+        confirmText: "Yes, I’m sure",
         onConfirm: async () => {
             const res = await fetch(`/api/meter_groups/${id}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Failed to delete group");
+            showToast("Meter group deleted successfully");
             if (window.loadMeterGroups) loadMeterGroups();
         }
     });

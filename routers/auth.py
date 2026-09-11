@@ -19,14 +19,28 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from passlib.context import CryptContext
+import bcrypt
 
 import config
 from database import get_db_connection
 
+
+def hash_password(password: str) -> str:
+    """Hash a plain text password using bcrypt."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plain text password against a stored bcrypt hash."""
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except Exception:
+        return False
+
+
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(config.BASE_DIR, "templates"))
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 
 def is_logged_in(request: Request) -> bool:
@@ -102,7 +116,7 @@ async def login(request: Request):
     
     if user:
         user_id, password_hash, role = user
-        if pwd_context.verify(password, password_hash):
+        if verify_password(password, password_hash):
             request.session["logged_in"] = True
             request.session["user_id"] = user_id
             request.session["username"] = username
@@ -144,7 +158,7 @@ async def change_password(request: Request):
     cur.execute("SELECT password_hash FROM users WHERE id = %s", (user_id,))
     user = cur.fetchone()
     
-    if not user or not pwd_context.verify(old_pw, user[0]):
+    if not user or not verify_password(old_pw, user[0]):
         conn.close()
         return JSONResponse({"error": "Current password is incorrect"}, status_code=400)
         
@@ -155,7 +169,7 @@ async def change_password(request: Request):
         conn.close()
         return JSONResponse({"error": "New password and confirmation do not match"}, status_code=400)
 
-    new_hash = pwd_context.hash(new_pw)
+    new_hash = hash_password(new_pw)
     cur.execute("UPDATE users SET password_hash = %s WHERE id = %s", (new_hash, user_id))
     conn.commit()
     conn.close()

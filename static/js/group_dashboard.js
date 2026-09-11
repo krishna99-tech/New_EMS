@@ -31,7 +31,7 @@ let groupChartInstance = null;
 let lastHistorySummary = null;
 let currentChartType = 'bar';
 
-window.toggleGroupChartType = function() {
+window.toggleGroupChartType = function () {
     currentChartType = currentChartType === 'bar' ? 'line' : 'bar';
     if (lastHistorySummary) {
         renderHistoryCards(lastHistorySummary);
@@ -48,7 +48,7 @@ if (groupSelect) {
         const newUrl = new URL(window.location);
         newUrl.searchParams.set('group', groupId);
         window.history.pushState({}, '', newUrl);
-        
+
         loadGroupMeta();
         setViewMode(currentViewMode);
     });
@@ -74,7 +74,7 @@ function syncShiftUiForGroup() {
 // Default Date Range Initialization
 function setDefaultDateRange() {
     if (!fromDateTime || !toDateTime) return;
-    
+
     const now = new Date();
     const tzOffset = now.getTimezoneOffset() * 60000;
     const localNow = new Date(now.getTime() - tzOffset);
@@ -87,7 +87,7 @@ function setDefaultDateRange() {
         toStr = toStr.slice(0, 10);
         fromStr = fromStr.slice(0, 10);
     }
-    
+
     if (!fromDateTime.value) fromDateTime.value = fromStr;
     if (!toDateTime.value) toDateTime.value = toStr;
 }
@@ -136,7 +136,7 @@ if (submitFiltersBtn) {
 function setViewMode(mode) {
     currentViewMode = mode;
     const filterPanel = document.getElementById("groupHistoryFilterPanel");
-    
+
     if (mode === "live") {
         if (btnGroupLive) btnGroupLive.classList.add("active");
         if (btnGroupHistory) btnGroupHistory.classList.remove("active");
@@ -152,7 +152,7 @@ function setViewMode(mode) {
         if (historyViewContainer) historyViewContainer.style.display = "block";
         if (filterPanel) filterPanel.style.display = "block";
         stopLivePolling();
-        
+
         syncShiftUiForGroup();
         setDefaultDateRange();
         loadHistoryData();
@@ -163,7 +163,7 @@ async function loadGroupMeta() {
     try {
         const res = await fetch("/api/meter_groups");
         const groups = await res.json();
-        
+
         if (groupSelect) {
             groupSelect.innerHTML = '<option value="" disabled>Select a Group...</option>';
             groups.forEach(g => {
@@ -180,15 +180,15 @@ async function loadGroupMeta() {
                 setViewMode(currentViewMode);
             }
         }
-        
+
         currentGroupMeta = groups.find(g => g.id == groupId);
         if (currentGroupMeta && groupTitle) {
             groupTitle.textContent = `Group: ${currentGroupMeta.name}`;
-            
+
             const locEl = document.getElementById("groupLocation");
             const locText = document.getElementById("groupLocationText");
             const subTitle = document.getElementById("groupSubtitle");
-            
+
             if (locEl && locText) {
                 locText.textContent = currentGroupMeta.location_name || 'Unassigned';
                 locEl.style.display = "flex";
@@ -221,10 +221,10 @@ function renderLiveView(data) {
         return;
     }
 
-    const todayKwh  = (data.today_consumption_kwh || 0).toFixed(2);
-    const shiftKwh  = (data.current_shift_consumption_kwh || 0).toFixed(2);
+    const todayKwh = (data.today_consumption_kwh || 0).toFixed(2);
+    const shiftKwh = (data.current_shift_consumption_kwh || 0).toFixed(2);
     const onlineCnt = data.online_count || 0;
-    const totalCnt  = data.member_count || 0;
+    const totalCnt = data.member_count || 0;
     const offlineCnt = totalCnt - onlineCnt;
 
     liveKpiStrip.innerHTML = `
@@ -256,7 +256,7 @@ function renderLiveView(data) {
             <div class="gdash-kpi-icon purple">📊</div>
             <div class="gdash-kpi-body">
                 <div class="gdash-kpi-label">Avg per Meter</div>
-                <div class="gdash-kpi-value">${totalCnt > 0 ? (parseFloat(todayKwh)/totalCnt).toFixed(2) : '—'}</div>
+                <div class="gdash-kpi-value">${totalCnt > 0 ? (parseFloat(todayKwh) / totalCnt).toFixed(2) : '—'}</div>
                 <div class="gdash-kpi-unit">kWh / meter</div>
             </div>
         </div>
@@ -269,12 +269,12 @@ function renderLiveView(data) {
 
     // Render a premium card for each member meter
     data.meters.forEach(member => {
-        const isOnline   = member.status === 'OK';
+        const isOnline = member.status === 'OK';
         const statusClass = isOnline ? 'online' : 'offline';
-        const statusText  = isOnline ? '● Online' : '● Offline';
-        const kwhDisplay  = member.kwh !== null && member.kwh !== undefined ? Number(member.kwh).toFixed(2) : '—';
-        const timeStr     = member.timestamp ? (member.timestamp.split(" ")[1] || member.timestamp) : '—';
-        const pulseDot    = isOnline ? '<span class="gdash-pulse"></span>' : '';
+        const statusText = isOnline ? '● Online' : '● Offline';
+        const kwhDisplay = member.kwh !== null && member.kwh !== undefined ? Number(member.kwh).toFixed(2) : '—';
+        const timeStr = member.timestamp ? (member.timestamp.split(" ")[1] || member.timestamp) : '—';
+        const pulseDot = isOnline ? '<span class="gdash-pulse"></span>' : '';
 
         const card = document.createElement("div");
         card.className = "gdash-meter-card";
@@ -309,19 +309,19 @@ function buildFilterParams() {
     const shift = shiftSelect ? shiftSelect.value : "all";
     let from_dt = fromDateTime ? fromDateTime.value : "";
     let to_dt = toDateTime ? toDateTime.value : "";
-    
+
     if (shiftAnalysisToggle && shiftAnalysisToggle.checked) {
         if (from_dt.length === 10) from_dt += "T06:00";
         if (to_dt.length === 10) to_dt += "T06:00";
     }
-    
+
     const mode = (customTimeToggle && customTimeToggle.checked) ? "custom" : "shiftwise";
     return { groupId, shift, from_dt, to_dt, mode };
 }
 
 async function loadHistoryData() {
     if (!groupId) return;
-    
+
     const { groupId: gId, shift, from_dt, to_dt, mode } = buildFilterParams();
     if (!gId) return;
 
@@ -334,7 +334,7 @@ async function loadHistoryData() {
         if (from_dt && to_dt) {
             url += `&from_dt=${encodeURIComponent(from_dt)}&to_dt=${encodeURIComponent(to_dt)}`;
         }
-        
+
         const res = await fetch(url);
         if (!res.ok) {
             if (historyCardsContainer) {
@@ -342,10 +342,10 @@ async function loadHistoryData() {
             }
             return;
         }
-        
+
         const data = await res.json();
         lastHistorySummary = data;
-        
+
         renderHistorySummary(data);
         renderHistoryCards(data);
         renderMemberBreakdown(data);
@@ -362,16 +362,16 @@ function renderHistorySummary(data) {
     historySummaryStrip.innerHTML = "";
 
     const totalKwh = data.selected_total_kwh || 0;
-    const bars     = data.bars || [];
+    const bars = data.bars || [];
     const barCount = bars.length;
-    const avgKwh   = barCount > 0 ? (totalKwh / barCount) : totalKwh;
+    const avgKwh = barCount > 0 ? (totalKwh / barCount) : totalKwh;
 
     let peakLabel = "—";
     let peakVal = 0;
     if (bars.length > 0) {
         const peak = bars.reduce((max, b) => (b.consumption > max.consumption ? b : max), bars[0]);
         peakLabel = peak.label || peak.shift_name || "Peak";
-        peakVal   = peak.consumption || 0;
+        peakVal = peak.consumption || 0;
     } else {
         peakVal = totalKwh;
     }
@@ -444,9 +444,14 @@ function renderHistoryCards(data) {
         chartWrapper.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h3 style="margin: 0; font-size: 1.1rem; color: var(--dj-header-bg, #1f2937); font-weight: 600;">Aggregated Energy Consumption (kWh)</h3>
-                <button onclick="toggleGroupChartType()" style="background:var(--dj-bg-sub); border:1px solid var(--dj-border); border-radius:6px; padding:6px 10px; cursor:pointer; color:var(--dj-text); display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; transition:all 0.2s;">
-                    ${currentChartType === 'bar' ? '📈 Switch to Line' : '📊 Switch to Bar'}
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="downloadGraphPdf()" id="btnDownloadChart" style="background:var(--dj-bg-sub); border:1px solid var(--dj-border); border-radius:6px; padding:6px 10px; cursor:pointer; color:var(--dj-text); display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; transition:all 0.2s;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download PDF
+                    </button>
+                    <button onclick="toggleGroupChartType()" style="background:var(--dj-bg-sub); border:1px solid var(--dj-border); border-radius:6px; padding:6px 10px; cursor:pointer; color:var(--dj-text); display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; transition:all 0.2s;">
+                        ${currentChartType === 'bar' ? '📈 Switch to Line' : '📊 Switch to Bar'}
+                    </button>
+                </div>
             </div>
             <div style="position: relative; height: 320px; width: 100%;">
                 <canvas id="groupHistoryChart"></canvas>
@@ -469,6 +474,19 @@ function renderHistoryCards(data) {
                 labels = bars.map(b => b.label);
                 datasetsData = bars.map(b => b.consumption);
             }
+
+            // Save data globally for PDF generation
+            const shiftEl = document.getElementById("shiftSelect");
+            const selectedShift = shiftEl ? shiftEl.options[shiftEl.selectedIndex].text : "All Shifts";
+
+            window.currentChartData = {
+                labels: labels,
+                datasetsData: datasetsData,
+                from_dt: data.from_dt || "",
+                to_dt: data.to_dt || "",
+                shift: selectedShift,
+                meters: (data.members || []).map(m => m.meter_name)
+            };
 
             groupChartInstance = new Chart(ctx, {
                 type: currentChartType,
@@ -494,11 +512,31 @@ function renderHistoryCards(data) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        onComplete: function () {
+                            const chartInstance = this;
+                            const ctx = chartInstance.ctx;
+                            ctx.font = 'bold 11px sans-serif';
+                            ctx.fillStyle = '#4f46e5';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+
+                            this.data.datasets.forEach(function (dataset, i) {
+                                const meta = chartInstance.getDatasetMeta(i);
+                                meta.data.forEach(function (element, index) {
+                                    const data = dataset.data[index];
+                                    if (data > 0) {
+                                        ctx.fillText(data.toFixed(1), element.x, element.y - 6);
+                                    }
+                                });
+                            });
+                        }
+                    },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     return `Consumption: ${context.parsed.y.toFixed(2)} kWh`;
                                 }
                             }
@@ -593,8 +631,8 @@ function renderMemberBreakdown(data) {
 
     let memberRows = '';
     members.forEach(m => {
-        const kwh    = m.kwh  !== null && m.kwh  !== undefined ? Number(m.kwh).toFixed(2)  : '0.00';
-        const pct    = m.pct  !== null && m.pct  !== undefined ? Number(m.pct).toFixed(1)   : '0.0';
+        const kwh = m.kwh !== null && m.kwh !== undefined ? Number(m.kwh).toFixed(2) : '0.00';
+        const pct = m.pct !== null && m.pct !== undefined ? Number(m.pct).toFixed(1) : '0.0';
         const barPct = Math.min(100, ((parseFloat(m.kwh) || 0) / maxKwh * 100)).toFixed(1);
         const typeBadge = m.type === 'incomer'
             ? `<span style="background:rgba(234,88,12,0.12); color:#ea580c; padding:1px 7px; border-radius:4px; font-size:0.7rem; font-weight:700; text-transform:uppercase;">Incomer</span>`
@@ -657,4 +695,86 @@ function stopLivePolling() {
 loadGroupMeta();
 if (groupId) {
     setViewMode("live");
+}
+
+async function downloadGraphPdf() {
+    const btn = document.getElementById('btnDownloadChart');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `<span style="font-size:12px;">⏳ Generating...</span>`;
+    btn.disabled = true;
+
+    try {
+        const canvas = document.getElementById('groupHistoryChart');
+        if (!canvas) throw new Error("Chart canvas not found.");
+
+        // Render chart against white background if it's transparent
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const ctx = tempCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        ctx.drawImage(canvas, 0, 0);
+
+        const chartImage = tempCanvas.toDataURL('image/png');
+        const groupName = document.getElementById("groupTitle").textContent.replace("Group: ", "").trim();
+        const locEl = document.getElementById("groupLocationText");
+        const locationName = locEl && locEl.textContent ? locEl.textContent.trim() : "Unassigned";
+
+        // Prepare detailed data points
+        const cData = window.currentChartData;
+        const dataPoints = cData.labels.map((lbl, i) => ({
+            label: lbl,
+            value: cData.datasetsData[i]
+        }));
+
+        const payload = {
+            group_name: groupName,
+            location: locationName,
+            shift: cData.shift,
+            meters_included: cData.meters,
+            start_date: cData.from_dt,
+            end_date: cData.to_dt,
+            chart_image: chartImage,
+            data_points: dataPoints
+        };
+
+        const res = await fetch('/api/reports/download_group_chart_pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `Server error ${res.status}`);
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+
+        // Generate a timestamp for the filename
+        const now = new Date();
+        const timeStr = now.getFullYear().toString() +
+            (now.getMonth() + 1).toString().padStart(2, '0') +
+            now.getDate().toString().padStart(2, '0') + "_" +
+            now.getHours().toString().padStart(2, '0') +
+            now.getMinutes().toString().padStart(2, '0') +
+            now.getSeconds().toString().padStart(2, '0');
+
+        a.download = `${groupName}_Chart_Report_${timeStr}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+    } catch (err) {
+        console.error("PDF generation failed:", err);
+        alert("Failed to generate PDF: " + err.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }

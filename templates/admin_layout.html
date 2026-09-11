@@ -168,37 +168,51 @@
 </div>
 
 <!-- Django Administration Confirmation Modal Card -->
-<div id="customConfirmModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center;">
-    <div class="modal-content django-confirm-card" style="background: var(--dj-bg); color: var(--dj-text); border: 1px solid var(--dj-border); border-radius: 6px; max-width: 500px; width: 90%; box-shadow: 0 12px 36px rgba(0,0,0,0.4); overflow: hidden; padding: 0; margin: auto;">
-        <!-- Django Header Banner -->
-        <div style="background: var(--dj-header-bg); color: var(--dj-header-text); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span id="confirmModalIcon" style="font-size: 1.2rem;">⚠️</span>
-                <h3 id="confirmModalTitle" style="margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--dj-header-text); letter-spacing: 0.01em;">Are you sure?</h3>
-            </div>
-            <button type="button" onclick="closeCustomConfirmModal()" style="background: transparent; border: none; font-size: 1.4rem; color: var(--dj-header-text); cursor: pointer; line-height: 1;">&times;</button>
-        </div>
+<div id="customConfirmModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(3px); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+    <div class="django-confirm-card" style="background: var(--dj-bg, #ffffff); color: var(--dj-text, #1e293b); border: 1px solid var(--dj-border, #cbd5e1); border-radius: 6px; width: 100%; max-width: 480px; box-shadow: 0 16px 40px rgba(0,0,0,0.25); overflow: hidden; animation: popCardIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
         
-        <div style="padding: 20px;">
-            <!-- Django Deletenote Callout -->
-            <div style="background: rgba(220, 38, 38, 0.08); border-left: 4px solid var(--dj-danger, #ba2121); border-radius: 4px; padding: 12px 16px; margin-bottom: 16px;">
-                <p id="confirmModalMessage" style="margin: 0 0 6px 0; font-size: 0.95rem; font-weight: bold; color: var(--dj-text);"></p>
-                <p id="confirmModalSubmessage" style="margin: 0; font-size: 0.85rem; color: var(--dj-text-sub); line-height: 1.4;"></p>
+        <!-- Django Header Bar -->
+        <div style="background: var(--dj-header-bg, #417690); color: #ffffff; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span id="confirmModalIcon" style="font-size: 1.15rem;">📁</span>
+                <h3 id="confirmModalTitle" style="margin: 0; font-size: 1.05rem; font-weight: 500; letter-spacing: 0.02em; color: #ffffff;">Are you sure?</h3>
             </div>
-            
+            <button type="button" onclick="closeCustomConfirmModal()" style="background: transparent; border: none; color: #ffffff; font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px;" title="Close">&times;</button>
+        </div>
+
+        <!-- Django Body Content -->
+        <div style="padding: 20px 22px;">
+            <p id="confirmModalMessage" style="margin: 0 0 14px 0; font-size: 0.95rem; line-height: 1.5; color: var(--dj-text, #1e293b);"></p>
+
+            <!-- Django Summary Box -->
+            <div id="confirmSummaryBox" style="background: var(--dj-bg-sub, #f8f9fa); border: 1px solid var(--dj-border, #cbd5e1); border-left: 4px solid #ba2121; border-radius: 4px; padding: 12px 16px; margin-bottom: 16px;">
+                <div style="font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dj-text-sub, #64748b); margin-bottom: 6px;">Summary of changes:</div>
+                <div id="confirmModalSubmessage" style="font-size: 0.88rem; color: var(--dj-text-sub, #64748b); line-height: 1.5;"></div>
+            </div>
+
             <!-- Sensor Data Wipe Checkbox -->
-            <div id="confirmDataCheckContainer" style="display: none; background: var(--dj-bg-sub); border: 1px solid var(--dj-border); border-radius: 4px; padding: 12px; margin-bottom: 16px;">
-                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--dj-text);">
-                    <input type="checkbox" id="confirmDeleteDataCheckbox" style="margin-top: 2px; accent-color: var(--dj-danger, #ba2121);">
+            <div id="confirmDataCheckContainer" style="display: none; background: var(--dj-bg-sub, #f8f9fa); border: 1px solid var(--dj-border, #cbd5e1); border-radius: 4px; padding: 12px; margin-bottom: 16px;">
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--dj-text, #1e293b);">
+                    <input type="checkbox" id="confirmDeleteDataCheckbox" style="margin-top: 2px; accent-color: #ba2121;">
                     <span id="confirmCheckboxLabel" style="font-weight: 500;">Also permanently delete all recorded sensor data (kWh readings & history)</span>
                 </label>
             </div>
-            
-            <!-- Django Action Buttons -->
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button type="button" onclick="closeCustomConfirmModal()" style="padding: 8px 16px; background: var(--dj-bg-sub); color: var(--dj-text); border: 1px solid var(--dj-border); border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 0.88rem;">No, take me back</button>
-                <button type="button" id="confirmActionBtn" style="padding: 8px 18px; background: #ba2121; color: #ffffff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">Yes, I'm sure</button>
+
+            <!-- Django Warning Callout -->
+            <div class="django-errornote" style="display: flex; align-items: center; gap: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 9px 12px; border-radius: 4px; font-size: 0.84rem; margin-bottom: 4px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>This action cannot be undone.</span>
             </div>
+        </div>
+
+        <!-- Django Submit Row Footer -->
+        <div style="background: var(--dj-bg-sub, #f8f9fa); border-top: 1px solid var(--dj-border, #cbd5e1); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <button type="button" onclick="closeCustomConfirmModal()" style="background: transparent; border: 1px solid var(--dj-border, #cbd5e1); color: var(--dj-text, #1e293b); padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.88rem; font-weight: 500; transition: background 0.15s;">
+                No, take me back
+            </button>
+            <button type="button" id="confirmActionBtn" style="background: #ba2121; color: #ffffff; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 0.88rem; font-weight: 600; transition: background 0.15s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">
+                Yes, I’m sure
+            </button>
         </div>
     </div>
 </div>
@@ -346,7 +360,7 @@ function showGlobalLoader(text = "Loading Data...") {
     if (loaderSafetyTimeout) clearTimeout(loaderSafetyTimeout);
     loaderSafetyTimeout = setTimeout(() => {
         hideGlobalLoader();
-    }, 4000);
+    }, 2500);
 }
 
 function hideGlobalLoader() {
@@ -411,36 +425,22 @@ if (typeof window.fetch === "function") {
     };
 }
 
-// Universal Button Click & Form Submit Loading Handler
-document.addEventListener("click", (e) => {
-    const btn = e.target.closest("button, .submit-btn, .action-btn");
-    if (!btn || btn.disabled) return;
-    
-    // Ignore dropdown toggles or simple modal close buttons
-    if (btn.id === "userMenuBtn" || btn.id === "sidebarToggleBtn" || btn.classList.contains("close-modal-btn")) return;
-    
-    const form = btn.closest("form");
-    if (form && !form.checkValidity()) return;
-
-    btn.classList.add("btn-loading");
-    showGlobalLoader("Processing...");
-
-    // Auto-clear loader after 1.5s for file downloads / GET forms that don't cause full page reloads
-    if (form && (form.action.includes("download") || form.action.includes("export") || form.method.toUpperCase() === "GET")) {
-        setTimeout(hideGlobalLoader, 1500);
-    }
-});
-
+// Form Submit Loading Handler (Only for standard non-AJAX form submissions)
 document.addEventListener("submit", (e) => {
-    const form = e.target;
-    const btn = form.querySelector('button[type="submit"], .submit-btn');
-    if (btn) btn.classList.add("btn-loading");
-    showGlobalLoader("Processing...");
+    // If handled by JavaScript via preventDefault(), let the fetch handler or local handler manage it
+    setTimeout(() => {
+        if (e.defaultPrevented) return;
+        
+        const form = e.target;
+        const btn = form.querySelector('button[type="submit"], .submit-btn');
+        if (btn) btn.classList.add("btn-loading");
+        showGlobalLoader("Processing...");
 
-    // Auto-clear loader after 1.5s for file downloads / GET forms
-    if (form && (form.action.includes("download") || form.action.includes("export") || form.method.toUpperCase() === "GET")) {
-        setTimeout(hideGlobalLoader, 1500);
-    }
+        // Auto-clear loader after 1.5s for file downloads / GET forms
+        if (form && (form.action.includes("download") || form.action.includes("export") || form.method.toUpperCase() === "GET")) {
+            setTimeout(hideGlobalLoader, 1500);
+        }
+    }, 0);
 });
 
 function initColorTheme() {

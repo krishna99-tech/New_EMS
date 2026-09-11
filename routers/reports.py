@@ -1,9 +1,13 @@
 import os
 import csv
 import io
+import base64
+from datetime import datetime
 from tempfile import NamedTemporaryFile
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
+from pydantic import BaseModel
+from typing import List
 from fastapi.templating import Jinja2Templates
 from fpdf import FPDF
 import psycopg2.extras
@@ -171,3 +175,271 @@ def download_report_csv(request: Request, plant: str, start_date: str, end_date:
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={plant}_Energy_Report.csv"}
     )
+
+
+class ChartDataPoint(BaseModel):
+    label: str
+    value: float
+
+class ChartPdfRequest(BaseModel):
+    group_name: str
+    location: str = "Unassigned"
+    shift: str = "All Shifts"
+    meters_included: List[str] = []
+    start_date: str
+    end_date: str
+    chart_image: str  # Base64 string
+    data_points: List[ChartDataPoint]
+
+@router.post("/api/reports/download_group_chart_pdf")
+def download_group_chart_pdf(request: Request, payload: ChartPdfRequest):
+    """
+    Accepts a base64 encoded chart image and data points,
+    and returns a beautifully formatted PDF report.
+    """
+    require_login(request)
+
+    # Decode base64 image
+    img_data = payload.chart_image.split(",")[1] if "," in payload.chart_image else payload.chart_image
+    img_bytes = base64.b64decode(img_data)
+    
+    with NamedTemporaryFile(delete=False, suffix=".png") as img_file:
+        img_file.write(img_bytes)
+        img_path = img_file.name
+
+    try:
+        pdf = FPDF(orientation='L') # Landscape for better chart viewing
+        pdf.add_page()
+        
+        # ── Header ──
+        pdf.set_font("helvetica", size=22, style='B')
+        pdf.set_text_color(6, 78, 59)
+        pdf.cell(0, 10, text="Fuso Energy Management System", ln=1, align='L')
+        
+        pdf.set_font("helvetica", size=14, style='B')
+        pdf.set_text_color(50, 50, 50)
+        pdf.cell(0, 8, text="Energy Consumption Analytics Report", ln=1, align='L')
+        
+        # Generation time
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        pdf.set_font("helvetica", size=9)
+        pdf.set_text_color(120, 120, 120)
+        pdf.cell(0, 6, text=f"Generated On: {now_str}", ln=1, align='L')
+        pdf.ln(5)
+
+        # ── Report Parameters Box ──
+        pdf.set_fill_color(248, 250, 252) # Very light gray/blue
+        pdf.set_draw_color(203, 213, 225) # Slate border
+        
+        # Calculate total consumption
+        total_consumption = sum(pt.value for pt in payload.data_points)
+
+        # Background box for details
+        pdf.rect(10, pdf.get_y(), 277, 36, style='DF')
+        pdf.set_y(pdf.get_y() + 4)
+        
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.set_text_color(50, 50, 50)
+        
+        # Row 1
+        pdf.set_x(14)
+        pdf.cell(25, 7, "Location:")
+        pdf.set_font("helvetica", size=10)
+        pdf.cell(75, 7, payload.location)
+        
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.cell(25, 7, "Group Name:")
+        pdf.set_font("helvetica", size=10)
+        pdf.cell(65, 7, payload.group_name)
+        
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.cell(15, 7, "Shift:")
+        pdf.set_font("helvetica", size=10)
+        pdf.cell(50, 7, payload.shift, ln=1)
+        
+        # Row 2
+        pdf.set_x(14)
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.cell(25, 7, "Date Range:")
+        pdf.set_font("helvetica", size=10)
+        # Format the dates slightly cleaner
+        start_short = payload.start_date.replace(":00:00", "") if payload.start_date else ""
+        end_short = payload.end_date.replace(":00:00", "") if payload.end_date else ""
+        period_text = f"{start_short} to {end_short}" if (start_short and end_short) else (start_short or "Custom")
+        pdf.cell(75, 7, period_text)
+        
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.cell(32, 7, "Meters Included:")
+        pdf.set_font("helvetica", size=9)
+        meters_str = ", ".join(payload.meters_included)
+        if len(meters_str) > 80:
+            meters_str = meters_str[:77] + "..."
+        pdf.cell(100, 7, meters_str, ln=1)
+
+        # Row 3
+        pdf.set_x(14)
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.cell(40, 7, "Total Consumption:")
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.set_text_color(16, 185, 129) # Highlight in green
+        pdf.cell(50, 7, f"{total_consumption:.2f} kWh", ln=1)
+        
+        # Move past the box (box started at ~39 + 36 = 75)
+        pdf.set_y(80)
+        
+        # ── Insert Chart Image ──
+        # Center the chart horizontally and constrain height to fit gracefully on ONE page
+        pdf.image(img_path, x='C', w=270, h=110, keep_aspect_ratio=True)
+        
+        temp_pdf = NamedTemporaryFile(delete=False, suffix=".pdf")
+        temp_pdf.close()
+        pdf.output(temp_pdf.name)
+
+    finally:
+        if os.path.exists(img_path):
+            os.remove(img_path)
+            
+    safe_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return FileResponse(
+        temp_pdf.name, 
+        media_type="application/pdf", 
+        filename=f"{payload.group_name}_Chart_Report_{safe_time}.pdf",
+        background=None
+    )
+
+
+# ── Plant-specific chart PDF ───────────────────────────────────────────────────
+
+class PlantChartPdfRequest(BaseModel):
+    meter_name: str
+    plant_name: str = "Plant"
+    location: str = ""
+    shift: str = "All Shifts"
+    start_date: str = ""
+    end_date: str = ""
+    chart_image: str   # Base64 string (data:image/png;base64,...)
+    data_points: List[ChartDataPoint]
+
+@router.post("/api/reports/download_plant_chart_pdf")
+def download_plant_chart_pdf(request: Request, payload: PlantChartPdfRequest):
+    """
+    Accepts a base64-encoded screenshot of the plant CSS bar chart (via html2canvas)
+    or an ECharts image, and returns a professional single-meter PDF report.
+    No login required — plant dashboard is publicly accessible.
+    """
+
+    # Decode base64 image
+    img_data = payload.chart_image.split(",")[1] if "," in payload.chart_image else payload.chart_image
+    img_bytes = base64.b64decode(img_data)
+
+    with NamedTemporaryFile(delete=False, suffix=".png") as img_file:
+        img_file.write(img_bytes)
+        img_path = img_file.name
+
+    def sanitize(text: str) -> str:
+        """Strip characters outside Latin-1 range (e.g. ● live-status bullets)."""
+        return text.encode("latin-1", errors="ignore").decode("latin-1").strip()
+
+    plant_name_clean = sanitize(payload.plant_name)
+    meter_name_clean = sanitize(payload.meter_name)
+    shift_clean      = sanitize(payload.shift)
+    location_clean   = sanitize(payload.location) if payload.location else ""
+
+    try:
+
+        pdf = FPDF(orientation='L')  # Landscape
+        pdf.add_page()
+
+        # ── Header ──
+        pdf.set_font("helvetica", size=22, style='B')
+        pdf.set_text_color(6, 78, 59)
+        pdf.cell(0, 10, text="Fuso Energy Management System", ln=1, align='L')
+
+        pdf.set_font("helvetica", size=14, style='B')
+        pdf.set_text_color(50, 50, 50)
+        pdf.cell(0, 8, text="Meter Analysis Report", ln=1, align='L')
+
+        # Generation time
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        pdf.set_font("helvetica", size=9)
+        pdf.set_text_color(120, 120, 120)
+        pdf.cell(0, 6, text=f"Generated On: {now_str}", ln=1, align='L')
+        pdf.ln(5)
+
+        # ── Report Parameters Box ──
+        pdf.set_fill_color(248, 250, 252)
+        pdf.set_draw_color(203, 213, 225)
+
+        total_consumption = sum(pt.value for pt in payload.data_points)
+
+        pdf.rect(10, pdf.get_y(), 277, 50, style='DF')  # taller box for 4 rows
+        pdf.set_y(pdf.get_y() + 4)
+
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.set_text_color(50, 50, 50)
+
+        # Row 1: Plant Name | Meter Name | Shift
+        pdf.set_x(14)
+        pdf.cell(25, 7, "Plant Name:")
+        pdf.set_font("helvetica", size=10)
+        pdf.cell(75, 7, plant_name_clean)
+
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.cell(25, 7, "Meter Name:")
+        pdf.set_font("helvetica", size=10)
+        pdf.cell(65, 7, meter_name_clean)
+
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.cell(15, 7, "Shift:")
+        pdf.set_font("helvetica", size=10)
+        pdf.cell(50, 7, shift_clean, ln=1)
+
+        # Row 2: Location | Date Range
+        pdf.set_x(14)
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.set_text_color(50, 50, 50)
+        pdf.cell(25, 7, "Location:")
+        pdf.set_font("helvetica", size=10)
+        pdf.cell(75, 7, location_clean or "N/A")
+
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.cell(25, 7, "Date Range:")
+        pdf.set_font("helvetica", size=10)
+        start_short = payload.start_date.replace(":00:00", "") if payload.start_date else ""
+        end_short = payload.end_date.replace(":00:00", "") if payload.end_date else ""
+        period_text = f"{start_short} to {end_short}" if (start_short and end_short) else (start_short or "Custom")
+        pdf.cell(100, 7, period_text, ln=1)
+
+        # Row 3: Total Consumption (highlighted green, own line)
+        pdf.set_x(14)
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.set_text_color(50, 50, 50)
+        pdf.cell(40, 7, "Total Consumption:")
+        pdf.set_font("helvetica", size=10, style='B')
+        pdf.set_text_color(16, 185, 129)  # green highlight
+        pdf.cell(50, 7, f"{total_consumption:.2f} kWh", ln=1)
+
+
+        # Move past the box (4 rows * 7px + 8px header padding + 10px margin ≈ 88)
+        pdf.set_y(88)
+
+        # ── Insert Chart Image ──
+        pdf.image(img_path, x='C', w=270, h=95, keep_aspect_ratio=True)
+
+        temp_pdf = NamedTemporaryFile(delete=False, suffix=".pdf")
+        temp_pdf.close()
+        pdf.output(temp_pdf.name)
+
+    finally:
+        if os.path.exists(img_path):
+            os.remove(img_path)
+
+    safe_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_meter = meter_name_clean.replace(" ", "_")
+    return FileResponse(
+        temp_pdf.name,
+        media_type="application/pdf",
+        filename=f"{safe_meter}_Analysis_{safe_time}.pdf",
+        background=None
+    )
+

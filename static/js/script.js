@@ -8,7 +8,7 @@ document.addEventListener("keydown", (e) => {
         if (pSelect) {
             pSelect.focus();
             if (pSelect.showPicker) {
-                try { pSelect.showPicker(); } catch(err) {}
+                try { pSelect.showPicker(); } catch (err) { }
             }
         }
     }
@@ -117,7 +117,7 @@ function applyThemeState() {
         dashboardTitle.style.color = plantTheme.primaryColor;
         dashboardTitle.style.setProperty("--title-glow", `0 0 15px ${plantTheme.primaryColor}88`);
         navbar.style.setProperty("--nav-border-bottom-color", plantTheme.primaryColor);
-        
+
         document.body.style.setProperty("--accent-1", hexToRgba(plantTheme.primaryColor, isLightMode ? 0.13 : 0.25));
         document.body.style.setProperty("--accent-2", hexToRgba(plantTheme.primaryColor, isLightMode ? 0.1 : 0.2));
         document.body.style.setProperty("--accent-primary", plantTheme.primaryColor);
@@ -198,7 +198,7 @@ function getCardHTML(label, value, unit, status, isEnergy = false, meterName = "
         </div>`;
 }
 
-function updateTime(){
+function updateTime() {
     const el = document.getElementById("currentTime");
     if (!el) return;
     const now = new Date();
@@ -240,7 +240,7 @@ function setDefaultDateRange() {
     toDateTime.value = toLocalInputValue(end, isDateOnly);
 }
 
-function updateInsightCardsMeta(_extra = {}) {}
+function updateInsightCardsMeta(_extra = {}) { }
 
 function setPlantViewMode(mode) {
     plantViewMode = mode;
@@ -508,7 +508,7 @@ function syncShiftUiForMeter() {
         shiftAnalysisToggle.closest(".tick-card")?.classList.add("disabled-control");
         customTimeToggle.closest(".tick-card")?.classList.add("disabled-control");
         barGraphToggle.closest(".tick-card")?.classList.add("disabled-control");
-        
+
         shiftSelect.disabled = true;
         fromDateTime.disabled = true;
         toDateTime.disabled = true;
@@ -519,7 +519,7 @@ function syncShiftUiForMeter() {
         toDateTime.closest(".select-card")?.classList.toggle("disabled-control", true);
         submitFiltersBtn.classList.toggle("disabled-control", true);
         exportCsvBtn.classList.toggle("disabled-control", true);
-        
+
         shiftDisabledNote.textContent = "Please select a meter to enable shift analysis and export controls.";
         shiftDisabledNote.style.display = "block";
         return;
@@ -535,7 +535,7 @@ function syncShiftUiForMeter() {
         shiftAnalysisToggle.closest(".tick-card")?.classList.add("disabled-control");
         customTimeToggle.closest(".tick-card")?.classList.add("disabled-control");
         barGraphToggle.closest(".tick-card")?.classList.add("disabled-control");
-        
+
         shiftSelect.disabled = true;
         fromDateTime.disabled = true;
         toDateTime.disabled = true;
@@ -546,7 +546,7 @@ function syncShiftUiForMeter() {
         toDateTime.closest(".select-card")?.classList.toggle("disabled-control", true);
         submitFiltersBtn.classList.toggle("disabled-control", true);
         exportCsvBtn.classList.toggle("disabled-control", true);
-        
+
         shiftDisabledNote.textContent = "All Devices is live-only. Shift analysis, Custom Time, and bar graphs are disabled.";
         shiftDisabledNote.style.display = "block";
         return;
@@ -593,20 +593,20 @@ function syncFloatingHomeBtn() {
 
 // ================= LOAD PLANTS =================
 
-async function loadPlants(){
+async function loadPlants() {
 
-    const res = await fetch("/api/plants_detailed");    
+    const res = await fetch("/api/plants_detailed");
     const detailedPlants = await res.json();
-    
+
     const plants = [];
     detailedPlants.forEach(dp => {
         plantLocations[dp.name] = dp.location_name;
         plants.push(dp.name);
     });
-    
+
     const landingPlantSelect = document.getElementById("landingPlantSelect");
 
-    plants.forEach(p=>{
+    plants.forEach(p => {
         const option = document.createElement("option");
         option.value = p;
 
@@ -618,7 +618,7 @@ async function loadPlants(){
             option.innerHTML = `&#9679; ${p}`;
             option.style.color = "#059669";
         }
-        
+
         if (plantSelect) {
             plantSelect.appendChild(option.cloneNode(true));
         }
@@ -629,7 +629,7 @@ async function loadPlants(){
 
     if (landingPlantSelect) {
         landingPlantSelect.addEventListener('change', (e) => {
-            if(e.target.value) {
+            if (e.target.value) {
                 window.location.href = `/dashboard?plant=${encodeURIComponent(e.target.value)}`;
             }
         });
@@ -639,18 +639,18 @@ async function loadPlants(){
 
 // ================= LOAD METERS =================
 
-async function loadMeters(plant){
+async function loadMeters(plant) {
 
     meterSelect.innerHTML =
-    `<option value="">Select Meter</option>`;
+        `<option value="">Select Meter</option>`;
     meterMetaById = {};
 
     const res =
-    await fetch(`/api/meters?plant=${plant}`);
+        await fetch(`/api/meters?plant=${plant}`);
 
     const meters = await res.json();
 
-    meters.forEach(m=>{
+    meters.forEach(m => {
 
         const option = document.createElement("option");
 
@@ -690,10 +690,41 @@ function getBarChartHTML(title, dataPoints, isFullWidth = false) {
         unit: p.unit || ""
     }));
     const rawMax = Math.max(...safePoints.map(b => b.value), 0);
-    const axisMax = rawMax <= 0 ? 1 : rawMax * 1.1;
-    const ticks = [1, 0.75, 0.5, 0.25, 0];
+    
+    // ── Nice Y-axis calculation ──
+    // Calculate a clean, rounded axis max and evenly-spaced tick values
+    function niceNumber(range, round) {
+        const exp = Math.floor(Math.log10(range));
+        const f = range / Math.pow(10, exp);
+        let nf;
+        if (round) {
+            if (f < 1.5) nf = 1;
+            else if (f < 3) nf = 2;
+            else if (f < 7) nf = 5;
+            else nf = 10;
+        } else {
+            if (f <= 1) nf = 1;
+            else if (f <= 2) nf = 2;
+            else if (f <= 5) nf = 5;
+            else nf = 10;
+        }
+        return nf * Math.pow(10, exp);
+    }
+    
+    const NUM_TICKS = 5;
+    const niceRange = niceNumber(rawMax <= 0 ? 1 : rawMax, false);
+    const tickSpacing = niceNumber(niceRange / (NUM_TICKS - 1), true);
+    const axisMax = tickSpacing * (NUM_TICKS - 1);
+    
+    // Build tick labels from axisMax down to 0
+    const tickValues = [];
+    for (let i = NUM_TICKS - 1; i >= 0; i--) {
+        tickValues.push(tickSpacing * i);
+    }
+    
     const formatNum = n => (n >= 100 ? Math.round(n).toString() : n.toFixed(2).replace(/\.00$/, ""));
-    const yAxisHtml = ticks.map(t => `<span>${formatNum(axisMax * t)}</span>`).join("");
+    const yAxisHtml = tickValues.map(v => `<span>${formatNum(v)}</span>`).join("");
+
     const barsHtml = safePoints.map(b => {
         const percent = Math.max(0, Math.min(100, (b.value / axisMax) * 100));
         return `
@@ -716,16 +747,20 @@ function getBarChartHTML(title, dataPoints, isFullWidth = false) {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 4px;">
             <h4 class="graph-title" style="margin: 0;">${title}</h4>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 12px; color: var(--text-sub);">Bar</span>
-                <label class="ios-switch">
-                    <input type="checkbox" class="echart-type-toggle" ${isLine ? 'checked' : ''}>
-                    <span class="ios-slider"></span>
-                </label>
-                <span style="font-size: 12px; color: var(--text-sub);">Line</span>
+                <button onclick="downloadPlantPdf(this)" class="btn-download-pdf" style="background:var(--bg-sub); border:1px solid var(--border-color); border-radius:6px; padding:6px 10px; cursor:pointer; color:var(--text-main); display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; transition:all 0.2s; margin-right: 12px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download PDF
+                </button>
+                <div class="chart-type-icons" style="display: flex; gap: 4px; background: var(--bg-sub); padding: 4px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <div title="Bar Chart" class="chart-icon bar-icon" style="cursor: pointer; padding: 4px; border-radius: 4px; color: ${!isLine ? 'var(--text-main)' : 'var(--text-sub)'}; background: ${!isLine ? 'var(--border-color)' : 'transparent'};" onclick="switchPlantChartType(this, 'bar')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                    </div>
+                    <div title="Line Chart" class="chart-icon line-icon" style="cursor: pointer; padding: 4px; border-radius: 4px; color: ${isLine ? 'var(--text-main)' : 'var(--text-sub)'}; background: ${isLine ? 'var(--border-color)' : 'transparent'};" onclick="switchPlantChartType(this, 'line')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <!-- Old CSS Bar Chart (hidden if line mode) -->
         <div class="industrial-chart-shell css-bar-chart" style="${isLine ? 'display: none;' : ''}">
             <div class="industrial-y-axis">
                 ${yAxisHtml}
@@ -738,9 +773,8 @@ function getBarChartHTML(title, dataPoints, isFullWidth = false) {
             </div>
         </div>
         
-        <!-- New ECharts Line Chart (hidden if bar mode) -->
         <div class="industrial-chart-shell echart-line-chart" style="padding: 10px; ${isLine ? '' : 'display: none;'}">
-            <div id="${chartId}" class="echart-container" data-points="${dataStr}" style="width: 100%; height: 300px;"></div>
+            <div id="${chartId}" class="echart-container" data-title="${title}" data-points="${dataStr}" style="width: 100%; height: 300px;"></div>
         </div>
     </div>`;
 }
@@ -751,16 +785,16 @@ function initEChartsInDOM() {
         container.classList.add('initialized');
         const rawData = container.getAttribute('data-points');
         if (!rawData) return;
-        
+
         const dataPoints = JSON.parse(rawData);
         const xAxisData = dataPoints.map(p => p.label);
         const seriesData = dataPoints.map(p => ({
             value: p.value,
             unit: p.unit
         }));
-        
+
         const chart = echarts.init(container);
-        
+
         const option = {
             tooltip: {
                 trigger: 'axis',
@@ -796,7 +830,7 @@ function initEChartsInDOM() {
                     label: {
                         show: true,
                         position: 'top',
-                        formatter: function(p) { return p.value + (p.data.unit ? ' ' + p.data.unit : ''); },
+                        formatter: function (p) { return p.value + (p.data.unit ? ' ' + p.data.unit : ''); },
                         color: 'var(--text-main)',
                         fontSize: 11
                     }
@@ -804,44 +838,168 @@ function initEChartsInDOM() {
             ]
         };
         chart.setOption(option);
-        
+
         // Handle window resize
         window.addEventListener('resize', () => chart.resize());
     });
 }
 
-// Global Event Delegation for the toggles
-document.addEventListener('change', (e) => {
-    if (e.target && e.target.classList.contains('echart-type-toggle')) {
-        window.lineChartMode = e.target.checked;
-        
-        // Update all initialized charts on the page dynamically
-        document.querySelectorAll('.echart-wrapper').forEach(wrapper => {
-            const cssChart = wrapper.querySelector('.css-bar-chart');
-            const echartShell = wrapper.querySelector('.echart-line-chart');
-            if (cssChart && echartShell) {
-                if (window.lineChartMode) {
-                    cssChart.style.display = 'none';
-                    echartShell.style.display = 'block';
-                    // Trigger resize to fix EChart rendering in previously hidden div
-                    const chartContainer = echartShell.querySelector('.echart-container');
-                    if (chartContainer) {
-                        const chartInstance = echarts.getInstanceByDom(chartContainer);
-                        if (chartInstance) chartInstance.resize();
-                    }
-                } else {
-                    cssChart.style.display = 'flex'; // Or whatever default display is
-                    echartShell.style.display = 'none';
+function switchPlantChartType(iconBtn, type) {
+    window.lineChartMode = (type === 'line');
+
+    // Update all initialized charts on the page dynamically
+    document.querySelectorAll('.echart-wrapper').forEach(wrapper => {
+        const cssChart = wrapper.querySelector('.css-bar-chart');
+        const echartShell = wrapper.querySelector('.echart-line-chart');
+        if (cssChart && echartShell) {
+            if (window.lineChartMode) {
+                cssChart.style.display = 'none';
+                echartShell.style.display = 'block';
+                // Trigger resize to fix EChart rendering in previously hidden div
+                const chartContainer = echartShell.querySelector('.echart-container');
+                if (chartContainer) {
+                    const chartInstance = echarts.getInstanceByDom(chartContainer);
+                    if (chartInstance) chartInstance.resize();
                 }
+            } else {
+                cssChart.style.display = 'flex'; // Or whatever default display is
+                echartShell.style.display = 'none';
             }
+        }
+    });
+
+    // Update all toggle icon styles
+    document.querySelectorAll('.chart-type-icons').forEach(group => {
+        const barIcon = group.querySelector('.bar-icon');
+        const lineIcon = group.querySelector('.line-icon');
+
+        if (window.lineChartMode) {
+            barIcon.style.color = 'var(--text-sub)';
+            barIcon.style.background = 'transparent';
+            lineIcon.style.color = 'var(--text-main)';
+            lineIcon.style.background = 'var(--border-color)';
+        } else {
+            barIcon.style.color = 'var(--text-main)';
+            barIcon.style.background = 'var(--border-color)';
+            lineIcon.style.color = 'var(--text-sub)';
+            lineIcon.style.background = 'transparent';
+        }
+    });
+}
+
+async function downloadPlantPdf(btnElement) {
+    // Find the container for this specific chart
+    const wrapper = btnElement.closest('.echart-wrapper');
+    const chartContainer = wrapper.querySelector('.echart-container');
+    const isLine = window.lineChartMode === true;
+
+    btnElement.innerHTML = "Generating...";
+    btnElement.disabled = true;
+
+    let chartImage = "";
+
+    if (isLine) {
+        const chartInstance = echarts.getInstanceByDom(chartContainer);
+        if (!chartInstance) {
+            alert("Chart is not fully loaded yet.");
+            btnElement.disabled = false;
+            return;
+        }
+        chartImage = chartInstance.getDataURL({
+            type: 'png',
+            pixelRatio: 2,
+            backgroundColor: '#ffffff'
         });
-        
-        // Sync all toggles to the same state
-        document.querySelectorAll('.echart-type-toggle').forEach(t => {
-            if (t !== e.target) t.checked = window.lineChartMode;
-        });
+    } else {
+        const cssBarChart = wrapper.querySelector('.css-bar-chart');
+        if (!cssBarChart) {
+            alert("Bar chart not found.");
+            btnElement.disabled = false;
+            return;
+        }
+        try {
+            // Give html2canvas a white background to prevent transparent black box
+            const canvas = await html2canvas(cssBarChart, {
+                backgroundColor: '#ffffff',
+                scale: 2
+            });
+            chartImage = canvas.toDataURL("image/png");
+        } catch (err) {
+            console.error(err);
+            alert("Failed to capture Bar chart screenshot.");
+            btnElement.disabled = false;
+            return;
+        }
     }
-});
+
+    // Get metadata from DOM/State
+    const title = chartContainer.getAttribute('data-title') || "Meter Analysis";
+    const dataPointsRaw = JSON.parse(chartContainer.getAttribute('data-points') || "[]");
+    const dataPoints = dataPointsRaw.map(p => ({
+        label: p.label,
+        value: parseFloat(p.value) || 0
+    }));
+
+    const shiftEl = document.getElementById("shiftSelect");
+    const selectedShift = shiftEl ? shiftEl.options[shiftEl.selectedIndex].text : "All Shifts";
+
+    const plantKey = plantSelect && plantSelect.value ? plantSelect.value : "";
+    const plantName = plantSelect && plantSelect.options[plantSelect.selectedIndex] ? plantSelect.options[plantSelect.selectedIndex].text : "Plant";
+    const meterName = meterSelect && meterSelect.options[meterSelect.selectedIndex] ? meterSelect.options[meterSelect.selectedIndex].text : "Meter";
+    const locationName = (plantLocations && plantLocations[plantKey]) ? plantLocations[plantKey] : "";
+
+    let from_dt = fromDateTime ? fromDateTime.value : "";
+    let to_dt = toDateTime ? toDateTime.value : "";
+
+    const payload = {
+        meter_name: meterName,
+        plant_name: plantName,
+        location: locationName,
+        shift: selectedShift,
+        start_date: from_dt,
+        end_date: to_dt,
+        chart_image: chartImage,
+        data_points: dataPoints
+    };
+
+    fetch('/api/reports/download_plant_chart_pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+    })
+        .then(response => {
+            if (!response.ok) throw new Error("Failed to generate PDF");
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // Generate a timestamp for the filename
+            const now = new Date();
+            const timeStr = now.getFullYear().toString() +
+                (now.getMonth() + 1).toString().padStart(2, '0') +
+                now.getDate().toString().padStart(2, '0') + "_" +
+                now.getHours().toString().padStart(2, '0') +
+                now.getMinutes().toString().padStart(2, '0') +
+                now.getSeconds().toString().padStart(2, '0');
+            a.download = `${meterName}_Analysis_${timeStr}.pdf`.replace(/\s+/g, '_');
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Failed to generate PDF: " + err.message);
+        })
+        .finally(() => {
+            btnElement.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download PDF`;
+            btnElement.disabled = false;
+        });
+}
+
 
 function getTableHTML(title, dataPoints, isFullWidth, isCustom = false, isAllShifts = false) {
     if (!dataPoints || dataPoints.length === 0) {
@@ -902,7 +1060,7 @@ function getTableHTML(title, dataPoints, isFullWidth, isCustom = false, isAllShi
 
 // ================= CREATE CARDS =================
 
-function createCards(data){
+function createCards(data) {
 
     cardsContainer.innerHTML = "";
     const selectedMeterName = meterSelect.options[meterSelect.selectedIndex]?.text || "Meter";
@@ -915,29 +1073,29 @@ function createCards(data){
     cardsContainer.appendChild(timeInfo);
 
     // Incomer meter
-    if(data.meter_type === "incomer"){
+    if (data.meter_type === "incomer") {
 
         const params = getIncomerParams(data);
 
         if (barGraphToggle.checked) {
             params.forEach(p => {
-                cardsContainer.insertAdjacentHTML('beforeend', getBarChartHTML(p[0], [{label: "Current", value: p[1] ?? 0, unit: p[2]}]));
+                cardsContainer.insertAdjacentHTML('beforeend', getBarChartHTML(p[0], [{ label: "Current", value: p[1] ?? 0, unit: p[2] }]));
             });
         } else if (window.gaugeViewMode) {
             params.forEach(p => {
                 cardsContainer.insertAdjacentHTML('beforeend', getGaugeHTML(p[0], p[1] ?? 0, p[2], selectedMeterName));
             });
         } else {
-            params.forEach(p=>{
+            params.forEach(p => {
                 cardsContainer.insertAdjacentHTML('beforeend', getCardHTML(p[0], p[1], p[2], data.status, false, selectedMeterName));
             });
         }
     }
 
     // Submeter KWH (fallback live card)
-    if(data.meter_type === "submeter"){
+    if (data.meter_type === "submeter") {
         if (barGraphToggle.checked) {
-            const dataPoints = [{label: "Current Energy", value: data.kwh ?? 0, unit: "kWh"}];
+            const dataPoints = [{ label: "Current Energy", value: data.kwh ?? 0, unit: "kWh" }];
             cardsContainer.insertAdjacentHTML('beforeend', getBarChartHTML("Energy Consumption", dataPoints));
         } else if (window.gaugeViewMode) {
             cardsContainer.insertAdjacentHTML('beforeend', getGaugeHTML("Energy", data.kwh ?? 0, "kWh", selectedMeterName));
@@ -945,7 +1103,7 @@ function createCards(data){
             cardsContainer.insertAdjacentHTML('beforeend', getCardHTML("Energy", data.kwh, "kWh", data.status, true, selectedMeterName));
         }
     }
-    
+
     if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
 }
 
@@ -961,7 +1119,7 @@ function renderEnergySummaryCard(summary) {
     const rangeLabel = `${summary.from_dt || "-"} to ${summary.to_dt || "-"}`;
 
     cardsContainer.innerHTML = "";
-    
+
     let dataPoints = [];
     if (summary.mode === "custom") {
         if (summary.range_start_kwh !== null || summary.range_end_kwh !== null || summary.selected_total_kwh !== null) {
@@ -984,7 +1142,7 @@ function renderEnergySummaryCard(summary) {
     }
 
     if (barGraphToggle.checked) {
-        const title = summary.mode === "custom" 
+        const title = summary.mode === "custom"
             ? `${metricName} - Custom Range`
             : `${metricName} - ${summary.selected_shift === 'all' ? 'All Shifts' : summary.selected_shift}`;
         cardsContainer.insertAdjacentHTML('beforeend', getBarChartHTML(title, dataPoints, true));
@@ -1057,7 +1215,7 @@ function renderIncomerShiftGraphs(summary) {
 
 // ================= CREATE CARDS FOR ALL =================
 
-function createCardsForAll(dataArray){
+function createCardsForAll(dataArray) {
 
     cardsContainer.innerHTML = "";
     renderLiveOnlyNotice("All Devices data is LIVE. Shift Analysis and Bar Graphs are blocked for this view.");
@@ -1067,7 +1225,7 @@ function createCardsForAll(dataArray){
         const meterDiv = document.createElement("div");
 
         meterDiv.className = "meter-section";
-        
+
         // Create a container for the cards within this section to keep them organized
         const cardGrid = document.createElement("div");
         cardGrid.className = "cards"; // Reuse the grid styling
@@ -1078,7 +1236,7 @@ function createCardsForAll(dataArray){
         `;
 
         // Incomer meter
-        if(d.meter_type === "incomer"){
+        if (d.meter_type === "incomer") {
 
             const params = [
                 ["Line Voltage", d.line_voltage ?? d.volt, "V"],
@@ -1106,7 +1264,7 @@ function createCardsForAll(dataArray){
 
             if (barGraphToggle.checked) {
                 params.forEach(p => {
-                    cardGrid.insertAdjacentHTML('beforeend', getBarChartHTML(p[0], [{label: "Current", value: p[1] ?? 0, unit: p[2]}]));
+                    cardGrid.insertAdjacentHTML('beforeend', getBarChartHTML(p[0], [{ label: "Current", value: p[1] ?? 0, unit: p[2] }]));
                 });
             } else if (window.gaugeViewMode) {
                 params.forEach(p => {
@@ -1123,9 +1281,9 @@ function createCardsForAll(dataArray){
         }
 
         // Submeter KWH
-        if(d.meter_type === "submeter"){
+        if (d.meter_type === "submeter") {
             if (barGraphToggle.checked) {
-                const dataPoints = [{label: "Current Energy", value: d.kwh ?? 0, unit: "kWh"}];
+                const dataPoints = [{ label: "Current Energy", value: d.kwh ?? 0, unit: "kWh" }];
                 cardGrid.insertAdjacentHTML('beforeend', getBarChartHTML("Energy Consumption", dataPoints));
             } else if (window.gaugeViewMode) {
                 cardGrid.insertAdjacentHTML('beforeend', getGaugeHTML("Energy", d.kwh ?? 0, "kWh", d.meter_name));
@@ -1140,18 +1298,18 @@ function createCardsForAll(dataArray){
         meterDiv.appendChild(cardGrid);
         cardsContainer.appendChild(meterDiv);
     });
-    
+
     if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
 }
 
 // ================= LOAD DATA =================
 
-async function loadData(){
+async function loadData() {
     const reqId = ++loadDataReqSeq;
     // shiftSelect.disabled is true in custom time mode (shift dropdown not needed).
     // Only block if NEITHER shift analysis NOR custom time is active.
     if (shiftSelect.disabled && !customTimeToggle.checked) return;
-    
+
     const fromValue = fromDateTime.value;
     const toValue = toDateTime.value;
 
@@ -1160,7 +1318,7 @@ async function loadData(){
     const shift = shiftSelect.value;
 
     // Show data only after required selections.
-    if(!plant || !meter || !shift){
+    if (!plant || !meter || !shift) {
         cardsContainer.innerHTML = "";
         updateInsightCardsMeta({ barCount: 0 });
         return;
@@ -1184,7 +1342,7 @@ async function loadData(){
 
     document.getElementById("liveStatus").style.display = "flex";
 
-    if(meter === "all"){
+    if (meter === "all") {
         const resMeters = await fetch(`/api/meters?plant=${encodeURIComponent(plant)}`);
         const allMeters = await resMeters.json();
         const submeters = allMeters.filter(m => m.type === "submeter");
@@ -1224,7 +1382,7 @@ async function loadData(){
         const data = await res.json();
 
         if (reqId !== loadDataReqSeq) return;
-        if(data.length > 0){
+        if (data.length > 0) {
             createCards(data[0]);
             updateInsightCardsMeta({ barCount: 0 });
         } else {
@@ -1319,10 +1477,10 @@ async function loadBaseCardsOnMeterSelection() {
                 </div>`
             );
             if (barGraphToggle.checked) {
-                const dataPoints = [{label: "Yesterday Total", value: yVal, unit: "kWh"}];
+                const dataPoints = [{ label: "Yesterday Total", value: yVal, unit: "kWh" }];
                 cardsContainer.insertAdjacentHTML("beforeend", getBarChartHTML("Energy Consumption", dataPoints, true));
                 if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
-    if (typeof initEChartsInDOM === 'function') initEChartsInDOM();
+                if (typeof initEChartsInDOM === 'function') initEChartsInDOM();
             } else if (window.gaugeViewMode) {
                 cardsContainer.insertAdjacentHTML("beforeend", getGaugeHTML("Yesterday Total Consumption", yVal, "kWh", meterName));
             } else {
@@ -1370,14 +1528,14 @@ function createSummaryCardsForAll(summaries) {
                 end_kwh: b.end_kwh
             }));
         }
-        
+
         if (barGraphToggle.checked) {
             cardGrid.insertAdjacentHTML("beforeend", getBarChartHTML("Energy Consumption", dataPoints, true));
         } else {
             cardGrid.insertAdjacentHTML("beforeend", getTableHTML("Energy Consumption", dataPoints, true, summary.mode === "custom"));
         }
         if (window.gaugeViewMode && typeof initGaugesInDOM === 'function') initGaugesInDOM();
-    if (typeof initEChartsInDOM === 'function') initEChartsInDOM();
+        if (typeof initEChartsInDOM === 'function') initEChartsInDOM();
         meterDiv.appendChild(cardGrid);
         cardsContainer.appendChild(meterDiv);
     });
@@ -1387,7 +1545,7 @@ function createSummaryCardsForAll(summaries) {
 
 // ================= EVENTS =================
 
-plantSelect.addEventListener("change", async ()=>{
+plantSelect.addEventListener("change", async () => {
     const plant = plantSelect.value;
     const landingView = document.getElementById("landingView");
     const dashboardView = document.getElementById("dashboardView");
@@ -1397,28 +1555,28 @@ plantSelect.addEventListener("change", async ()=>{
 
         if (landingView) landingView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
-        
+
         // Hide login button on plant dashboard
         const authBtn = document.getElementById("authBtn");
         if (authBtn) authBtn.style.display = "none";
-        
+
         if (plantContextBadge) {
             plantContextBadge.style.display = "inline-flex";
             plantContextBadge.textContent = plant;
         }
-        
+
         const locName = plantLocations[plant] || "Unassigned";
         const pageSubtitle = document.getElementById("pageSubtitle");
         if (pageSubtitle) {
             pageSubtitle.innerHTML = `📍 ${locName} &nbsp;&bull;&nbsp; Live monitoring &amp; shift analysis`;
         }
-        
+
         setPlantViewMode("live");
         updatePlantKpis(plant);
     } else {
         plantSelect.style.color = "inherit";
         dashboardTitle.innerText = "Energy Monitoring System";
-        
+
         const pageSubtitle = document.getElementById("pageSubtitle");
         if (pageSubtitle) {
             pageSubtitle.innerHTML = `Live monitoring &amp; shift analysis`;
@@ -1426,11 +1584,11 @@ plantSelect.addEventListener("change", async ()=>{
 
         if (landingView) landingView.style.display = "block";
         if (dashboardView) dashboardView.style.display = "none";
-        
+
         // Show login button on landing page
         const authBtn = document.getElementById("authBtn");
         if (authBtn) authBtn.style.display = "inline-flex";
-        
+
         if (historyFilterPanel) historyFilterPanel.style.display = "none";
         if (plantContextBadge) plantContextBadge.style.display = "none";
         if (plantKpiStrip) plantKpiStrip.innerHTML = "";
@@ -1438,7 +1596,7 @@ plantSelect.addEventListener("change", async ()=>{
     applyThemeState();
 
     await loadMeters(plantSelect.value);
-    
+
     if (plant) {
         meterSelect.value = "all";
         meterSelect.dispatchEvent(new Event("change"));
@@ -1449,15 +1607,15 @@ plantSelect.addEventListener("change", async ()=>{
         document.getElementById("liveStatus").style.display = "none";
         setupLiveStream();
     }
-    
+
     syncFloatingHomeBtn();
-    
+
 });
 
 meterSelect.addEventListener("change", () => {
     lastVisualSignature = "";
     syncShiftUiForMeter();
-    
+
     if (plantSelect.value && meterSelect.value) {
         cardsContainer.innerHTML = `<div class="dashboard-empty-state"><p>Loading data...</p></div>`;
         setupLiveStream();
@@ -1562,7 +1720,7 @@ btnPlantLive?.addEventListener("click", () => setPlantViewMode("live"));
 btnPlantHistory?.addEventListener("click", () => setPlantViewMode("history"));
 async function initDashboard() {
     await loadPlants();
-    
+
     // Check if plant is in URL
     const urlParams = new URLSearchParams(window.location.search);
     const plantParam = urlParams.get('plant');
@@ -1594,7 +1752,7 @@ function closeLoginModal() {
 
 // Bind all auth interactions once DOM is fully ready
 document.addEventListener("DOMContentLoaded", () => {
-    const loginForm  = document.getElementById("loginForm");
+    const loginForm = document.getElementById("loginForm");
     const loginError = document.getElementById("loginError");
 
     // Login form submit
@@ -1607,9 +1765,9 @@ document.addEventListener("DOMContentLoaded", () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         })
-        .then(res => { if (!res.ok) throw new Error(); return res.json(); })
-        .then(data => { if (data.success) window.location.href = "/admin"; })
-        .catch(() => { if (loginError) loginError.style.display = "block"; });
+            .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+            .then(data => { if (data.success) window.location.href = "/admin"; })
+            .catch(() => { if (loginError) loginError.style.display = "block"; });
     });
 });
 
@@ -1619,7 +1777,7 @@ function makeCustomDropdown(selectId) {
     return; // Disabled custom glassmorphism dropdown as requested
     const originalSelect = document.getElementById(selectId);
     if (!originalSelect) return;
-    
+
     // Check if wrapper already exists
     if (originalSelect.nextSibling && originalSelect.nextSibling.className === "custom-select-wrapper") {
         return;
@@ -1635,13 +1793,13 @@ function makeCustomDropdown(selectId) {
 
     const display = document.createElement("div");
     display.className = "custom-select-display";
-    
+
     const displayText = document.createElement("span");
-    
+
     const arrow = document.createElement("div");
     arrow.className = "custom-select-arrow";
     arrow.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
-    
+
     display.appendChild(displayText);
     display.appendChild(arrow);
     wrapper.appendChild(display);
@@ -1671,7 +1829,7 @@ function makeCustomDropdown(selectId) {
                 originalSelect.dispatchEvent(new Event("change"));
                 displayText.innerText = opt.text;
                 wrapper.classList.remove("open");
-                
+
                 // update selected class
                 Array.from(optionsContainer.children).forEach(c => c.classList.remove("selected"));
                 div.classList.add("selected");
@@ -1685,12 +1843,12 @@ function makeCustomDropdown(selectId) {
     // Toggle dropdown
     display.addEventListener("click", (e) => {
         e.stopPropagation();
-        
+
         // Close all other open dropdowns first
         document.querySelectorAll(".custom-select-wrapper.open").forEach(w => {
             if (w !== wrapper) w.classList.remove("open");
         });
-        
+
         wrapper.classList.toggle("open");
     });
 
@@ -1706,7 +1864,7 @@ function makeCustomDropdown(selectId) {
         buildOptions();
     });
     observer.observe(originalSelect, { childList: true });
-    
+
     // Also listen to change event from external sources
     originalSelect.addEventListener("change", () => {
         const options = originalSelect.options;
@@ -1730,7 +1888,7 @@ if (document.readyState === "loading") {
 // ================= NAVBAR OBSERVER =================
 // Dynamically track the height of the navbar so the sticky filter bar
 // always sits exactly below it, even on mobile when the navbar wraps.
-(function() {
+(function () {
     function updateNavbarHeight() {
         const navbar = document.querySelector('.navbar');
         if (navbar) {
@@ -1822,7 +1980,7 @@ async function renderScadaLanding() {
     }
 }
 
-window.selectPlantFromLanding = function(plantName) {
+window.selectPlantFromLanding = function (plantName) {
     const pSelect = document.getElementById("plantSelect");
     if (pSelect) {
         pSelect.value = plantName;
@@ -1950,15 +2108,15 @@ function initGaugesInDOM() {
         const title = container.getAttribute('data-title');
         const value = Number(container.getAttribute('data-value')) || 0;
         const unit = container.getAttribute('data-unit');
-        
+
         if (window.echartsInstances[id]) {
             window.echartsInstances[id].dispose();
         }
-        
+
         const chart = echarts.init(container);
         chart.setOption(getGaugeConfig(title, value, unit));
         window.echartsInstances[id] = chart;
-        
+
         window.addEventListener('resize', () => chart.resize());
     });
 }

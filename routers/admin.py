@@ -21,12 +21,9 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from config import BASE_DIR
-from routers.auth import require_login, require_login_page, require_admin, template_context
+from routers.auth import require_login, require_login_page, require_admin, template_context, hash_password
 from services import group_service, plant_service, device_service, meter_config_service, location_service
 from database import get_db_connection
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 import os
 
@@ -338,7 +335,7 @@ async def create_user(request: Request):
     if not username or not password:
         raise HTTPException(status_code=400, detail="Username and password are required")
         
-    password_hash = pwd_context.hash(password)
+    password_hash = hash_password(password)
     
     conn = get_db_connection()
     cur = conn.cursor()
@@ -379,6 +376,28 @@ def delete_user(user_id: int, request: Request):
     if not deleted:
         raise HTTPException(status_code=404, detail="User not found")
     return {"success": True, "message": "User deleted successfully"}
+
+@router.put("/api/users/{user_id}/password")
+async def update_user_password(user_id: int, request: Request):
+    require_admin(request)
+    data = await request.json()
+    new_password = data.get("password")
+    
+    if not new_password or len(new_password) < 4:
+        raise HTTPException(status_code=400, detail="New password must be at least 4 characters long")
+        
+    password_hash = hash_password(new_password)
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE users SET password_hash = %s WHERE id = %s", (password_hash, user_id))
+    updated = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    
+    if not updated:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    return {"success": True, "message": "Password updated successfully"}
 
 # ── User Settings ──────────────────────────────────────────────────────────────
 

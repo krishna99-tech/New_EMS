@@ -1,9 +1,10 @@
 import os
 import json
 
+import bcrypt
 import psycopg2
 
-from config import DB_DSN, BASE_DIR
+from config import DB_DSN, BASE_DIR, ADMIN_USERNAME, ADMIN_PASSWORD
 
 
 def get_db_connection():
@@ -43,14 +44,11 @@ def init_db():
     cur.execute("SELECT COUNT(*) FROM users")
     if cur.fetchone()[0] == 0:
         try:
-            from passlib.context import CryptContext
-            import config
-            pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-            admin_hash = pwd_context.hash(config.ADMIN_PASSWORD)
+            admin_hash = bcrypt.hashpw(ADMIN_PASSWORD.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
             
             cur.execute(
                 "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id",
-                (config.ADMIN_USERNAME, admin_hash, 'admin')
+                (ADMIN_USERNAME, admin_hash, 'admin')
             )
             new_user_id = cur.fetchone()[0]
             cur.execute(
