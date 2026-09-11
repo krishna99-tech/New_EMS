@@ -4,6 +4,45 @@
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}?v=18">
+<script>
+    (function() {
+        // Apply Admin Dark/Light Theme early
+        let savedTheme = "{{ user_settings.theme if user_settings else '' }}";
+        if (!savedTheme) {
+            savedTheme = localStorage.getItem("ems-admin-theme");
+        }
+        
+        if (savedTheme) {
+            document.documentElement.setAttribute("data-theme", savedTheme);
+            localStorage.setItem("ems-admin-theme", savedTheme); // Sync
+        } else {
+            const osDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            document.documentElement.setAttribute("data-theme", osDark ? "dark" : "light");
+        }
+
+        // Apply Admin Color Theme early
+        let colorName = "{{ user_settings.color_preset if user_settings else '' }}";
+        if (!colorName) {
+            colorName = localStorage.getItem("ems_admin_color_theme") || "blue";
+        }
+
+        if (colorName === "custom") {
+            const primary = "{{ user_settings.custom_primary if user_settings else '' }}" || localStorage.getItem("ems_custom_primary") || "#4f46e5";
+            const sub = "{{ user_settings.custom_sub if user_settings else '' }}" || localStorage.getItem("ems_custom_sub") || "#6366f1";
+            document.documentElement.style.setProperty("--dj-header-bg", primary);
+            document.documentElement.style.setProperty("--dj-header-bg-sub", sub);
+            document.documentElement.style.setProperty("--dj-link", primary);
+            document.documentElement.setAttribute("data-color-theme", "custom");
+            
+            // Sync to localstorage
+            localStorage.setItem("ems_custom_primary", primary);
+            localStorage.setItem("ems_custom_sub", sub);
+        } else {
+            document.documentElement.setAttribute("data-color-theme", colorName);
+        }
+        localStorage.setItem("ems_admin_color_theme", colorName); // Sync
+    })();
+</script>
 {% block admin_head %}{% endblock %}
 {% endblock %}
 
@@ -78,9 +117,14 @@
             <div class="django-app-module">
                 <div style="padding: 10px 16px; font-weight: bold; font-size: 0.85rem; text-transform: uppercase; color: var(--dj-text-sub); border-bottom: 1px solid var(--dj-border); border-top: 1px solid var(--dj-border);">System</div>
                 <ul style="list-style: none; margin: 0; padding: 0;">
+                    {% if role == 'admin' %}
+                    <li><a href="/admin/users" class="django-nav-link {% if active_page == 'users' %}active{% endif %}">User Management</a></li>
+                    {% endif %}
                     <li><a href="/admin/theme_settings" class="django-nav-link {% if active_page == 'theme_settings' %}active{% endif %}">Appearance & Colors</a></li>
+                    {% if role == 'admin' %}
                     <li><a href="#" onclick="document.getElementById('importFileInput').click()" class="django-nav-link">Import Config</a></li>
                     <li><a href="/api/export_config" download="ems_config.json" class="django-nav-link">Export Config</a></li>
+                    {% endif %}
                 </ul>
                 <input type="file" id="importFileInput" accept=".json" class="sr-only" onchange="handleImportConfig(this)" style="display:none;">
             </div>
@@ -253,6 +297,7 @@ function initTheme() {
         updateThemeIcon(savedTheme);
     } else {
         const osDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", osDark ? "dark" : "light");
         updateThemeIcon(osDark ? "dark" : "light");
     }
 }
@@ -265,6 +310,13 @@ function toggleTheme() {
     document.documentElement.setAttribute("data-theme", newTheme);
     localStorage.setItem("ems-admin-theme", newTheme);
     updateThemeIcon(newTheme);
+    
+    // Save to database
+    fetch('/api/user/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: newTheme })
+    }).catch(err => console.error("Failed to save theme to DB", err));
 }
 
 function updateThemeIcon(theme) {
@@ -397,9 +449,12 @@ function initColorTheme() {
 }
 
 function setColorTheme(colorName) {
+    let primary = null;
+    let sub = null;
+    
     if (colorName === "custom") {
-        const primary = localStorage.getItem("ems_custom_primary") || "#4f46e5";
-        const sub = localStorage.getItem("ems_custom_sub") || "#6366f1";
+        primary = localStorage.getItem("ems_custom_primary") || "#4f46e5";
+        sub = localStorage.getItem("ems_custom_sub") || "#6366f1";
         document.documentElement.style.setProperty("--dj-header-bg", primary);
         document.documentElement.style.setProperty("--dj-header-bg-sub", sub);
         document.documentElement.style.setProperty("--dj-link", primary);
@@ -411,6 +466,17 @@ function setColorTheme(colorName) {
         document.documentElement.setAttribute("data-color-theme", colorName);
     }
     localStorage.setItem("ems_admin_color_theme", colorName);
+    
+    // Save to database
+    const payload = { color_preset: colorName };
+    if (primary) payload.custom_primary = primary;
+    if (sub) payload.custom_sub = sub;
+    
+    fetch('/api/user/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).catch(err => console.error("Failed to save color theme to DB", err));
 }
 
 initColorTheme();

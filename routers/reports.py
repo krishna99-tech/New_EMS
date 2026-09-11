@@ -1,7 +1,9 @@
 import os
+import csv
+import io
 from tempfile import NamedTemporaryFile
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fpdf import FPDF
 import psycopg2.extras
@@ -115,4 +117,57 @@ def download_report(request: Request, plant: str, start_date: str, end_date: str
         media_type="application/pdf", 
         filename=f"{plant}_Energy_Report.pdf",
         background=None
+    )
+
+
+@router.get("/api/reports/download_csv")
+def download_report_csv(request: Request, plant: str, start_date: str, end_date: str):
+    """
+    Generate and download a CSV report of energy consumption 
+    for a specific plant over a given date range.
+    """
+    require_login(request)
+    if not plant or not start_date or not end_date:
+        raise HTTPException(status_code=400, detail="Missing parameters (plant, start_date, end_date)")
+
+    # Append time to the dates if they are just YYYY-MM-DD
+    if len(start_date) == 10:
+        start_date += " 00:00:00"
+    if len(end_date) == 10:
+        end_date += " 23:59:59"
+
+    rows = get_report_consumption_summary(plant, start_date, end_date)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(["Meter Name", "Type", "Consumption (kWh)"])
+
+    total_consumption = 0.0
+    for row in rows:
+        s_kwh = row['start_kwh'] or 0
+        e_kwh = row['end_kwh'] or 0
+        consumption = float(e_kwh) - float(s_kwh)
+        
+        # Avoid negative consumption if reset happens
+        if consumption < 0:
+            consumption = float(e_kwh)
+            
+        if row['meter_type'] != 'incomer':
+            total_consumption += consumption
+            
+        m_type = str(row['meter_type']).capitalize()
+        writer.writerow([str(row['meter_name']), m_type, f"{consumption:.2f}"])
+
+    # Write summary footer
+    writer.writerow([])
+    writer.writerow(["Total Submeter Consumption (kWh)", "", f"{total_consumption:.2f}"])
+
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]), 
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={plant}_Energy_Report.csv"}
     )

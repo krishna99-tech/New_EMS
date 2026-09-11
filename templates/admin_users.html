@@ -1,0 +1,173 @@
+{% extends "admin_layout.html" %}
+{% set active_page = 'users' %}
+
+{% block page_title %}User Management{% endblock %}
+
+{% block admin_content %}
+<div class="django-breadcrumbs" style="padding: 10px; background: var(--dj-bg-sub); border: 1px solid var(--dj-border); font-size: 0.85rem; margin-bottom: 20px; border-radius: 4px;">
+    <a href="/admin" style="color: var(--dj-link); text-decoration: none;">Home</a> &rsaquo; 
+    <span id="breadcrumb-current">User Management</span>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+    <div>
+        <h1 style="margin: 0 0 6px 0; font-size: 1.5rem; font-weight: normal; color: var(--dj-text);">User Management</h1>
+        <p style="margin: 0; color: var(--dj-text-sub); font-size: 0.9rem;">Manage administrators and operators for the EMS system.</p>
+    </div>
+    <button type="button" class="submit-btn" onclick="openCreateUserModal()">+ Add New User</button>
+</div>
+
+<div class="admin-panel" style="margin-bottom: 30px;">
+    <div class="admin-panel-header">
+        <h3>System Users</h3>
+    </div>
+    <div class="admin-panel-body" style="padding: 0;">
+        <table class="django-table" style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr style="background: var(--dj-bg-sub); border-bottom: 1px solid var(--dj-border);">
+                    <th style="padding: 12px; font-weight: bold; color: var(--dj-text-sub); text-transform: uppercase; font-size: 0.85rem;">ID</th>
+                    <th style="padding: 12px; font-weight: bold; color: var(--dj-text-sub); text-transform: uppercase; font-size: 0.85rem;">Username</th>
+                    <th style="padding: 12px; font-weight: bold; color: var(--dj-text-sub); text-transform: uppercase; font-size: 0.85rem;">Role</th>
+                    <th style="padding: 12px; font-weight: bold; color: var(--dj-text-sub); text-transform: uppercase; font-size: 0.85rem;">Created At</th>
+                    <th style="padding: 12px; font-weight: bold; color: var(--dj-text-sub); text-transform: uppercase; font-size: 0.85rem; text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="usersTableBody">
+                <tr>
+                    <td colspan="5" style="padding: 20px; text-align: center; color: var(--dj-text-sub);">Loading users...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div id="createUserModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
+    <div class="modal-content" style="background: var(--dj-bg); color: var(--dj-text); border: 1px solid var(--dj-border); border-radius: 4px; padding: 20px; width: 100%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--dj-border); padding-bottom: 10px; margin-bottom: 16px;">
+            <h3 style="margin: 0; color: var(--dj-header-text);">Create New User</h3>
+            <button type="button" class="close-modal-btn" onclick="closeCreateUserModal()" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--dj-text-sub);">&times;</button>
+        </div>
+        <form id="createUserForm">
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: bold; font-size: 0.9rem;">Username</label>
+                <input type="text" id="newUsername" required style="width: 100%; padding: 8px 12px; border: 1px solid var(--dj-border); border-radius: 4px; background: var(--dj-bg); color: var(--dj-text);">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: bold; font-size: 0.9rem;">Password</label>
+                <input type="password" id="newPassword" required style="width: 100%; padding: 8px 12px; border: 1px solid var(--dj-border); border-radius: 4px; background: var(--dj-bg); color: var(--dj-text);">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: bold; font-size: 0.9rem;">Role</label>
+                <select id="newUserRole" style="width: 100%; padding: 8px 12px; border: 1px solid var(--dj-border); border-radius: 4px; background: var(--dj-bg); color: var(--dj-text);">
+                    <option value="admin">Admin</option>
+                    <option value="operator">Operator</option>
+                </select>
+            </div>
+            <div id="createUserError" class="inline-note" style="display: none; color: var(--dj-danger); margin-bottom: 12px;"></div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="action-btn" onclick="closeCreateUserModal()">Cancel</button>
+                <button type="submit" class="submit-btn" style="background: var(--dj-header-bg); color: var(--dj-header-text);">Create User</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+    async function fetchUsers() {
+        try {
+            const res = await fetch('/api/users');
+            if (!res.ok) throw new Error("Failed to load users");
+            const users = await res.json();
+            const tbody = document.getElementById('usersTableBody');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--dj-text-sub);">No users found.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = users.map(u => `
+                <tr style="border-bottom: 1px solid var(--dj-border);">
+                    <td style="padding: 12px;">${u.id}</td>
+                    <td style="padding: 12px; font-weight: bold;">${u.username}</td>
+                    <td style="padding: 12px;">
+                        <span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; background: var(--dj-bg-sub); border: 1px solid var(--dj-border);">
+                            ${u.role}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; color: var(--dj-text-sub); font-size: 0.85rem;">
+                        ${u.created_at ? new Date(u.created_at).toLocaleString() : '-'}
+                    </td>
+                    <td style="padding: 12px; text-align: right;">
+                        <button class="delete-btn" onclick="deleteUser(${u.id}, '${u.username}')" style="background: transparent; color: var(--dj-danger); border: 1px solid var(--dj-danger); border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem;">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            console.error(err);
+            document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--dj-danger);">Failed to load users.</td></tr>';
+        }
+    }
+
+    function openCreateUserModal() {
+        document.getElementById('createUserModal').style.display = 'flex';
+        document.getElementById('createUserError').style.display = 'none';
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newUserRole').value = 'admin';
+    }
+
+    function closeCreateUserModal() {
+        document.getElementById('createUserModal').style.display = 'none';
+    }
+
+    document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('newUsername').value;
+        const password = document.getElementById('newPassword').value;
+        const role = document.getElementById('newUserRole').value;
+        const errEl = document.getElementById('createUserError');
+        
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, role })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                errEl.textContent = data.detail || data.error || 'Failed to create user';
+                errEl.style.display = 'block';
+                return;
+            }
+            closeCreateUserModal();
+            fetchUsers();
+        } catch (err) {
+            errEl.textContent = 'Network error. Please try again.';
+            errEl.style.display = 'block';
+        }
+    });
+
+    async function deleteUser(id, username) {
+        if (!confirm(`Are you sure you want to delete user '${username}'?`)) return;
+        try {
+            const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const data = await res.json();
+                alert(data.detail || data.error || 'Failed to delete user');
+                return;
+            }
+            fetchUsers();
+        } catch (err) {
+            alert('Network error. Please try again.');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchUsers);
+</script>
+{% endblock %}

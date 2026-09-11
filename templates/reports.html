@@ -18,7 +18,7 @@
 
         <div class="admin-panel" style="max-width: 560px;">
             <div class="admin-panel-header">
-                <h3>Download PDF Report</h3>
+                <h3>Download Report</h3>
             </div>
             <div class="admin-panel-body">
                 <form action="/api/reports/download" method="GET" id="reportForm">
@@ -32,11 +32,18 @@
                         <label for="startDate">Start Date</label>
                         <input type="date" name="start_date" id="startDate" required>
                     </div>
-                    <div class="form-group" style="margin-bottom: 20px;">
+                    <div class="form-group" style="margin-bottom: 15px;">
                         <label for="endDate">End Date</label>
                         <input type="date" name="end_date" id="endDate" required>
                     </div>
-                    <button type="submit" class="submit-btn" style="width:100%; padding: 10px;">Download PDF</button>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="formatSelect">Format</label>
+                        <select name="format" id="formatSelect" required>
+                            <option value="pdf" selected>PDF Document (.pdf)</option>
+                            <option value="csv">CSV Spreadsheet (.csv)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="submit-btn" style="width:100%; padding: 10px;">Download Report</button>
                 </form>
             </div>
         </div>
@@ -65,15 +72,18 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
             const btn = form.querySelector('button[type="submit"]');
             const originalText = btn.textContent;
-            btn.textContent = "Generating PDF...";
+            btn.textContent = "Generating Report...";
             btn.disabled = true;
 
             try {
                 const plant = document.getElementById("plantSelect").value;
                 const start = document.getElementById("startDate").value;
                 const end = document.getElementById("endDate").value;
+                const format = document.getElementById("formatSelect").value;
                 
-                const res = await fetch(`/api/reports/download?plant=${encodeURIComponent(plant)}&start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`);
+                const endpoint = format === 'csv' ? '/api/reports/download_csv' : '/api/reports/download';
+                
+                const res = await fetch(`${endpoint}?plant=${encodeURIComponent(plant)}&start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`);
                 if (!res.ok) {
                     const errText = await res.text();
                     throw new Error(errText || `Server returned ${res.status}`);
@@ -84,14 +94,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 const a = document.createElement("a");
                 a.style.display = "none";
                 a.href = url;
-                a.download = `EMS_Report_${plant}_${start}_to_${end}.pdf`;
+                const ext = format === 'csv' ? 'csv' : 'pdf';
+                a.download = `EMS_Report_${plant}_${start}_to_${end}.${ext}`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 a.remove();
             } catch (err) {
                 console.error("Download failed:", err);
-                alert("Failed to download PDF: " + err.message);
+                alert("Failed to download Report: " + err.message);
             } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;

@@ -26,7 +26,11 @@
         <div id="view_locations" class="model-view">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h1 style="margin: 0; font-size: 1.5rem; font-weight: normal; color: var(--dj-text);">Select location to change</h1>
+                {% if role == 'admin' %}
                 <button type="button" onclick="openCreateLocationModal()" style="background: #999; color: white; padding: 5px 15px; border: none; border-radius: 15px; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; cursor: pointer;">Add location <span class="admin-badge" id="statLocations" style="background: white; color: black; border-radius: 10px; padding: 1px 6px; margin-left: 5px;">0</span></button>
+                {% else %}
+                <span class="admin-badge" id="statLocations" style="background: #999; color: white; border-radius: 10px; padding: 3px 8px; font-weight: bold; font-size: 0.8rem;">0 Locations</span>
+                {% endif %}
             </div>
             
             <div class="admin-search-wrap" style="margin-bottom: 15px;">
@@ -42,7 +46,11 @@
         <div id="view_plants" class="model-view active">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h1 style="margin: 0; font-size: 1.5rem; font-weight: normal; color: var(--dj-text);">Select plant to change</h1>
+                {% if role == 'admin' %}
                 <button type="button" onclick="openPlantModal()" style="background: #999; color: white; padding: 5px 15px; border: none; border-radius: 15px; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; cursor: pointer;">Add plant <span class="admin-badge" id="statPlants" style="background: white; color: black; border-radius: 10px; padding: 1px 6px; margin-left: 5px;">0</span></button>
+                {% else %}
+                <span class="admin-badge" id="statPlants" style="background: #999; color: white; border-radius: 10px; padding: 3px 8px; font-weight: bold; font-size: 0.8rem;">0 Plants</span>
+                {% endif %}
             </div>
             
             <div class="admin-search-wrap" style="margin-bottom: 15px;">
@@ -58,7 +66,11 @@
         <div id="view_groups" class="model-view">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h1 style="margin: 0; font-size: 1.5rem; font-weight: normal; color: var(--dj-text);">Select meter group to change</h1>
+                {% if role == 'admin' %}
                 <button type="button" onclick="openCreateGroupModal()" style="background: #999; color: white; padding: 5px 15px; border: none; border-radius: 15px; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; cursor: pointer;">Add meter group <span class="admin-badge" id="statGroupCount" style="background: white; color: black; border-radius: 10px; padding: 1px 6px; margin-left: 5px;">0</span></button>
+                {% else %}
+                <span class="admin-badge" id="statGroupCount" style="background: #999; color: white; border-radius: 10px; padding: 3px 8px; font-weight: bold; font-size: 0.8rem;">0 Groups</span>
+                {% endif %}
             </div>
             
             <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
@@ -182,6 +194,9 @@
             });
         }
     })();
+    
+    // Make role available to admin_v2.js
+    window.userRole = "{{ role }}";
 </script>
 <script src="{{ url_for('static', path='js/admin_v2.js') }}?v=25"></script>
 {% endblock %}

@@ -123,10 +123,10 @@ function renderDeviceCard(d) {
         : "";
     const locBadge = d.is_configured && d.plant ? `<tr><td style="padding:4px 0; color:var(--dj-text-sub);">Location</td><td style="padding:4px 0; text-align:right;">📍 ${d.location_name || "Unassigned"}</td></tr>` : "";
 
-    const actionBtn = d.is_configured
+    const actionBtn = window.userRole === 'admin' ? (d.is_configured
         ? `<button type="button" class="action-btn edit-btn" style="padding:4px 12px; font-size:0.75rem;" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, true)">Edit</button>
            <button type="button" class="action-btn delete-btn" style="padding:4px 12px; font-size:0.75rem;" onclick="unregisterDevice('${d.device_id}')">Unlink</button>`
-        : `<button type="button" class="submit-btn" style="padding:5px 12px; font-size:0.75rem;" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, false)">Configure</button>`;
+        : `<button type="button" class="submit-btn" style="padding:5px 12px; font-size:0.75rem;" onclick="openRegisterDeviceModal('${d.device_id}', '${d.ip_addr}', ${d.meter_count}, false)">Configure</button>`) : "";
 
     return `
     <div style="border: 1px solid var(--dj-border); border-radius: 4px; background: var(--dj-bg); color: var(--dj-text); overflow: hidden; display: flex; flex-direction: column;">
@@ -480,8 +480,10 @@ function renderPlants(plants, devices) {
                     <td>${dev.name || '<span style="color:var(--dj-text-sub)">—</span>'}</td>
                     <td>${typeLabel}</td>
                     <td style="text-align:right;">
+                        ${window.userRole === 'admin' ? `
                         <button class="action-btn edit-btn psc-action" onclick='editDevice(${JSON.stringify(dev)})'>Edit</button>
                         <button class="action-btn delete-btn psc-action" onclick='deleteDevice(${dev.id})'>Delete</button>
+                        ` : '<span style="color:var(--dj-text-sub); font-size: 0.8rem;">View Only</span>'}
                     </td>
                 </tr>`;
             }).join("");
@@ -535,9 +537,11 @@ function renderPlants(plants, devices) {
                             <button class="action-dropdown-btn">Actions ▾</button>
                             <div class="action-dropdown-content">
                                 <a href="/?plant=${encodeURIComponent(plant)}">Dashboard →</a>
+                                ${window.userRole === 'admin' ? `
                                 <button onclick="window.openDeviceModal('${plant}')">+ Add Meter</button>
                                 <button onclick="openUpdateLocationModal('plant', '${plant}', ${plantDetail.location_id || 'null'})">Edit Location</button>
                                 <button class="delete-action" onclick="deletePlant('${plant}')">Delete Plant</button>
+                                ` : ''}
                             </div>
                         </div>
                         <button class="psc-close-btn" onclick="collapsePlantCard('${safeId}')" title="Close">
@@ -981,12 +985,14 @@ function renderLocationsGrid(locations) {
                         <span>${loc.name}</span>
                     </div>
                     <div class="psc-panel-btns">
+                        ${window.userRole === 'admin' ? `
                         <div class="action-dropdown">
                             <button class="action-dropdown-btn">Actions ▾</button>
                             <div class="action-dropdown-content">
                                 <button class="delete-action" onclick="deleteLocation(${loc.id})">Delete Location</button>
                             </div>
                         </div>
+                        ` : ''}
                         <button class="psc-close-btn" onclick="collapseLocationCard('${safeId}')" title="Close">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
@@ -1374,7 +1380,7 @@ function renderMeterGroups() {
                     <td>${m.meter_name || '<span style="color:var(--dj-text-sub)">—</span>'}</td>
                     <td><span class="psc-meter-id">#${m.meter_id}</span></td>
                     <td style="text-align:right;">
-                        <button onclick="removeGroupMember(${g.id}, ${m.id})" class="action-btn delete-btn psc-action">Remove</button>
+                        ${window.userRole === 'admin' ? `<button onclick="removeGroupMember(${g.id}, ${m.id})" class="action-btn delete-btn psc-action">Remove</button>` : '<span style="color:var(--dj-text-sub); font-size: 0.8rem;">View Only</span>'}
                     </td>
                 </tr>
             `).join("");
@@ -1442,9 +1448,11 @@ function renderMeterGroups() {
                             <button class="action-dropdown-btn">Actions ▾</button>
                             <div class="action-dropdown-content">
                                 <a href="/group_dashboards?group=${g.id}">View Dashboard →</a>
+                                ${window.userRole === 'admin' ? `
                                 <button onclick="document.getElementById('inlineAddForm_${g.id}').style.display='block'">+ Add Meter</button>
                                 <button onclick="openUpdateLocationModal('group', ${g.id}, ${g.location_id || 'null'})">Edit Location</button>
                                 <button class="delete-action" onclick="deleteGroup(${g.id})">Delete Group</button>
+                                ` : ''}
                             </div>
                         </div>
                         <button class="psc-close-btn" onclick="collapseGroupCard('${safeId}')" title="Close">

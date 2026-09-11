@@ -16,6 +16,49 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # ── users table ────────────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'admin',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # ── user_settings table ────────────────────────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_settings (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            theme TEXT DEFAULT 'light',
+            color_preset TEXT DEFAULT 'blue',
+            custom_primary TEXT DEFAULT '#4f46e5',
+            custom_sub TEXT DEFAULT '#6366f1'
+        )
+    """)
+
+    # ── Seed admin user if users table is empty ────────────────────────────────
+    cur.execute("SELECT COUNT(*) FROM users")
+    if cur.fetchone()[0] == 0:
+        try:
+            from passlib.context import CryptContext
+            import config
+            pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+            admin_hash = pwd_context.hash(config.ADMIN_PASSWORD)
+            
+            cur.execute(
+                "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id",
+                (config.ADMIN_USERNAME, admin_hash, 'admin')
+            )
+            new_user_id = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO user_settings (user_id) VALUES (%s)",
+                (new_user_id,)
+            )
+        except Exception as e:
+            print("Error seeding initial admin user:", e)
+
     # ── meter_data table ───────────────────────────────────────────────────────
     cur.execute("""
     CREATE TABLE IF NOT EXISTS meter_data (

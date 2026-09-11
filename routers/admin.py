@@ -21,8 +21,12 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from config import BASE_DIR
-from routers.auth import require_login, require_login_page, template_context
+from routers.auth import require_login, require_login_page, require_admin, template_context
 from services import group_service, plant_service, device_service, meter_config_service, location_service
+from database import get_db_connection
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 import os
 
@@ -52,7 +56,7 @@ def theme_settings(request: Request):
 
 @router.post("/api/plants")
 async def add_plant(request: Request):
-    require_login(request)
+    require_admin(request)
     data = await request.json()
     plant_name = data.get("name")
     location_id = data.get("location_id")
@@ -70,13 +74,13 @@ def get_plants_detailed(request: Request):
 
 @router.delete("/api/plants/{plant_name}")
 def delete_plant(plant_name: str, request: Request, delete_data: str = "false"):
-    require_login(request)
+    require_admin(request)
     do_delete = delete_data.lower() == "true"
     return plant_service.delete_plant(plant_name, do_delete)
 
 @router.put("/api/plants/{plant_name}/location")
 async def update_plant_location_route(plant_name: str, request: Request):
-    require_login(request)
+    require_admin(request)
     data = await request.json()
     location_id = data.get("location_id")
     if location_id:
@@ -96,14 +100,14 @@ def get_locations(request: Request):
 
 @router.post("/api/locations")
 async def add_location(request: Request):
-    require_login(request)
+    require_admin(request)
     data = await request.json()
     name = data.get("name")
     return location_service.create_location(name)
 
 @router.delete("/api/locations/{location_id}")
 def delete_location(location_id: int, request: Request):
-    require_login(request)
+    require_admin(request)
     return location_service.delete_location(location_id)
 
 
@@ -117,7 +121,7 @@ def get_meter_configs(request: Request):
 
 @router.post("/api/meter_config")
 async def save_meter_config(request: Request):
-    require_login(request)
+    require_admin(request)
     data = await request.json()
     config_id = data.get("id")
     plant    = data.get("plant")
@@ -136,7 +140,7 @@ async def save_meter_config(request: Request):
 
 @router.delete("/api/meter_config/{config_id}")
 def delete_meter_config(config_id: int, request: Request):
-    require_login(request)
+    require_admin(request)
     return meter_config_service.delete_meter_config(config_id)
 
 
@@ -284,7 +288,7 @@ async def import_config(request: Request):
     """
     Bulk-upsert plants and meter configs from a JSON body.
     """
-    require_login(request)
+    require_admin(request)
 
     try:
         data = await request.json()
@@ -295,3 +299,152 @@ async def import_config(request: Request):
         raise HTTPException(status_code=400, detail="Expected a JSON object at the top level")
 
     return meter_config_service.import_config_data(data)
+
+# ── User Management ────────────────────────────────────────────────────────────
+
+@router.get("/admin/users", response_class=HTMLResponse)
+def admin_users(request: Request):
+    redirect = require_login_page(request)
+    if redirect:
+        return redirect
+    from fastapi.responses import RedirectResponse
+    if request.session.get("role") != "admin":
+        return RedirectResponse(url="/admin", status_code=303)
+    return templates.TemplateResponse("admin_users.html", template_context(request, active_page='users'))
+
+@router.get("/api/users")
+def get_users(request: Request):
+    require_admin(request)
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT id, username, role, created_at FROM users ORDER BY id ASC")
+    users = cur.fetchall()
+    conn.close()
+    
+    # Format datetime objects into strings for JSON serialization
+    for u in users:
+        if u.get('created_at'):
+            u['created_at'] = u['created_at'].isoformat()
+    return users
+
+@router.post("/api/users")
+async def create_user(request: Request):
+    require_admin(request)
+    data = await request.json()
+    username = data.get("username")
+    password = data.get("password")
+    role = data.get("role", "admin")
+    
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username and password are required")
+        
+    password_hash = pwd_context.hash(password)
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id",
+            (username, password_hash, role)
+        )
+        new_id = cur.fetchone()[0]
+        cur.execute("INSERT INTO user_settings (user_id) VALUES (%s)", (new_id,))
+        conn.commit()
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
+        conn.close()
+        raise HTTPException(status_code=400, detail="Username already exists")
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    conn.close()
+    return {"success": True, "id": new_id, "message": "User created successfully"}
+
+@router.delete("/api/users/{user_id}")
+def delete_user(user_id: int, request: Request):
+    require_admin(request)
+    current_user_id = request.session.get("user_id")
+    if current_user_id == user_id:
+        raise HTTPException(status_code=400, detail="You cannot delete yourself")
+        
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+    deleted = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    
+    if not deleted:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "message": "User deleted successfully"}
+
+# ── User Settings ──────────────────────────────────────────────────────────────
+
+@router.get("/api/user/settings")
+def get_user_settings(request: Request):
+    require_login(request)
+    user_id = request.session.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID not found in session")
+        
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT theme, color_preset, custom_primary, custom_sub FROM user_settings WHERE user_id = %s", (user_id,))
+    settings = cur.fetchone()
+    conn.close()
+    
+    if not settings:
+        return {"theme": "light", "color_preset": "blue", "custom_primary": "#4f46e5", "custom_sub": "#6366f1"}
+    return dict(settings)
+
+@router.post("/api/user/settings")
+async def update_user_settings(request: Request):
+    require_login(request)
+    user_id = request.session.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User ID not found in session")
+        
+    data = await request.json()
+    theme = data.get("theme")
+    color_preset = data.get("color_preset")
+    custom_primary = data.get("custom_primary")
+    custom_sub = data.get("custom_sub")
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # We will only update the fields that were provided
+    updates = []
+    params = []
+    if theme is not None:
+        updates.append("theme = %s")
+        params.append(theme)
+    if color_preset is not None:
+        updates.append("color_preset = %s")
+        params.append(color_preset)
+    if custom_primary is not None:
+        updates.append("custom_primary = %s")
+        params.append(custom_primary)
+    if custom_sub is not None:
+        updates.append("custom_sub = %s")
+        params.append(custom_sub)
+        
+    if updates:
+        params.append(user_id)
+        query = f"UPDATE user_settings SET {', '.join(updates)} WHERE user_id = %s"
+        cur.execute(query, tuple(params))
+        
+        if cur.rowcount == 0:
+            # Maybe setting row doesn't exist for this user? Insert it
+            cur.execute(
+                "INSERT INTO user_settings (user_id, theme, color_preset, custom_primary, custom_sub) "
+                "VALUES (%s, COALESCE(%s, 'light'), COALESCE(%s, 'blue'), COALESCE(%s, '#4f46e5'), COALESCE(%s, '#6366f1'))",
+                (user_id, theme, color_preset, custom_primary, custom_sub)
+            )
+        conn.commit()
+    conn.close()
+    
+    return {"success": True, "message": "Settings updated"}
+
