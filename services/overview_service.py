@@ -21,11 +21,12 @@ def get_system_overview():
     cur.execute(
         """
         SELECT COUNT(*) AS cnt FROM (
-            SELECT DISTINCT ON (plant, meter_id) plant, meter_id, timestamp
+            SELECT DISTINCT ON (plant, meter_id) plant, meter_id, timestamp, status
             FROM meter_data
             ORDER BY plant, meter_id, timestamp DESC
         ) latest
         WHERE latest.timestamp >= NOW() - (%s || ' seconds')::interval
+          AND latest.status = 'OK'
         """,
         (OFFLINE_THRESHOLD_SECONDS,),
     )

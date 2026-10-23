@@ -594,9 +594,13 @@ function syncFloatingHomeBtn() {
 // ================= LOAD PLANTS =================
 
 async function loadPlants() {
-
-    const res = await fetch("/api/plants_detailed");
-    const detailedPlants = await res.json();
+    let detailedPlants = [];
+    try {
+        const res = await fetch("/api/plants_detailed");
+        detailedPlants = await res.json();
+    } catch (e) {
+        console.error("Failed to fetch detailed plants:", e);
+    }
 
     const plants = [];
     detailedPlants.forEach(dp => {
@@ -604,12 +608,42 @@ async function loadPlants() {
         plants.push(dp.name);
     });
 
+    const locationFilterContainer = document.getElementById("locationFilterContainer");
+    const locationFilterSelect = document.getElementById("locationFilterSelect");
     const landingPlantSelect = document.getElementById("landingPlantSelect");
 
-    plants.forEach(p => {
+    // Discover unique locations
+    const locations = [...new Set(detailedPlants.map(dp => dp.location_name).filter(Boolean))].sort();
+    const hasUnassigned = detailedPlants.some(dp => !dp.location_name);
+
+    if (locationFilterContainer && locationFilterSelect && locations.length > 0) {
+        locationFilterContainer.style.display = "block";
+        locationFilterSelect.innerHTML = `<option value="all">All Locations (${detailedPlants.length})</option>`;
+        
+        locations.forEach(loc => {
+            const count = detailedPlants.filter(dp => dp.location_name === loc).length;
+            const opt = document.createElement("option");
+            opt.value = loc;
+            opt.textContent = `📍 ${loc} (${count})`;
+            locationFilterSelect.appendChild(opt);
+        });
+
+        if (hasUnassigned && locations.length > 0) {
+            const unassignedCount = detailedPlants.filter(dp => !dp.location_name).length;
+            const opt = document.createElement("option");
+            opt.value = "__unassigned__";
+            opt.textContent = `Other / Unassigned (${unassignedCount})`;
+            locationFilterSelect.appendChild(opt);
+        }
+
+        locationFilterSelect.onchange = () => {
+            populatePlantSelect(locationFilterSelect.value);
+        };
+    }
+
+    function createPlantOption(p) {
         const option = document.createElement("option");
         option.value = p;
-
         const theme = plantThemes[p];
         if (theme) {
             option.innerHTML = `&#9679; ${p}`;
@@ -618,14 +652,54 @@ async function loadPlants() {
             option.innerHTML = `&#9679; ${p}`;
             option.style.color = "#059669";
         }
+        return option;
+    }
 
-        if (plantSelect) {
-            plantSelect.appendChild(option.cloneNode(true));
-        }
-        if (landingPlantSelect) {
-            landingPlantSelect.appendChild(option.cloneNode(true));
-        }
-    });
+    function populatePlantSelect(filterLocation = "all") {
+        const targets = [plantSelect, landingPlantSelect].filter(Boolean);
+        targets.forEach(sel => {
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">Choose a plant...</option>';
+
+            if (filterLocation === "all") {
+                // Group by location using optgroups
+                if (locations.length > 0) {
+                    locations.forEach(loc => {
+                        const locPlants = detailedPlants.filter(dp => dp.location_name === loc);
+                        if (locPlants.length > 0) {
+                            const group = document.createElement("optgroup");
+                            group.label = `📍 ${loc}`;
+                            locPlants.forEach(dp => group.appendChild(createPlantOption(dp.name)));
+                            sel.appendChild(group);
+                        }
+                    });
+
+                    const unassigned = detailedPlants.filter(dp => !dp.location_name);
+                    if (unassigned.length > 0) {
+                        const group = document.createElement("optgroup");
+                        group.label = "📍 General / Unassigned";
+                        unassigned.forEach(dp => group.appendChild(createPlantOption(dp.name)));
+                        sel.appendChild(group);
+                    }
+                } else {
+                    plants.forEach(p => sel.appendChild(createPlantOption(p)));
+                }
+            } else {
+                // Specific location selected
+                const filtered = detailedPlants.filter(dp => {
+                    if (filterLocation === "__unassigned__") return !dp.location_name;
+                    return dp.location_name === filterLocation;
+                });
+                filtered.forEach(dp => sel.appendChild(createPlantOption(dp.name)));
+            }
+
+            if (currentVal && Array.from(sel.options).some(o => o.value === currentVal)) {
+                sel.value = currentVal;
+            }
+        });
+    }
+
+    populatePlantSelect("all");
 
     if (landingPlantSelect) {
         landingPlantSelect.addEventListener('change', (e) => {

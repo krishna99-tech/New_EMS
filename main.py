@@ -2,8 +2,8 @@
 main.py — application entry point.
 
 Start with:
-    uvicorn main:app --reload
-    uvicorn main:app --reload --host [IP_ADDRESS] --port 8000
+    uvicorn main:app --reload --port 10012
+    uvicorn main:app --reload --host 0.0.0.0 --port 10012
 """
 
 import os
@@ -117,4 +117,7 @@ async def scheduled_daily_rollup():
             await asyncio.sleep(30)
 
 # ── Startup ────────────────────────────────────────────────────────────────────
-# Lifespan events are now defined at the top of the file in the `lifespan` context manager.
+if __name__ == "__main__":
+    import uvicorn
+    from config import APP_PORT
+    uvicorn.run("main:app", host="0.0.0.0", port=APP_PORT, reload=True)

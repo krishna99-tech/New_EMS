@@ -67,6 +67,10 @@ def get_meter_config(plant: str, meter_id) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def compute_live_status(row: dict) -> str:
+    raw_status = (row.get("status") or "").strip().upper()
+    if raw_status in ("OFFLINE", "CRC_ERROR"):
+        return row.get("status")
+
     ts_str = row.get("timestamp")
     if not ts_str:
         return "Offline"

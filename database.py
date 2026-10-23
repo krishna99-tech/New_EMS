@@ -127,18 +127,40 @@ def init_db():
         if col_name not in existing_columns:
             cur.execute(f"ALTER TABLE meter_data ADD COLUMN {col_name} {col_type}")
 
-    # ── Indexes ────────────────────────────────────────────────────────────────
-    cur.execute(
-        "CREATE INDEX IF NOT EXISTS idx_meter_data_plant_meter_ts "
-        "ON meter_data (plant, meter_id, timestamp)"
-    )
-    cur.execute(
-        "CREATE INDEX IF NOT EXISTS idx_meter_data_plant_ts "
-        "ON meter_data (plant, timestamp)"
-    )
-    cur.execute(
-        "CREATE INDEX IF NOT EXISTS idx_meter_data_ts ON meter_data (timestamp)"
-    )
+    # ── Database Indexes ───────────────────────────────────────────────────────
+    db_indexes = [
+        # 1. meter_data (high-volume time-series queries & aggregations)
+        "CREATE INDEX IF NOT EXISTS idx_meter_data_plant_meter_ts_desc ON meter_data (plant, meter_id, timestamp DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_meter_data_plant_ts_desc ON meter_data (plant, timestamp DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_meter_data_ts_desc ON meter_data (timestamp DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_meter_data_status ON meter_data (status)",
+
+        # 2. meter_config (meter lookups by plant and incomer lookups)
+        "CREATE INDEX IF NOT EXISTS idx_meter_config_plant ON meter_config (plant)",
+        "CREATE INDEX IF NOT EXISTS idx_meter_config_plant_meter ON meter_config (plant, meter_id)",
+        "CREATE INDEX IF NOT EXISTS idx_meter_config_plant_type ON meter_config (plant, type)",
+
+        # 3. plants & locations (foreign key join lookups)
+        "CREATE INDEX IF NOT EXISTS idx_plants_location_id ON plants (location_id)",
+        "CREATE INDEX IF NOT EXISTS idx_meter_groups_location_id ON meter_groups (location_id)",
+
+        # 4. meter_group_members (group lookups and plant-meter lookups)
+        "CREATE INDEX IF NOT EXISTS idx_meter_group_members_group_id ON meter_group_members (group_id)",
+        "CREATE INDEX IF NOT EXISTS idx_meter_group_members_plant_meter ON meter_group_members (plant, meter_id)",
+
+        # 5. group_daily_summary (date range filtering)
+        "CREATE INDEX IF NOT EXISTS idx_group_daily_summary_date ON group_daily_summary (date)",
+
+        # 6. device_configs & heartbeats (plant mappings and admin monitoring)
+        "CREATE INDEX IF NOT EXISTS idx_device_configs_plant ON device_configs (plant)",
+        "CREATE INDEX IF NOT EXISTS idx_device_heartbeats_last_seen ON device_heartbeats (last_seen DESC)",
+    ]
+
+    for idx_sql in db_indexes:
+        try:
+            cur.execute(idx_sql)
+        except Exception as e:
+            pass
 
     # ── meter_config table ─────────────────────────────────────────────────────
     cur.execute("""

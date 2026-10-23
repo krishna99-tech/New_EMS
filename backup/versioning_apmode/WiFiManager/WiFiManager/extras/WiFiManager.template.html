@@ -1,0 +1,246 @@
+<!-- HTTP_HEAD -->
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>
+		<meta name="theme-color" content="#1fa3ec"/>
+		<title>{v}</title>
+<!-- /HTTP_HEAD -->
+<!-- HTTP_STYLE -->
+<style>
+
+body{margin:0;padding:30px 18px 40px;text-align:center;font-family:'Trebuchet MS','Verdana',sans-serif;background:#f4f7fb;color:#132238}
+.shell{min-height:100vh;display:flex;align-items:flex-start;justify-content:center}
+.c{display:block}
+.wrap{text-align:left;display:inline-block;min-width:280px;max-width:560px;width:100%;padding:26px 22px 22px;border-radius:20px;background:#fff;border:1px solid rgba(15,23,42,.08);box-shadow:0 8px 24px rgba(15,23,42,.08)}
+.hero{margin:0 0 14px;padding:4px 0 16px;border-bottom:1px solid rgba(31,163,236,.18)}
+.hero h1{margin:0;font-size:1.9rem;line-height:1.1}
+.hero p{margin:8px 0 0;color:#5b6574;font-size:.98rem}
+div,input,select{font-size:1em;box-sizing:border-box}
+input,button,select,.msg{border-radius:12px;width:100%}
+input[type=radio],input[type=checkbox]{width:auto}
+.panel-form{display:block}
+.field{margin:12px 0 10px}
+.field label{display:block;margin:0 0 8px;font-weight:700;color:#243042}
+input,select{padding:.95rem 1rem}
+.check{display:flex;align-items:center;gap:.6rem;margin-top:10px;font-size:.95rem;color:#344054}
+.actions{margin:14px 0 0}
+button,input[type="button"],input[type="submit"]{cursor:pointer;border:0;padding:.95rem 1rem;background:#1fa3ec;color:#fff;line-height:1.2;font-size:1.04rem;width:100%;font-weight:700;letter-spacing:.01em;box-shadow:none}
+button:hover,input[type="button"]:hover,input[type="submit"]:hover{background:#168fd1}
+input[type="text"],input[type="password"],input[type="number"],input[type="file"],select{padding:.95rem 1rem;border:1px solid rgba(20,121,201,.18);background:#fff;box-shadow:none;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+input[type="text"]:focus,input[type="password"]:focus,input[type="number"]:focus,input[type="file"]:focus,select:focus{outline:none;border-color:#1fa3ec;box-shadow:0 0 0 3px rgba(31,163,236,.16),inset 0 1px 0 rgba(255,255,255,.72)}
+input[type="file"]{padding:.88rem .95rem;border:1px solid rgba(20,121,201,.18);background:#fff}
+a{color:#000;font-weight:700;text-decoration:none}a:hover{color:#1fa3ec;text-decoration:underline}
+.h{display:none}
+.q{height:16px;margin:0;padding:0 5px;text-align:right;min-width:38px;float:right}
+.q.q-0:after{background-position-x:0}.q.q-1:after{background-position-x:-16px}.q.q-2:after{background-position-x:-32px}.q.q-3:after{background-position-x:-48px}.q.q-4:after{background-position-x:-64px}
+.q.l:before{background-position-x:-80px;padding-right:5px}
+.ql .q{float:left}
+.q:after,.q:before{content:'';width:16px;height:16px;display:inline-block;background-repeat:no-repeat;background-position:16px 0;background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAAAQCAMAAADeZIrLAAAAJFBMVEX///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADHJj5lAAAAC3RSTlMAIjN3iJmqu8zd7vF8pzcAAABsSURBVHja7Y1BCsAwCASNSVo3/v+/BUEiXnIoXkoX5jAQMxTHzK9cVSnvDxwD8bFx8PhZ9q8FmghXBhqA1faxk92PsxvRc2CCCFdhQCbRkLoAQ3q/wWUBqG35ZxtVzW4Ed6LngPyBU2CobdIDQ5oPWI5nCUwAAAAASUVORK5CYII=')}
+@media (-webkit-min-device-pixel-ratio: 2),(min-resolution: 192dpi){.q:before,.q:after{background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALwAAAAgCAMAAACfM+KhAAAALVBMVEX///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAOrOgAAAADnRSTlMAESIzRGZ3iJmqu8zd7gKjCLQAAACmSURBVHgB7dDBCoMwEEXRmKlVY3L//3NLhyzqIqSUggy8uxnhCR5Mo8xLt+14aZ7wwgsvvPA/ofv9+44334UXXngvb6XsFhO/VoC2RsSv9J7x8BnYLW+AjT56ud/uePMdb7IP8Bsc/e7h8Cfk912ghsNXWPpDC4hvN+D1560A1QPORyh84VKLjjdvfPFm++i9EWq0348XXnjhhT+4dIbCW+WjZim9AKk4UZMnnCEuAAAAAElFTkSuQmCC');background-size:95px 16px}}
+.msg{padding:16px 16px 14px;margin:16px 0;border:1px solid rgba(15,23,42,.08);border-left-width:4px;border-left-color:#777;background:#fff}.msg h4{margin:0 0 6px}.msg p{margin:0}.msg.P{border-left-color:#1fa3ec}.msg.P h4{color:#1fa3ec}.msg.S{border-left-color:#5cb85c}.msg.S h4{color:#5cb85c}.msg.D{border-left-color:#dc3630}.msg.D h4{color:#dc3630}
+dt{font-weight:bold}dd{margin:0;padding:0 0 0.5em 0}
+td{vertical-align:top}
+button.D{background:#dc3630;box-shadow:none}
+button{transition:0s opacity;transition-delay:3s;transition-duration:0s;cursor:pointer}
+button:active{opacity:50% !important;cursor:wait;transition-delay:0s}
+:disabled{opacity:0.5}
+body.invert,body.invert a,body.invert h1{background-color:#060606;color:#fff}
+body.invert .wrap{background:rgba(24,24,24,.94);box-shadow:0 18px 48px rgba(0,0,0,.35)}
+body.invert .hero{border-bottom-color:rgba(255,255,255,.12)}
+body.invert .hero p{color:#cbd5e1}
+body.invert .msg{color:#fff;background-color:#282828;border-top:1px solid #555;border-right:1px solid #555;border-bottom:1px solid #555}
+body.invert .q[role=img]{-webkit-filter:invert(1);filter:invert(1)}
+</style>
+<!-- /HTTP_STYLE -->
+<!-- HTTP_SCRIPT -->
+		<script>
+		function c(l){document.getElementById('s').value=l.innerText||l.textContent;
+		p = l.nextElementSibling.classList.contains('l');
+		document.getElementById('p').disabled = !p;
+		if(p)document.getElementById('p').focus()};
+		function f() {var x = document.getElementById('p');x.type==='password'?x.type='text':x.type='password';}
+		</script>
+<!-- /HTTP_SCRIPT -->
+<!-- HTTP_HEAD_END -->
+	</head>
+	<body class="invert">
+		<div class="shell">
+			<div class='wrap'>
+			<!-- <div class='wrap ql qinv'> -->
+<!-- /HTTP_HEAD_END -->
+			<!-- SAMPLE -->
+			<div class='hero'><h1>/</h1><p>Portal menu</p></div>
+			<!-- /SAMPLE -->
+			<!-- HTTP_PORTAL_OPTIONS -->
+			<!-- /HTTP_PORTAL_OPTIONS -->
+			<!-- HTTP_PORTAL_MENU[] -->
+			<form action='/wifi' method='get'><button>WiFi setup</button></form><br/>
+			<form action='/0wifi' method='get'><button>Setup without scan</button></form><br/>
+			<form action='/info' method='get'><button>Device info</button></form><br/>
+			<form action='/param' method='get'><button>Custom fields</button></form><br/>
+			<hr><br/>
+			<form action='/close' method='get'><button>Close portal</button></form><br/>
+			<form action='/erase' method='get'><button class='D'>Erase WiFi</button></form><br/>
+			<form action='/restart' method='get'><button>Restart</button></form><br/>
+			<form action='/exit' method='get'><button>Exit portal</button></form><br/>
+			<form action='/update' method='get'><button>Update firmware</button></form><br/>
+			<form action='/' method='get'><button>Back</button></form><br/>
+			<!-- /HTTP_PORTAL_MENU -->
+			<!-- SAMPLE -->
+			<div class='hero'><h1>/wifi</h1><p>Select a network</p></div><hr>
+			<div><a href='#p' onclick='c(this)'>Network 01</a><div role='img' aria-label='88%' title='88%' class='q q-4 l'></div></div>
+			<div><a href='#p' onclick='c(this)'>Network 02</a><div role='img' aria-label='88%' title='88%' class='q q-4'></div></div>
+			<div><a href='#p' onclick='c(this)'>Network 03</a><div role='img' aria-label='60%' title='60%' class='q q-3 l'></div></div>
+			<div><a href='#p' onclick='c(this)'>Network 04</a><div role='img' aria-label='60%' title='60%' class='q q-3'></div></div>
+			<div><a href='#p' onclick='c(this)'>Network 05</a><div role='img' aria-label='60%' title='60%' class='q q-3'></div></div>
+			<div><a href='#p' onclick='c(this)'>Network 06</a><div role='img' aria-label='40%' title='40%' class='q q-2'></div></div>
+			<div><a href='#p' onclick='c(this)'>Network 07</a><div role='img' aria-label='40%' title='40%' class='q q-2 l'></div></div>
+			<div><a href='#p' onclick='c(this)'>Network 08</a><div role='img' aria-label='20%' title='20%' class='q q-1'></div></div>
+			<div><a href='#p' onclick='c(this)'>Network 09</a><div role='img' aria-label='20%' title='20%' class='q q-1'></div></div>
+			<div><a href='#p' onclick='c(this)'>Network 10</a><div role='img' aria-label='20%' title='20%' class='q q-4 l'></div><div class='q '>100%</div></div>
+			<div><a href='#p' onclick='c(this)'>Network 11</a><div role='img' aria-label='10%' title='10%' class='q q-3'></div><div class='q '>70%</div></div>
+			<div><a href='#p' onclick='c(this)'>Network 12</a><div role='img' aria-label='10%' title='10%' class='q q-1 l'></div><div class='q '>10%</div></div>
+			<div><a href='#p' onclick='c(this)'>Network 13</a><div role='img' aria-label='10%' title='10%' class='q q-0 h'></div><div class='q '>100%</div></div>
+			<div><a href='#p' onclick='c(this)'>Network 14</a><div class='q'>66%</div></div>
+			<div><a href='#p' onclick='c(this)'>Network 15</a><div class='q'>56%</div></div>
+			<!-- /SAMPLE -->
+			<!-- HTTP_ITEM -->
+			<div><a href='#p' onclick='c(this)'>{v}</a><div role='img' aria-label='{r}%' title='{r}%' class='q q-{q} {i}'></div></div>
+			<!-- /HTTP_ITEM -->
+			<!-- HTTP_FORM_START -->
+			<form class='panel-form' method='get' action='wifisave'><div class='field'><label for='s'>SSID</label><input id='s' name='s' length=32 placeholder='SSID'></div><div class='field'><label for='p'>Password</label><input id='p' name='p' length=64 type='password' placeholder='Password'><label class='check'><input type='checkbox' id='show-password' onclick='f()'><span>Show password</span></label></div>
+			<!-- /HTTP_FORM_START -->
+			<!-- SAMPLE -->
+			<div class='hero'><h1>Custom field</h1><p>Example input</p></div><hr>
+			<br/><label for='custom'>Custom label</label>
+			<br/><input id='custom' name='custom' length='255' placeholder='placeholder' value='' {c}>
+			<!-- /SAMPLE -->
+			<!-- HTTP_FORM_LABEL -->
+			<br/><label for='{i}'>{p}</label>
+			<!-- /HTTP_FORM_LABEL -->
+			<!-- HTTP_FORM_PARAM -->
+			<br/><input id='{i}' name='{n}' length='{l}' placeholder='{p}' value='{v}' {c}>
+			<!-- /HTTP_FORM_PARAM -->
+			<!-- HTTP_FORM_END -->
+			<br/><button type='submit'>Save</button></form>
+			<!-- /HTTP_FORM_END -->
+			<!-- HTTP_SCAN_LINK -->
+			<div class='actions'><form action='/wifi' method='get'><button>Scan again</button></form></div>
+			<!-- /HTTP_SCAN_LINK -->
+			<!-- HTTP_SAVED -->
+			<div class='msg'><h4>Saving credentials</h4><p>Trying to connect the device to the network. If it fails, reconnect to the portal and try again.</p></div>
+			<!-- /HTTP_SAVED -->
+			<!-- HTTP_STATUS_ON -->
+			<div class='msg P'><h4>Connected</h4><p>{v}<br/><small>IP {i}</small></p></div>
+			<!-- /HTTP_STATUS_ON -->
+			<!-- HTTP_STATUS_OFF -->
+			<div class='msg {c}'><h4>Not connected</h4><p>{v}{r}</p></div>
+			<!-- /HTTP_STATUS_OFF -->
+			<!-- sample -->
+			<div class='msg D'><strong>Not Connected</strong> to apname
+			<!-- /sample -->
+			<!-- HTTP_STATUS_OFFPW -->
+				<br/>Authentication Failure
+			<!-- /HTTP_STATUS_OFFPW -->
+			<!-- HTTP_STATUS_OFFNOAP -->
+				<br/>AP not found
+			<!-- /HTTP_STATUS_OFFNOAP -->
+			<!-- HTTP_STATUS_OFFFAIL -->
+				<br/>Could not Connect
+			<!-- /HTTP_STATUS_OFFFAIL -->
+			</div>
+			<!-- HTTP_STATUS_NONE -->
+			<div class='msg'><h4>No access point set</h4></div>
+			<!-- /HTTP_STATUS_NONE -->
+			<!-- SAMPLE -->
+			<div class='msg P'><h4>Primary message</h4>content</div>
+			<!-- /SAMPLE -->
+			<!-- SAMPLE -->
+			<div class='msg S'><h4>Success message</h4>content</div>
+			<!-- /SAMPLE -->
+			<!-- SAMPLE -->
+			<h1>Heading one</h1>
+			<h2>Heading two</h2>
+			<h3>Heading three</h3>
+			<h4>Heading four</h4>
+			<h3>WiFi status <small><em>(WIFI_OFF)</em></small></h3><hr>
+			<dl>
+				<dt>Chip ID</dt><dd>123456</dd>
+				<dt>Flash Chip ID</dt><dd>1234556</dd>
+				<dt>IDE Flash Size</dt><dd>4194304 bytes</dd>
+				<dt>Real Flash Size</dt><dd>4194304 bytes</dd>
+				<dt>Empty</dt><dd></dd>
+				<dt>Soft AP IP</dt><dd>192.168.4.1</dd>
+				<dt>Soft AP MAC</dt><dd>00:00:00:00:00:00</dd>
+				<dt>Station MAC</dt><dd>00:00:00:00:00:00</dd>
+			</dl>
+			<!-- /SAMPLE -->
+			<!-- HTTP_HELP -->
+			<div class='msg P'><h4>Pages</h4><p>Use the links below to configure WiFi, manage parameters, and control the portal.</p></div>
+			<table class='table'>
+			<thead><tr><th>Page</th><th>Function</th></tr></thead><tbody>
+			<tr><td><a href='/'>/</a></td><td>Main menu.</td></tr>
+			<tr><td><a href='/wifi'>/wifi</a></td><td>Show scan results and configure WiFi.(/0wifi noscan)</td></tr>
+			<tr><td><a href='/wifisave'>/wifisave</a></td><td>Save WiFi settings and connect the device.</td></tr>
+			<tr><td><a href='/param'>/param</a></td><td>Custom parameters.</td></tr>
+			<tr><td><a href='/info'>/info</a></td><td>Device information.</td></tr>
+			<tr><td><a href='/u'>/u</a></td><td>OTA update.</td></tr>
+			<tr><td><a href='/close'>/close</a></td><td>Close the portal popup.</td></tr>
+			<tr><td>/exit</td><td>Exit the config portal.</td></tr>
+			<tr><td>/restart</td><td>Reboot the device.</td></tr>
+			<tr><td>/erase</td><td>Erase WiFi settings and reboot.</td></tr>
+			</tbody></table>
+			<p>Github <a href='https://github.com/tzapu/WiFiManager'>https://github.com/tzapu/WiFiManager</a>.</p>
+			<!-- /HTTP_HELP -->
+			<!-- FORM_UPLOAD -->
+			<div class='msg P'><h4>Firmware upload</h4><p>Select a .bin file to start the update.</p></div>
+			<form class='panel-form' method='POST' action='u' enctype='multipart/form-data'>
+				<input type='file' name='update' accept='.bin,application/octet-stream' onchange="(function(el){document.getElementById('uploadbin').style.display = el.value=='' ? 'none' : 'initial';})(this)">
+				<button id='uploadbin' class="h">Update</button>
+			</form>
+			<small><a href='http://192.168.4.1' target='_blank'>* Upload may not work inside the portal. Open http://192.168.4.1 in a browser.</a></small>
+			<!-- /FORM_UPLOAD -->
+
+
+			<!-- FORM_EXTRAS -->
+			<br/><br/><br/><hr>
+			<br/>
+			<label for='custom'>Label for Custom Param</label>
+			<br/>
+			<input id='custom' name='custom' length='255' placeholder='placeholder' value='' {c}>
+			<br/>
+
+			<!-- INOUT CHECKBOX -->
+			<!-- <label for='input_checkbox'>Label for Input Checkbox</label> -->
+			<input id='input_checkbox' name='input_checkbox' placeholder='placeholder' value='' type="checkbox" {c}>
+			<label for='input_checkbox'>Label for Input Checkbox</label>
+			<br/>
+
+			<!-- INPUT CHOICE -->
+			<p>Select Choice</p>
+			<input style='display: inline-block;' type='radio' id='choice1' name='program_selection' value='1'>
+  			<label for='choice1'>Choice1</label><br>
+  			<input style='display: inline-block;' type='radio' id='choice2' name='program_selection' value='2'>
+  			<label for='choice2'>Choice2</label><br>
+
+  			<!-- INPUT SELECT -->
+			<br/>
+			<label for='input_select'>Label for Input Select</label>
+			<select name="input_select" id="input_select" class="button">
+			<option value="0">Option 1</option>
+			<option value="1" selected>Option 2</option>
+			<option value="2">Option 3</option>
+			<option value="3">Option 4</option>
+			</select>
+
+			</form>
+
+			<!-- /FORM_EXTRAS -->
+
+<!-- HTTP_END -->
+			</div>
+		</div>
+	</body>
+</html>
+<!-- /HTTP_END -->

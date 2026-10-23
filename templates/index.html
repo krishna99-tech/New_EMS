@@ -8,7 +8,7 @@
 {% block page_subtitle %}Live monitoring &amp; shift analysis{% endblock %}
 
 {% block app_head %}
-<link rel="stylesheet" href="{{ url_for('static', path='css/plant-dashboard.css') }}?v=29">
+<link rel="stylesheet" href="{{ url_for('static', path='css/plant-dashboard.css') }}?v=35">
 {% endblock %}
 
 {% block app_content %}
@@ -27,8 +27,17 @@
             <p class="landing-tagline">
                 Select a manufacturing plant to begin monitoring real-time power, shift performance, and submeter energy efficiency.
             </p>
-            <div class="landing-plant-selector-wrapper">
-                <div class="landing-plant-selector">
+            <div class="landing-plant-selector-wrapper" id="landingSelectorControls" style="display: flex; gap: 14px; max-width: 620px; margin: 0 auto; flex-wrap: wrap;">
+                <div class="landing-plant-selector" id="locationFilterContainer" style="flex: 1; min-width: 220px;">
+                    <label class="landing-selector-label" for="locationFilterSelect">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        Filter Location
+                    </label>
+                    <select id="locationFilterSelect" class="landing-select" aria-label="Filter Plants by Location">
+                        <option value="all">All Locations</option>
+                    </select>
+                </div>
+                <div class="landing-plant-selector" style="flex: 1.4; min-width: 260px;">
                     <label class="landing-selector-label" for="plantSelect">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         Select Plant
@@ -153,5 +162,5 @@
 {% endblock %}
 
 {% block app_scripts %}
-<script src="{{ url_for('static', path='js/script.js') }}?v=16"></script>
+<script src="{{ url_for('static', path='js/script.js') }}?v=105"></script>
 {% endblock %}
